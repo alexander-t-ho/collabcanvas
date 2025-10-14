@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase/config';
 
 interface Props {
   onClose: () => void;
@@ -10,15 +12,32 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
   const { addObject } = useCanvas();
   const { currentUser } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (files: FileList | null) => {
+  const uploadImageToFirebase = async (file: File): Promise<string> => {
+    const timestamp = Date.now();
+    const fileName = `images/${currentUser?.uid}/${timestamp}_${file.name}`;
+    const imageRef = ref(storage, fileName);
+    
+    const snapshot = await uploadBytes(imageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+  };
+
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0 || !currentUser) return;
 
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
+    setUploading(true);
+
+    try {
+      for (const file of Array.from(files)) {
+        if (file.type.startsWith('image/')) {
+          // Upload to Firebase Storage
+          const imageUrl = await uploadImageToFirebase(file);
+          
+          // Create image element to get dimensions
           const img = new Image();
           img.onload = () => {
             // Calculate dimensions to fit within reasonable bounds
@@ -42,20 +61,23 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
               width,
               height,
               fill: '#ffffff', // Not used for images but required by type
-              src: e.target?.result as string,
+              src: imageUrl, // Use Firebase Storage URL instead of data URL
               nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
               zIndex: 0,
               shadow: false,
               createdBy: currentUser.uid,
             });
           };
-          img.src = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
+          img.src = imageUrl;
+        }
       }
-    });
-    
-    onClose();
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('Failed to upload images. Please try again.');
+    } finally {
+      setUploading(false);
+      onClose();
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -195,27 +217,32 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
         {/* Browse button */}
         <button
           onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
           style={{
             width: '100%',
             padding: '12px',
-            background: '#3b82f6',
+            background: uploading ? '#9ca3af' : '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: uploading ? 'not-allowed' : 'pointer',
             fontWeight: '500',
             fontSize: '14px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
             transition: 'background 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#2563eb';
+            if (!uploading) {
+              e.currentTarget.style.background = '#2563eb';
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#3b82f6';
+            if (!uploading) {
+              e.currentTarget.style.background = '#3b82f6';
+            }
           }}
         >
-          Browse Files
+          {uploading ? 'Uploading...' : 'Browse Files'}
         </button>
 
         <p style={{

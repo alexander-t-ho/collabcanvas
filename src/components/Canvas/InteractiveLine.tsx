@@ -76,6 +76,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
 
     switch (pointType) {
       case 'start':
+        // Only update the start point, keep end point locked
         if (isShiftPressed) {
           const snapped = snapToOrthogonal(endX, endY, newX, newY);
           updateObject(object.id, { x: snapped.x, y: snapped.y });
@@ -84,6 +85,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         }
         break;
       case 'end':
+        // Only update the end point, keep start point locked
         if (isShiftPressed) {
           const snapped = snapToOrthogonal(startX, startY, newX, newY);
           updateObject(object.id, { x2: snapped.x, y2: snapped.y });
@@ -92,7 +94,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         }
         break;
       case 'control':
-        // Control point should only affect the curve, not move the line
+        // Control point should only affect the curve, not move the line endpoints
         updateObject(object.id, { 
           controlX: newX, 
           controlY: newY,
@@ -181,8 +183,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   return (
     <Group
       ref={groupRef}
-      draggable={!isDragging} // Disable group dragging when dragging control points
-      onDragEnd={handleLineDragEnd}
+      draggable={false} // Disable group dragging entirely to prevent line movement
       onClick={() => selectObject(object.id)}
     >
       {/* Main line */}

@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }) => {
-  const { updateObject, selectObject } = useCanvas();
+  const { updateObject, selectObject, selectedIds, addToSelection, removeFromSelection } = useCanvas();
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -24,7 +24,22 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     }
   }, [isSelected]);
 
-  // Load image for image objects
+  // Handle click with multi-selection support
+  const handleClick = (e: any) => {
+    const isMultiSelect = e.evt?.ctrlKey || e.evt?.metaKey;
+    
+    if (isMultiSelect) {
+      // Multi-select mode: add/remove from selection
+      if (selectedIds.includes(object.id)) {
+        removeFromSelection(object.id);
+      } else {
+        addToSelection(object.id);
+      }
+    } else {
+      // Single select mode
+      selectObject(object.id);
+    }
+  };
   useEffect(() => {
     if (object.type === 'image' && object.src) {
       const img = new window.Image();
@@ -120,7 +135,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
-            onClick={() => selectObject(object.id)}
+            onClick={handleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onTransformEnd={handleTransformEnd}
@@ -139,7 +154,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
-            onClick={() => selectObject(object.id)}
+            onClick={handleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onTransformEnd={handleTransformEnd}
@@ -166,12 +181,31 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
-            onClick={() => selectObject(object.id)}
+            onClick={handleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onTransformEnd={handleTransformEnd}
           />
         ) : null;
+      case 'group':
+        // Groups render as a dashed border around grouped objects
+        return (
+          <Rect
+            ref={shapeRef}
+            x={object.x}
+            y={object.y}
+            width={object.width}
+            height={object.height}
+            fill="transparent"
+            stroke={isSelected ? "#3b82f6" : "#94a3b8"}
+            strokeWidth={2}
+            dash={[10, 5]}
+            opacity={0.8}
+            draggable
+            onClick={handleClick}
+            onDragEnd={handleDragEnd}
+          />
+        );
       default:
         return null;
     }
@@ -180,7 +214,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   return (
     <>
       {renderShape()}
-      {isSelected && object.type !== 'line' && <Transformer ref={transformerRef} />}
+      {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
     </>
   );
 };

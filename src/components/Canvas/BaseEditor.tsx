@@ -7,9 +7,10 @@ interface Props {
   onMoveUp: () => void;
   onMoveDown: () => void;
   children: React.ReactNode;
+  hideColorPicker?: boolean; // New prop to hide color picker for images
 }
 
-const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children }) => {
+const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, hideColorPicker }) => {
   const { updateObject, addObject, deleteObject } = useCanvas();
 
   const handleNicknameChange = (value: string) => {
@@ -143,43 +144,45 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children })
         />
       </div>
 
-      {/* Color */}
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ 
-          display: 'block', 
-          marginBottom: '4px', 
-          fontWeight: '500',
-          color: '#6b7280'
-        }}>
-          Color
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '4px',
-              background: object.fill,
-              border: '1px solid #d1d5db',
-              cursor: 'pointer'
-            }}
-          />
-          <input
-            type="text"
-            value={object.fill}
-            onChange={(e) => handleColorChange(e.target.value)}
-            placeholder="#000000"
-            style={{
-              flex: 1,
-              padding: '6px',
-              border: '1px solid #d1d5db',
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontFamily: 'monospace'
-            }}
-          />
+      {/* Color - conditionally rendered */}
+      {!hideColorPicker && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '4px', 
+            fontWeight: '500',
+            color: '#6b7280'
+          }}>
+            Color
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                background: object.fill,
+                border: '1px solid #d1d5db',
+                cursor: 'pointer'
+              }}
+            />
+            <input
+              type="text"
+              value={object.fill}
+              onChange={(e) => handleColorChange(e.target.value)}
+              placeholder="#000000"
+              style={{
+                flex: 1,
+                padding: '6px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontFamily: 'monospace'
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Shadow Toggle */}
       <div style={{ marginBottom: '12px' }}>

@@ -33,6 +33,7 @@ const ImageEditor: React.FC<Props> = ({ object }) => {
       object={object} 
       onMoveUp={handleMoveUp}
       onMoveDown={handleMoveDown}
+      hideColorPicker={true}
     >
       {/* Width */}
       <div style={{ marginBottom: '12px' }}>
