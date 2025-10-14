@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { 
   collection, 
   doc, 
@@ -9,13 +9,13 @@ import {
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { CursorPosition } from '../types';
-import { throttle } from '../utils/helpers';
 
 const CANVAS_ID = 'default';
 
 export const useCursorSync = () => {
   const { currentUser } = useAuth();
   const [remoteCursors, setRemoteCursors] = useState<CursorPosition[]>([]);
+  const lastUpdateRef = useRef<number>(0);
 
   // Listen to cursor updates from other users
   useEffect(() => {
@@ -40,26 +40,28 @@ export const useCursorSync = () => {
   }, [currentUser]);
 
   // Throttled cursor update function
-  const updateCursorPosition = useCallback(
-    throttle(async (x: number, y: number) => {
-      if (!currentUser) return;
+  const updateCursorPosition = useCallback(async (x: number, y: number) => {
+    if (!currentUser) return;
 
-      try {
-        const cursorRef = doc(db, 'canvases', CANVAS_ID, 'cursors', currentUser.uid);
-        await setDoc(cursorRef, {
-          userId: currentUser.uid,
-          name: currentUser.displayName,
-          color: currentUser.cursorColor,
-          x,
-          y,
-          lastUpdated: Date.now()
-        });
-      } catch (error) {
-        console.error('Error updating cursor:', error);
-      }
-    }, 50), // Update every 50ms
-    [currentUser]
-  );
+    // Throttle updates to 50ms
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 50) return;
+    lastUpdateRef.current = now;
+
+    try {
+      const cursorRef = doc(db, 'canvases', CANVAS_ID, 'cursors', currentUser.uid);
+      await setDoc(cursorRef, {
+        userId: currentUser.uid,
+        name: currentUser.displayName,
+        color: currentUser.cursorColor,
+        x,
+        y,
+        lastUpdated: now
+      });
+    } catch (error) {
+      console.error('Error updating cursor:', error);
+    }
+  }, [currentUser]);
 
   // Clean up cursor on unmount
   useEffect(() => {

@@ -10,11 +10,15 @@ const CANVAS_ID = 'default';
 interface CanvasContextType {
   objects: CanvasObject[];
   selectedId: string | null;
+  drawingMode: 'none' | 'line';
+  tempLineStart: { x: number; y: number } | null;
   addObject: (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => Promise<void>;
   updateObject: (id: string, updates: Partial<CanvasObject>) => Promise<void>;
   deleteObject: (id: string) => Promise<void>;
   selectObject: (id: string | null) => void;
   setObjects: (objects: CanvasObject[]) => void;
+  setDrawingMode: (mode: 'none' | 'line') => void;
+  setTempLineStart: (point: { x: number; y: number } | null) => void;
 }
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined);
@@ -28,6 +32,8 @@ export const useCanvas = () => {
 export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [objects, setObjectsState] = useState<CanvasObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [drawingMode, setDrawingMode] = useState<'none' | 'line'>('none');
+  const [tempLineStart, setTempLineStart] = useState<{ x: number; y: number } | null>(null);
   const { currentUser } = useAuth();
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
@@ -107,11 +113,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const value = {
     objects,
     selectedId,
+    drawingMode,
+    tempLineStart,
     addObject,
     updateObject,
     deleteObject,
     selectObject,
-    setObjects
+    setObjects,
+    setDrawingMode,
+    setTempLineStart
   };
 
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
