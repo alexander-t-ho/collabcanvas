@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUserProfile } from '../../contexts/UserProfileContext';
 import { usePresence } from '../../hooks/usePresence';
+import UserProfileDropdown from './UserProfileDropdown';
 
 const Toolbar: React.FC = () => {
   const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup } = useCanvas();
   const { currentUser, logout } = useAuth();
+  const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const handleCreateRectangle = () => {
     if (!currentUser) return;
@@ -56,93 +60,58 @@ const Toolbar: React.FC = () => {
   // Filter out current user - only show others
   const otherUsers = onlineUsers.filter(user => user.userId !== currentUser?.uid);
 
-  const OnlineStatus: React.FC = () => {
-    if (otherUsers.length === 0) return null;
-
-    const maxVisible = 3;
-    const visibleUsers = otherUsers.slice(0, maxVisible);
-    const overflowCount = otherUsers.length - maxVisible;
-
+  // Enhanced OnlineStatus component with user count
+  const EnhancedOnlineStatus: React.FC = () => {
+    const totalOnlineCount = onlineUsers.length;
+    
     return (
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        gap: '2px',
+        gap: '8px',
         marginRight: '12px'
       }}>
-        {visibleUsers.map((user, index) => (
-          <div
-            key={user.userId}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: user.color,
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: '600',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              cursor: 'pointer',
-              position: 'relative',
-              marginLeft: index > 0 ? '-10px' : '0',
-              zIndex: maxVisible - index,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              transition: 'all 0.2s ease',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.15)';
-              e.currentTarget.style.zIndex = '10';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.zIndex = String(maxVisible - index);
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-            }}
-            title={`${user.name} is online`}
-          >
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-        ))}
-        {overflowCount > 0 && (
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6b7280, #4b5563)',
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '11px',
-              fontWeight: '600',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              cursor: 'pointer',
-              marginLeft: '-10px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              transition: 'all 0.2s ease',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.15)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-            }}
-            title={`+${overflowCount} more online`}
-          >
-            +{overflowCount}
-          </div>
-        )}
+        {/* Other users circles */}
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-4px' }}>
+          {otherUsers.slice(0, 3).map((user, index) => (
+            <div
+              key={user.userId}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: user.color,
+                border: '2px solid white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: '600',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                cursor: 'pointer',
+                position: 'relative',
+                marginLeft: index > 0 ? '-8px' : '0',
+                zIndex: 10 - index,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+              }}
+              title={user.name}
+            >
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+          ))}
+        </div>
+        
+        {/* Online count */}
+        <span style={{
+          fontSize: '14px',
+          color: '#6b7280',
+          fontWeight: '500',
+          fontFamily: 'system-ui, -apple-system, sans-serif'
+        }}>
+          {totalOnlineCount} online
+        </span>
       </div>
     );
   };
@@ -266,9 +235,71 @@ const Toolbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Right side - Online status and logout */}
+      {/* Right side - Online status, user profile, and logout */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <OnlineStatus />
+        <EnhancedOnlineStatus />
+        
+        {/* Divider */}
+        <div style={{
+          width: '1px',
+          height: '24px',
+          backgroundColor: '#e5e7eb',
+          marginRight: '12px'
+        }} />
+        
+        {/* User Profile */}
+        <div style={{ position: 'relative' }}>
+          <div
+            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: userProfile?.photoURL ? 'transparent' : (userProfile?.cursorColor || '#3b82f6'),
+              border: '2px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              marginRight: '12px',
+              overflow: 'hidden',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.borderColor = '#3b82f6';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+          >
+            {userProfile?.photoURL ? (
+              <img
+                src={userProfile.photoURL}
+                alt="Profile"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              <span style={{
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                {(userProfile?.displayName || currentUser?.email || 'U').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          
+          {showProfileDropdown && (
+            <UserProfileDropdown onClose={() => setShowProfileDropdown(false)} />
+          )}
+        </div>
         
         <button 
           onClick={logout}

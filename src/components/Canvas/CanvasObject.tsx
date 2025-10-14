@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }) => {
-  const { updateObject, selectObject, selectedIds, addToSelection, removeFromSelection } = useCanvas();
+  const { updateObject, updateObjectLive, selectObject, selectedIds, addToSelection, removeFromSelection } = useCanvas();
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -56,6 +56,9 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
       const newX = e.target.x();
       const newY = e.target.y();
       onDrag({ x: newX, y: newY });
+      
+      // Update local state immediately for real-time feedback
+      updateObjectLive(object.id, { x: newX, y: newY });
     }
   };
 

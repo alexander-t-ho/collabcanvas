@@ -1,6 +1,7 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CanvasProvider } from './contexts/CanvasContext';
+import { UserProfileProvider } from './contexts/UserProfileContext';
 import Login from './components/Auth/Login';
 import Canvas from './components/Canvas/Canvas';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
@@ -38,7 +39,9 @@ const AppContent: React.FC = () => {
 
   return (
     <CanvasProvider>
-      <CanvasApp />
+      <UserProfileProvider>
+        <CanvasApp />
+      </UserProfileProvider>
     </CanvasProvider>
   );
 };

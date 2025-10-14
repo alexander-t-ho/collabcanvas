@@ -12,11 +12,12 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
-import { User } from '../types';
+import { User } from 'firebase/auth';
+import { AppUser } from '../types';
 import { generateRandomColor } from '../utils/colors';
 
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: AppUser | null;
   loading: boolean;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -32,7 +33,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const signup = async (email: string, password: string, displayName: string) => {

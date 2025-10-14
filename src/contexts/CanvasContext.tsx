@@ -15,6 +15,7 @@ interface CanvasContextType {
   tempLineStart: { x: number; y: number } | null;
   addObject: (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => Promise<void>;
   updateObject: (id: string, updates: Partial<CanvasObject>) => Promise<void>;
+  updateObjectLive: (id: string, updates: Partial<CanvasObject>) => void; // For real-time dragging
   deleteObject: (id: string) => Promise<void>;
   selectObject: (id: string | null) => void;
   selectMultiple: (ids: string[]) => void;
@@ -71,26 +72,40 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     console.log('Updating object in Firestore:', id, updates); // DEBUG
     
     try {
-      // Update local state optimistically
-      setObjectsState(prev => 
-        prev.map(obj => 
+      // Get current state to avoid stale closure
+      setObjectsState(prev => {
+        const existingObject = prev.find(obj => obj.id === id);
+        if (!existingObject) return prev;
+        
+        // Update local state optimistically
+        const updatedObjects = prev.map(obj => 
           obj.id === id ? { ...obj, ...updates, lastModified: Date.now() } : obj
-        )
-      );
-      
-      // Find the object
-      const existingObject = objects.find(obj => obj.id === id);
-      if (!existingObject) return;
-      
-      // Update Firestore
-      const updatedObject = { ...existingObject, ...updates, lastModified: Date.now() };
-      const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
-      await setDoc(objectRef, updatedObject);
-      console.log('Object updated successfully in Firestore'); // DEBUG
+        );
+        
+        // Update Firestore asynchronously
+        const updatedObject = { ...existingObject, ...updates, lastModified: Date.now() };
+        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
+        setDoc(objectRef, updatedObject).then(() => {
+          console.log('Object updated successfully in Firestore'); // DEBUG
+        }).catch((error) => {
+          console.error('Error updating object in Firestore:', error);
+        });
+        
+        return updatedObjects;
+      });
     } catch (error) {
       console.error('Error updating object in Firestore:', error);
     }
-  }, [currentUser, objects]);
+  }, [currentUser]);
+
+  // For real-time dragging updates - only updates local state, no Firestore
+  const updateObjectLive = useCallback((id: string, updates: Partial<CanvasObject>) => {
+    setObjectsState(prev => 
+      prev.map(obj => 
+        obj.id === id ? { ...obj, ...updates } : obj
+      )
+    );
+  }, []);
 
   const deleteObject = useCallback(async (id: string) => {
     if (!currentUser) return;
@@ -181,6 +196,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     tempLineStart,
     addObject,
     updateObject,
+    updateObjectLive,
     deleteObject,
     selectObject,
     selectMultiple,
