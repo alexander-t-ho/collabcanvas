@@ -61,13 +61,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         // Fetch user data from Firestore
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.data();
+        let userData = userDoc.data();
+        
+        // Create user document if it doesn't exist
+        if (!userData) {
+          const cursorColor = generateRandomColor();
+          userData = {
+            displayName: firebaseUser.displayName || 'Anonymous',
+            email: firebaseUser.email || '',
+            cursorColor
+          };
+          await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        }
         
         setCurrentUser({
           uid: firebaseUser.uid,
-          displayName: firebaseUser.displayName || 'Anonymous',
+          displayName: firebaseUser.displayName || userData.displayName || 'Anonymous',
           email: firebaseUser.email || '',
-          cursorColor: userData?.cursorColor || generateRandomColor()
+          cursorColor: userData.cursorColor || generateRandomColor()
         });
       } else {
         setCurrentUser(null);

@@ -13,17 +13,22 @@ export const usePresence = () => {
   useEffect(() => {
     if (!currentUser) return;
 
+    console.log('Setting presence for user:', currentUser); // DEBUG
+
     const presenceRef = ref(rtdb, `presence/${CANVAS_ID}/${currentUser.uid}`);
     const allPresenceRef = ref(rtdb, `presence/${CANVAS_ID}`);
 
     // Set user as online
-    set(presenceRef, {
+    const userData = {
       userId: currentUser.uid,
       name: currentUser.displayName,
-      color: currentUser.cursorColor,
+      color: currentUser.cursorColor || '#3b82f6', // Fallback color
       online: true,
       lastSeen: serverTimestamp()
-    });
+    };
+    
+    console.log('Setting presence data:', userData); // DEBUG
+    set(presenceRef, userData);
 
     // Remove presence on disconnect
     onDisconnect(presenceRef).remove();
@@ -32,6 +37,8 @@ export const usePresence = () => {
     const unsubscribe = onValue(allPresenceRef, (snapshot) => {
       const users: PresenceData[] = [];
       
+      console.log('Presence snapshot:', snapshot.val()); // DEBUG
+      
       snapshot.forEach((childSnapshot) => {
         const user = childSnapshot.val() as PresenceData;
         if (user.online) {
@@ -39,6 +46,7 @@ export const usePresence = () => {
         }
       });
 
+      console.log('Online users:', users); // DEBUG
       setOnlineUsers(users);
     });
 
@@ -47,7 +55,7 @@ export const usePresence = () => {
       set(presenceRef, {
         userId: currentUser.uid,
         name: currentUser.displayName,
-        color: currentUser.cursorColor,
+        color: currentUser.cursorColor || '#3b82f6',
         online: false,
         lastSeen: serverTimestamp()
       });

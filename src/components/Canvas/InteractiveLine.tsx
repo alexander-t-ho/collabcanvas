@@ -18,8 +18,12 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   const startY = object.y;
   const endX = object.x2 || object.x + object.width;
   const endY = object.y2 || object.y;
-  const controlX = object.controlX || (startX + endX) / 2;
-  const controlY = object.controlY || (startY + endY) / 2;
+  
+  // Default control point to line midpoint unless explicitly set and curved
+  const defaultControlX = (startX + endX) / 2;
+  const defaultControlY = (startY + endY) / 2;
+  const controlX = object.curved && object.controlX !== undefined ? object.controlX : defaultControlX;
+  const controlY = object.curved && object.controlY !== undefined ? object.controlY : defaultControlY;
 
   // Handle keyboard events for shift key detection
   useEffect(() => {
@@ -149,8 +153,8 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
       y: startY + deltaY,
       x2: endX + deltaX,
       y2: endY + deltaY,
-      controlX: controlX + deltaX,
-      controlY: controlY + deltaY,
+      controlX: object.curved ? controlX + deltaX : undefined,
+      controlY: object.curved ? controlY + deltaY : undefined,
     });
 
     // Reset the group position
@@ -183,7 +187,8 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   return (
     <Group
       ref={groupRef}
-      draggable={false} // Disable group dragging entirely to prevent line movement
+      draggable={!isDragging} // Enable dragging when not manipulating control points
+      onDragEnd={handleLineDragEnd}
       onClick={() => selectObject(object.id)}
     >
       {/* Main line */}
