@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Group, Line, Circle } from 'react-konva';
 import { CanvasObject } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
@@ -11,6 +11,8 @@ interface Props {
 const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   const { updateObject, selectObject } = useCanvas();
   const groupRef = useRef<any>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragType, setDragType] = useState<'start' | 'end' | 'control' | null>(null);
 
   const startX = object.x;
   const startY = object.y;
@@ -19,7 +21,123 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   const controlX = object.controlX || (startX + endX) / 2;
   const controlY = object.controlY || (startY + endY) / 2;
 
-  // Handle dragging the entire line
+  // Handle keyboard events for shift key detection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift' && isDragging && (dragType === 'start' || dragType === 'end')) {
+        // Force orthogonal snapping during drag
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift' && isDragging && (dragType === 'start' || dragType === 'end')) {
+        // Release orthogonal constraint
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isDragging, dragType]);
+
+  // Snap to orthogonal angles (0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°)
+  const snapToOrthogonal = (fromX: number, fromY: number, toX: number, toY: number) => {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length === 0) return { x: toX, y: toY };
+    
+    // Calculate angle in degrees
+    let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    
+    // Snap to nearest 45-degree increment
+    const snapAngle = Math.round(angle / 45) * 45;
+    const radians = snapAngle * Math.PI / 180;
+    
+    return {
+      x: fromX + Math.cos(radians) * length,
+      y: fromY + Math.sin(radians) * length
+    };
+  };
+
+  // Handle dragging control points with real-time updates
+  const handleControlPointDragMove = (pointType: 'start' | 'end' | 'control') => (e: any) => {
+    const newX = e.target.x();
+    const newY = e.target.y();
+    const isShiftPressed = e.evt?.shiftKey || false;
+
+    setIsDragging(true);
+    setDragType(pointType);
+
+    switch (pointType) {
+      case 'start':
+        if (isShiftPressed) {
+          const snapped = snapToOrthogonal(endX, endY, newX, newY);
+          updateObject(object.id, { x: snapped.x, y: snapped.y });
+        } else {
+          updateObject(object.id, { x: newX, y: newY });
+        }
+        break;
+      case 'end':
+        if (isShiftPressed) {
+          const snapped = snapToOrthogonal(startX, startY, newX, newY);
+          updateObject(object.id, { x2: snapped.x, y2: snapped.y });
+        } else {
+          updateObject(object.id, { x2: newX, y2: newY });
+        }
+        break;
+      case 'control':
+        // Control point should only affect the curve, not move the line
+        updateObject(object.id, { 
+          controlX: newX, 
+          controlY: newY,
+          curved: true 
+        });
+        break;
+    }
+  };
+
+  const handleControlPointDragEnd = (pointType: 'start' | 'end' | 'control') => (e: any) => {
+    setIsDragging(false);
+    setDragType(null);
+    
+    const newX = e.target.x();
+    const newY = e.target.y();
+    const isShiftPressed = e.evt?.shiftKey || false;
+
+    switch (pointType) {
+      case 'start':
+        if (isShiftPressed) {
+          const snapped = snapToOrthogonal(endX, endY, newX, newY);
+          updateObject(object.id, { x: snapped.x, y: snapped.y });
+        } else {
+          updateObject(object.id, { x: newX, y: newY });
+        }
+        break;
+      case 'end':
+        if (isShiftPressed) {
+          const snapped = snapToOrthogonal(startX, startY, newX, newY);
+          updateObject(object.id, { x2: snapped.x, y2: snapped.y });
+        } else {
+          updateObject(object.id, { x2: newX, y2: newY });
+        }
+        break;
+      case 'control':
+        updateObject(object.id, { 
+          controlX: newX, 
+          controlY: newY,
+          curved: true 
+        });
+        break;
+    }
+  };
+
+  // Handle dragging the entire line (only when clicking on the line itself, not control points)
   const handleLineDragEnd = (e: any) => {
     const deltaX = e.target.x();
     const deltaY = e.target.y();
@@ -36,28 +154,6 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
     // Reset the group position
     e.target.x(0);
     e.target.y(0);
-  };
-
-  // Handle dragging control points
-  const handleControlPointDrag = (pointType: 'start' | 'end' | 'control') => (e: any) => {
-    const newX = e.target.x();
-    const newY = e.target.y();
-
-    switch (pointType) {
-      case 'start':
-        updateObject(object.id, { x: newX, y: newY });
-        break;
-      case 'end':
-        updateObject(object.id, { x2: newX, y2: newY });
-        break;
-      case 'control':
-        updateObject(object.id, { 
-          controlX: newX, 
-          controlY: newY,
-          curved: true // Make the line curved when control point is moved
-        });
-        break;
-    }
   };
 
   // Generate points for the line (straight or curved)
@@ -85,7 +181,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   return (
     <Group
       ref={groupRef}
-      draggable
+      draggable={!isDragging} // Disable group dragging when dragging control points
       onDragEnd={handleLineDragEnd}
       onClick={() => selectObject(object.id)}
     >
@@ -97,6 +193,10 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         lineCap="round"
         lineJoin="round"
         tension={object.curved ? 0.5 : 0}
+        shadowEnabled={object.shadow || false}
+        shadowBlur={object.shadow ? 15 : 0}
+        shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
+        shadowOpacity={object.shadow ? 0.5 : 0}
       />
       
       {/* Control points - only show when selected */}
@@ -106,36 +206,57 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
           <Circle
             x={startX}
             y={startY}
-            radius={6}
+            radius={8}
             fill="#3b82f6"
             stroke="white"
             strokeWidth={2}
             draggable
-            onDragEnd={handleControlPointDrag('start')}
+            onDragMove={handleControlPointDragMove('start')}
+            onDragEnd={handleControlPointDragEnd('start')}
+            onMouseEnter={(e) => {
+              e.target.scale({ x: 1.2, y: 1.2 });
+            }}
+            onMouseLeave={(e) => {
+              e.target.scale({ x: 1, y: 1 });
+            }}
           />
           
           {/* End point */}
           <Circle
             x={endX}
             y={endY}
-            radius={6}
+            radius={8}
             fill="#3b82f6"
             stroke="white"
             strokeWidth={2}
             draggable
-            onDragEnd={handleControlPointDrag('end')}
+            onDragMove={handleControlPointDragMove('end')}
+            onDragEnd={handleControlPointDragEnd('end')}
+            onMouseEnter={(e) => {
+              e.target.scale({ x: 1.2, y: 1.2 });
+            }}
+            onMouseLeave={(e) => {
+              e.target.scale({ x: 1, y: 1 });
+            }}
           />
           
-          {/* Control point (middle) */}
+          {/* Control point (middle) - for curving only */}
           <Circle
             x={controlX}
             y={controlY}
-            radius={6}
+            radius={8}
             fill={object.curved ? "#ef4444" : "#10b981"}
             stroke="white"
             strokeWidth={2}
             draggable
-            onDragEnd={handleControlPointDrag('control')}
+            onDragMove={handleControlPointDragMove('control')}
+            onDragEnd={handleControlPointDragEnd('control')}
+            onMouseEnter={(e) => {
+              e.target.scale({ x: 1.2, y: 1.2 });
+            }}
+            onMouseLeave={(e) => {
+              e.target.scale({ x: 1, y: 1 });
+            }}
           />
           
           {/* Helper lines to control point */}
