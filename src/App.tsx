@@ -1,26 +1,46 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CanvasProvider } from './contexts/CanvasContext';
+import Login from './components/Auth/Login';
+import Canvas from './components/Canvas/Canvas';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 
-function App() {
+const CanvasApp: React.FC = () => {
+  useRealtimeSync(); // Make sure this is called!
+  
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Canvas />
   );
-}
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+const AppContent: React.FC = () => {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        Loading...
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <Login />;
+  }
+
+  return (
+    <CanvasProvider>
+      <CanvasApp />
+    </CanvasProvider>
+  );
+};
 
 export default App;
