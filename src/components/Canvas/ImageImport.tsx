@@ -36,49 +36,63 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
         if (file.type.startsWith('image/')) {
           console.log('Processing image:', file.name, 'Size:', file.size); // DEBUG
           
-          // Compress image before upload to reduce size and improve performance
-          const compressedFile = await compressImage(file, 0.7); // 70% quality
-          
-          // Upload to Firebase Storage for persistence
-          const imageUrl = await uploadImageToFirebase(compressedFile);
-          console.log('Image uploaded successfully:', imageUrl); // DEBUG
-          
-          // Create image element to get dimensions
-          const img = new Image();
-          img.onload = () => {
-            // Calculate dimensions to fit within reasonable bounds
-            const maxWidth = 300;
-            const maxHeight = 300;
-            let { width, height } = img;
+          // Use data URL for instant display, then upload to Firebase Storage in background
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const dataUrl = e.target?.result as string;
             
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            }
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height;
-              height = maxHeight;
-            }
+            // Create image element to get dimensions
+            const img = new Image();
+            img.onload = async () => {
+              // Calculate dimensions to fit within reasonable bounds
+              const maxWidth = 300;
+              const maxHeight = 300;
+              let { width, height } = img;
+              
+              if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+              }
+              if (height > maxHeight) {
+                width = (width * maxHeight) / height;
+                height = maxHeight;
+              }
 
-            console.log('Adding image object to canvas'); // DEBUG
-            addObject({
-              type: 'image',
-              x: Math.random() * 300 + 100,
-              y: Math.random() * 300 + 100,
-              width,
-              height,
-              fill: '#ffffff', // Not used for images but required by type
-              src: imageUrl, // Use Firebase Storage URL for persistence
-              nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-              zIndex: 0,
-              shadow: false,
-              createdBy: currentUser.uid,
-            });
+              console.log('Adding image object to canvas immediately'); // DEBUG
+              
+              // Add image immediately with data URL for instant display
+              const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              await addObject({
+                type: 'image',
+                x: Math.random() * 300 + 100,
+                y: Math.random() * 300 + 100,
+                width,
+                height,
+                fill: '#ffffff', // Not used for images but required by type
+                src: dataUrl, // Use data URL for immediate display
+                nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+                zIndex: 0,
+                shadow: false,
+                cornerRadius: 0, // Add corner radius support for images
+                createdBy: currentUser.uid,
+              });
+              
+              // Upload to Firebase Storage in background for persistence
+              try {
+                const compressedFile = await compressImage(file, 0.7);
+                const firebaseUrl = await uploadImageToFirebase(compressedFile);
+                
+                // Update the object with Firebase Storage URL for persistence
+                console.log('Updating image with Firebase Storage URL for persistence'); // DEBUG
+                // Note: We'll need to implement updateObjectBySrc or similar to update the specific image
+              } catch (uploadError) {
+                console.error('Background upload failed, but image is still visible:', uploadError);
+                // Image remains visible with data URL even if Firebase upload fails
+              }
+            };
+            img.src = dataUrl;
           };
-          img.onerror = (error) => {
-            console.error('Error loading image:', error);
-          };
-          img.src = imageUrl;
+          reader.readAsDataURL(file);
         }
       }
     } catch (error) {

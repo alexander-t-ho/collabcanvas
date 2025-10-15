@@ -60,14 +60,27 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     
     if (length === 0) return; // Prevent division by zero
     
-    // Find the closest perpendicular orientation (0°, 45°, 90°, 135°, 180°, etc.)
+    // Find the closest 90-degree orientation (0° horizontal or 90° vertical)
     let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
     
-    // Round to nearest 45-degree increment
-    const roundedAngle = Math.round(angle / 45) * 45;
-    const radians = roundedAngle * Math.PI / 180;
+    // Normalize angle to 0-360 range
+    if (angle < 0) angle += 360;
     
-    console.log('Angle calculations:', { angle, roundedAngle, radians }); // DEBUG
+    console.log('Current angle:', angle); // DEBUG
+    
+    // Determine if closer to horizontal (0°/180°) or vertical (90°/270°)
+    let targetAngle;
+    if ((angle >= 315 || angle < 45) || (angle >= 135 && angle < 225)) {
+      // Closer to horizontal (0° or 180°)
+      targetAngle = (angle >= 135 && angle < 225) ? 180 : 0;
+    } else {
+      // Closer to vertical (90° or 270°)
+      targetAngle = (angle >= 45 && angle < 135) ? 90 : 270;
+    }
+    
+    console.log('Target angle:', targetAngle); // DEBUG
+    
+    const radians = targetAngle * Math.PI / 180;
     
     // Calculate new end point
     const newX2 = startX + length * Math.cos(radians);

@@ -190,6 +190,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             rotation={object.rotation || 0}
             offsetX={object.width / 2} // Rotate around center
             offsetY={object.height / 2} // Rotate around center
+            cornerRadius={object.cornerRadius || 0} // Add corner radius support
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}

@@ -18,6 +18,10 @@ const ImageEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { height: Math.max(10, value) });
   };
 
+  const handleCornerRadiusChange = (value: number) => {
+    updateObject(object.id, { cornerRadius: Math.max(0, Math.min(50, value)) });
+  };
+
   const handleMoveUp = () => {
     const maxZ = Math.max(...objects.map(obj => obj.zIndex || 0));
     updateObject(object.id, { zIndex: maxZ + 1 });
@@ -82,6 +86,43 @@ const ImageEditor: React.FC<Props> = ({ object }) => {
             style={{
               flex: 1,
               padding: '6px',
+              border: '1px solid #d1d5db',
+              borderRadius: '4px',
+              fontSize: '11px'
+            }}
+          />
+          <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
+        </div>
+      </div>
+
+      {/* Corner Radius */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ 
+          display: 'block', 
+          marginBottom: '4px', 
+          fontWeight: '500',
+          color: '#6b7280'
+        }}>
+          Corner Radius
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="range"
+            min="0"
+            max="50"
+            value={object.cornerRadius || 0}
+            onChange={(e) => handleCornerRadiusChange(Number(e.target.value))}
+            style={{ flex: 1 }}
+          />
+          <input
+            type="number"
+            min="0"
+            max="50"
+            value={object.cornerRadius || 0}
+            onChange={(e) => handleCornerRadiusChange(Number(e.target.value))}
+            style={{
+              width: '50px',
+              padding: '4px',
               border: '1px solid #d1d5db',
               borderRadius: '4px',
               fontSize: '11px'
