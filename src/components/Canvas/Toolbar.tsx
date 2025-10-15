@@ -60,9 +60,15 @@ const Toolbar: React.FC = () => {
   // Filter out current user - only show others
   const otherUsers = onlineUsers.filter(user => user.userId !== currentUser?.uid);
 
+  // Add debugging for the toolbar
+  console.log('🔥 TOOLBAR: onlineUsers received:', onlineUsers.length, onlineUsers);
+  console.log('🔥 TOOLBAR: otherUsers:', otherUsers.length, otherUsers);
+
   // Enhanced OnlineStatus component with user count
   const EnhancedOnlineStatus: React.FC = () => {
     const totalOnlineCount = onlineUsers.length;
+    
+    console.log('🔥 TOOLBAR: Rendering with totalOnlineCount:', totalOnlineCount);
     
     return (
       <div style={{ 
