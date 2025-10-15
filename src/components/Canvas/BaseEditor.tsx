@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CanvasObject } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
 
@@ -7,11 +7,12 @@ interface Props {
   onMoveUp: () => void;
   onMoveDown: () => void;
   children: React.ReactNode;
-  hideColorPicker?: boolean; // New prop to hide color picker for images
+  hideColorPicker?: boolean;
 }
 
 const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, hideColorPicker }) => {
   const { updateObject, addObject, deleteObject } = useCanvas();
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const handleNicknameChange = (value: string) => {
     updateObject(object.id, { nickname: value });
@@ -150,7 +151,7 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
 
       {/* Color - conditionally rendered */}
       {!hideColorPicker && (
-        <div style={{ marginBottom: '12px' }}>
+        <div style={{ marginBottom: '12px', position: 'relative' }}>
           <label style={{ 
             display: 'block', 
             marginBottom: '4px', 
@@ -161,14 +162,26 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
+              onClick={() => setShowColorPicker(!showColorPicker)}
               style={{
-                width: '24px',
-                height: '24px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '4px',
                 background: object.fill,
-                border: '1px solid #d1d5db',
-                cursor: 'pointer'
+                border: '2px solid #d1d5db',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative'
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.borderColor = '#3b82f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+              title="Click to open color wheel"
             />
             <input
               type="text"
@@ -185,6 +198,99 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
               }}
             />
           </div>
+          
+          {/* Color Wheel Picker */}
+          {showColorPicker && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: '8px',
+              background: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1003,
+              width: '250px'
+            }}>
+              {/* Color Wheel using native HTML5 color input */}
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  type="color"
+                  value={object.fill}
+                  onChange={(e) => {
+                    handleColorChange(e.target.value);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              
+              {/* Quick color presets */}
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '6px', 
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: '#6b7280'
+                }}>
+                  Quick Colors
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+                  {['#000000', '#ffffff', '#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6',
+                    '#ec4899', '#06b6d4', '#14b8a6', '#84cc16', '#f97316', '#6366f1', '#a855f7', '#d1d5db'].map(color => (
+                    <div
+                      key={color}
+                      onClick={() => {
+                        handleColorChange(color);
+                        setShowColorPicker(false);
+                      }}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        background: color,
+                        border: object.fill === color ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'transform 0.1s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowColorPicker(false)}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  background: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  marginTop: '8px'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          )}
         </div>
       )}
 
