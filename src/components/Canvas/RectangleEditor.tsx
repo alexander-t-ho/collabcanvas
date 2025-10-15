@@ -106,6 +106,12 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
             value={widthInput}
             onChange={(e) => setWidthInput(e.target.value)}
             onBlur={handleWidthBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleWidthBlur();
+                e.currentTarget.blur();
+              }
+            }}
             style={{
               flex: 1,
               padding: '6px',
@@ -135,6 +141,12 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
             value={heightInput}
             onChange={(e) => setHeightInput(e.target.value)}
             onBlur={handleHeightBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleHeightBlur();
+                e.currentTarget.blur();
+              }
+            }}
             style={{
               flex: 1,
               padding: '6px',

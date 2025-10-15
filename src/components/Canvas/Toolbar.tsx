@@ -95,9 +95,6 @@ const Toolbar: React.FC = () => {
 
   // Enhanced OnlineStatus component with user count
   const EnhancedOnlineStatus: React.FC = () => {
-    // Use the memoized totalOnlineCount from parent scope
-    console.log('🔥 TOOLBAR: EnhancedOnlineStatus rendering with count:', totalOnlineCount);
-    
     return (
       <div style={{ 
         display: 'flex', 
@@ -110,6 +107,7 @@ const Toolbar: React.FC = () => {
           {otherUsers.slice(0, 3).map((user, index) => (
             <div
               key={user.userId}
+              onClick={() => alert(`👤 ${user.name}\n🎨 Color: ${user.color}\n🆔 ID: ${user.userId.slice(0, 8)}...`)}
               style={{
                 width: 32,
                 height: 32,
@@ -128,16 +126,23 @@ const Toolbar: React.FC = () => {
                 marginLeft: index > 0 ? '-8px' : '0',
                 zIndex: 10 - index,
                 boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                transition: 'transform 0.2s ease'
               }}
-              title={user.name}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title={`${user.name} - Click for details`}
             >
               {user.name.charAt(0).toUpperCase()}
             </div>
           ))}
         </div>
         
-        {/* Online count - using memoized value */}
+        {/* Online count */}
         <span style={{
           fontSize: '14px',
           color: '#6b7280',
