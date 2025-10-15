@@ -32,23 +32,23 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
     setUploading(true);
 
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        if (!file.type.startsWith('image/')) return;
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue;
         
         console.log('🔥 IMAGE: Processing image:', file.name, 'Size:', file.size);
         
-        // Compress and upload to Firebase Storage immediately
-        const compressedFile = await compressImage(file, 0.8); // 80% quality
-        console.log('🔥 IMAGE: Compressed size:', compressedFile.size);
-        
-        const firebaseUrl = await uploadImageToFirebase(compressedFile);
-        console.log('🔥 IMAGE: Uploaded to Firebase Storage:', firebaseUrl);
-        
-        // Create image element to get dimensions from the Firebase URL
-        return new Promise<void>((resolve, reject) => {
+        // Step 1: Create data URL for INSTANT display
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const dataUrl = e.target?.result as string;
+          
+          // Step 2: Compress image
+          const compressedDataUrl = await compressImageToDataUrl(dataUrl, 0.6); // Lower quality for smaller size
+          console.log('🔥 IMAGE: Image compressed for Firestore');
+          
+          // Step 3: Get dimensions
           const img = new Image();
           img.onload = async () => {
-            // Calculate dimensions to fit within reasonable bounds
             const maxWidth = 300;
             const maxHeight = 300;
             let { width, height } = img;
@@ -62,9 +62,10 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
               height = maxHeight;
             }
 
-            console.log('🔥 IMAGE: Adding to canvas with dimensions:', width, 'x', height);
+            console.log('🔥 IMAGE: Adding to canvas immediately with compressed data URL');
             
-            // Add image object with Firebase Storage URL (permanent persistence)
+            // Step 4: Add image immediately with compressed data URL
+            // Compressed data URLs are small enough for Firestore and display instantly
             await addObject({
               type: 'image',
               x: Math.random() * 300 + 100,
@@ -72,7 +73,7 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
               width,
               height,
               fill: '#ffffff',
-              src: firebaseUrl, // Use Firebase Storage URL for persistence
+              src: compressedDataUrl, // Use compressed data URL - small enough for Firestore
               nickname: file.name.replace(/\.[^/.]+$/, ''),
               zIndex: 0,
               shadow: false,
@@ -80,21 +81,16 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
               createdBy: currentUser.uid,
             });
             
-            console.log('✅ IMAGE: Successfully added to canvas');
-            resolve();
+            console.log('✅ IMAGE: Image added to canvas and will persist in Firestore');
           };
           
-          img.onerror = (error) => {
-            console.error('❌ IMAGE: Error loading image:', error);
-            reject(error);
-          };
-          
-          img.src = firebaseUrl;
-        });
-      });
-
-      await Promise.all(uploadPromises);
-      console.log('✅ IMAGE: All images processed successfully');
+          img.src = compressedDataUrl;
+        };
+        
+        reader.readAsDataURL(file);
+      }
+      
+      console.log('✅ IMAGE: All images processed');
       
     } catch (error) {
       console.error('❌ IMAGE: Error processing images:', error);
@@ -103,6 +99,49 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
       setUploading(false);
       onClose();
     }
+  };
+
+  // Compress image to data URL with smaller size for Firestore
+  const compressImageToDataUrl = (dataUrl: string, quality: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Aggressively reduce size to keep under Firestore limits
+        const maxSize = 400; // Smaller max size
+        let { width, height } = img;
+        
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Use lower quality and JPEG for smaller size
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        
+        console.log('🔥 IMAGE: Original size:', dataUrl.length, 'Compressed size:', compressedDataUrl.length);
+        resolve(compressedDataUrl);
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+      
+      img.src = dataUrl;
+    });
   };
 
   // Compress image to reduce file size
