@@ -27,7 +27,11 @@ const Canvas: React.FC = () => {
     setDrawingMode, 
     tempLineStart, 
     setTempLineStart,
-    addObject
+    addObject,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   } = useCanvas();
   const { currentUser } = useAuth();
   const stageRef = useRef<any>(null);
@@ -237,6 +241,25 @@ const Canvas: React.FC = () => {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo with Ctrl+Z (Cmd+Z on Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) {
+          undo();
+          console.log('⏪ Undo triggered');
+        }
+      }
+      
+      // Redo with Ctrl+Y or Ctrl+Shift+Z
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        if (canRedo) {
+          redo();
+          console.log('⏩ Redo triggered');
+        }
+      }
+      
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
         // Delete is now handled by individual editors
       }
@@ -264,7 +287,7 @@ const Canvas: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('openImageImport', handleImageImportEvent);
     };
-  }, [selectedId, drawingMode, setDrawingMode, setTempLineStart]);
+  }, [selectedId, drawingMode, setDrawingMode, setTempLineStart, undo, redo, canUndo, canRedo]);
 
   return (
     <div style={{ 

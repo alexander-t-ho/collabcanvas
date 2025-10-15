@@ -6,7 +6,7 @@ import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
 
 const Toolbar: React.FC = () => {
-  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup } = useCanvas();
+  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup, saveCanvas } = useCanvas();
   const { currentUser, logout } = useAuth();
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
@@ -284,6 +284,31 @@ const Toolbar: React.FC = () => {
           }}
         >
           Import Image
+        </button>
+
+        <button
+          onClick={saveCanvas}
+          style={{
+            padding: '8px 16px',
+            background: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#059669';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#10b981';
+          }}
+          title="Save canvas as JSON file"
+        >
+          💾 Save
         </button>
 
         <button

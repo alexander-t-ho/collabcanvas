@@ -13,6 +13,8 @@ interface CanvasContextType {
   selectedIds: string[];
   drawingMode: 'none' | 'line';
   tempLineStart: { x: number; y: number } | null;
+  canUndo: boolean;
+  canRedo: boolean;
   addObject: (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => Promise<void>;
   updateObject: (id: string, updates: Partial<CanvasObject>) => Promise<void>;
   updateObjectLive: (id: string, updates: Partial<CanvasObject>) => void;
@@ -23,6 +25,9 @@ interface CanvasContextType {
   removeFromSelection: (id: string) => void;
   clearSelection: () => void;
   createGroup: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  saveCanvas: () => void;
   setObjects: (objects: CanvasObject[]) => void;
   setDrawingMode: (mode: 'none' | 'line') => void;
   setTempLineStart: (point: { x: number; y: number } | null) => void;
@@ -42,7 +47,22 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [drawingMode, setDrawingMode] = useState<'none' | 'line'>('none');
   const [tempLineStart, setTempLineStart] = useState<{ x: number; y: number } | null>(null);
+  const [history, setHistory] = useState<CanvasObject[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const { currentUser } = useAuth();
+
+  // Save state to history (for undo/redo)
+  const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
+    setHistory(prev => {
+      // Remove any future history if we're in the middle of the stack
+      const newHistory = prev.slice(0, historyIndex + 1);
+      // Add new state
+      newHistory.push(JSON.parse(JSON.stringify(newObjects)));
+      // Limit history to last 50 states
+      return newHistory.slice(-50);
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, 49));
+  }, [historyIndex]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
@@ -187,12 +207,69 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setObjectsState(newObjects);
   }, []);
 
+  // Undo function
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const previousState = history[historyIndex - 1];
+      setHistoryIndex(historyIndex - 1);
+      setObjectsState(previousState);
+      
+      // Sync to Firestore
+      previousState.forEach(obj => {
+        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+        setDoc(objectRef, obj).catch(console.error);
+      });
+      
+      console.log('🔄 UNDO: Restored to history index', historyIndex - 1);
+    }
+  }, [historyIndex, history]);
+
+  // Redo function
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const nextState = history[historyIndex + 1];
+      setHistoryIndex(historyIndex + 1);
+      setObjectsState(nextState);
+      
+      // Sync to Firestore
+      nextState.forEach(obj => {
+        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+        setDoc(objectRef, obj).catch(console.error);
+      });
+      
+      console.log('🔄 REDO: Restored to history index', historyIndex + 1);
+    }
+  }, [historyIndex, history]);
+
+  // Save canvas state
+  const saveCanvas = useCallback(() => {
+    const canvasData = {
+      objects,
+      timestamp: Date.now(),
+      savedBy: currentUser?.uid || 'unknown'
+    };
+    
+    // Create a downloadable JSON file
+    const dataStr = JSON.stringify(canvasData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `collabcanvas-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    console.log('💾 SAVE: Canvas saved with', objects.length, 'objects');
+  }, [objects, currentUser]);
+
   const value = {
     objects,
     selectedId,
     selectedIds,
     drawingMode,
     tempLineStart,
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < history.length - 1,
     addObject,
     updateObject,
     updateObjectLive,
@@ -203,6 +280,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     removeFromSelection,
     clearSelection,
     createGroup,
+    undo,
+    redo,
+    saveCanvas,
     setObjects,
     setDrawingMode,
     setTempLineStart
