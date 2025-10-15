@@ -29,6 +29,12 @@ const Toolbar: React.FC = () => {
     return onlineUsers.filter(user => user.userId !== currentUser?.uid);
   }, [onlineUsers, currentUser]);
 
+  // DEBUG: Log what we're actually seeing
+  console.log('TOOLBAR: onlineUsers array:', onlineUsers);
+  console.log('TOOLBAR: onlineUsers.length:', onlineUsers.length);
+  console.log('TOOLBAR: totalOnlineCount:', totalOnlineCount);
+  console.log('TOOLBAR: otherUsers.length:', otherUsers.length);
+
   const handleCreateRectangle = () => {
     if (!currentUser) return;
     

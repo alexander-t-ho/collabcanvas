@@ -228,50 +228,80 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Undo function - undo all changes (collaborative)
   const undo = useCallback(() => {
+    console.log('==================== UNDO FUNCTION CALLED ====================');
+    console.log('UNDO: Starting...');
+    
     try {
       const currentIndex = historyIndexRef.current;
       const currentHistory = historyRef.current;
       
-      console.log('UNDO: Index:', currentIndex, 'Length:', currentHistory.length);
+      console.log('UNDO: currentIndex:', currentIndex);
+      console.log('UNDO: currentHistory.length:', currentHistory.length);
+      console.log('UNDO: Current objects count:', objects.length);
       
-      if (currentIndex <= 0 || currentHistory.length === 0) {
-        console.log('UNDO: No history');
+      if (currentIndex <= 0) {
+        console.log('UNDO: BLOCKED - currentIndex <= 0');
+        alert('No history to undo (index <= 0)');
+        return;
+      }
+      
+      if (currentHistory.length === 0) {
+        console.log('UNDO: BLOCKED - history is empty');
+        alert('No history to undo (empty history)');
         return;
       }
       
       setIsUndoRedo(true);
       const previousState = currentHistory[currentIndex - 1];
       
+      console.log('UNDO: previousState:', previousState);
+      console.log('UNDO: previousState.length:', previousState?.length);
+      
       if (!previousState) {
-        console.error('UNDO: Previous state undefined');
+        console.error('UNDO: previousState is null/undefined!');
+        alert('Undo failed: Previous state is undefined');
         setIsUndoRedo(false);
         return;
       }
       
+      console.log('UNDO: Setting historyIndex to', currentIndex - 1);
       setHistoryIndex(currentIndex - 1);
       historyIndexRef.current = currentIndex - 1;
-      setObjectsState(previousState);
       
-      // Sync all objects to Firestore
+      console.log('UNDO: Calling setObjectsState with', previousState.length, 'objects');
+      setObjectsState(previousState);
+      console.log('UNDO: setObjectsState called successfully');
+      
+      // Sync to Firestore
+      console.log('UNDO: Syncing to Firestore...');
       previousState.forEach(obj => {
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(console.error);
+        setDoc(objectRef, obj).catch(err => console.error('Firestore sync error:', err));
       });
       
-      // Delete objects that don't exist in previous state
+      // Delete removed objects
       const previousIds = previousState.map(obj => obj.id);
       objects.forEach(obj => {
         if (!previousIds.includes(obj.id)) {
+          console.log('UNDO: Deleting object', obj.id);
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(console.error);
+          deleteDoc(objectRef).catch(err => console.error('Delete error:', err));
         }
       });
       
-      console.log('UNDO: Complete');
-      setTimeout(() => setIsUndoRedo(false), 200);
+      console.log('UNDO: Setting isUndoRedo to false in 200ms');
+      setTimeout(() => {
+        setIsUndoRedo(false);
+        console.log('UNDO: isUndoRedo set to false');
+      }, 200);
+      
+      console.log('==================== UNDO COMPLETE ====================');
+      alert(`Undo complete! Restored to ${previousState.length} objects`);
     } catch (error) {
-      console.error('UNDO: Error:', error);
+      console.error('==================== UNDO ERROR ====================');
+      console.error('UNDO: Critical error:', error);
       setIsUndoRedo(false);
+      alert('Undo crashed: ' + error);
     }
   }, [objects, currentUser]);
 
