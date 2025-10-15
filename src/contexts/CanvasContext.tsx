@@ -226,7 +226,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [isUndoRedo, saveToHistory]);
 
-  // Undo function
+  // Undo function - only undo current user's changes
   const undo = useCallback(() => {
     try {
       const currentIndex = historyIndexRef.current;
@@ -252,33 +252,56 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       setHistoryIndex(currentIndex - 1);
       historyIndexRef.current = currentIndex - 1;
-      setObjectsState(previousState);
       
-      // Sync to Firestore (don't await to avoid blocking)
-      previousState.forEach(obj => {
-        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(err => console.error('Error syncing undo:', err));
+      // Filter to only restore objects created by current user or keep objects by others
+      const currentObjects = objects;
+      const restoredObjects = previousState.map(histObj => {
+        const currentObj = currentObjects.find(obj => obj.id === histObj.id);
+        // If object was created by current user, restore it. Otherwise keep current state
+        if (histObj.createdBy === currentUser?.uid) {
+          return histObj;
+        } else if (currentObj) {
+          return currentObj; // Keep other users' current state
+        }
+        return histObj; // Restore if not found in current
       });
       
-      // Delete removed objects
-      const currentIds = previousState.map(obj => obj.id);
+      // Also keep any objects created by others that aren't in history
+      currentObjects.forEach(obj => {
+        if (obj.createdBy !== currentUser?.uid && !restoredObjects.find(r => r.id === obj.id)) {
+          restoredObjects.push(obj);
+        }
+      });
+      
+      setObjectsState(restoredObjects);
+      
+      // Only sync objects the current user created to Firestore
+      previousState.forEach(obj => {
+        if (obj.createdBy === currentUser?.uid) {
+          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+          setDoc(objectRef, obj).catch(err => console.error('Error syncing undo:', err));
+        }
+      });
+      
+      // Delete removed objects (only if created by current user)
+      const restoredIds = restoredObjects.map(obj => obj.id);
       objects.forEach(obj => {
-        if (!currentIds.includes(obj.id)) {
+        if (!restoredIds.includes(obj.id) && obj.createdBy === currentUser?.uid) {
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
           deleteDoc(objectRef).catch(err => console.error('Error deleting:', err));
         }
       });
       
-      console.log('UNDO: Complete');
+      console.log('UNDO: Complete - restored only current user changes');
       setTimeout(() => setIsUndoRedo(false), 200);
     } catch (error) {
       console.error('UNDO: Critical error:', error);
       setIsUndoRedo(false);
       alert('Undo failed: ' + error);
     }
-  }, [objects]);
+  }, [objects, currentUser]);
 
-  // Redo function
+  // Redo function - only redo current user's changes
   const redo = useCallback(() => {
     try {
       const currentIndex = historyIndexRef.current;
@@ -302,20 +325,32 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       setHistoryIndex(currentIndex + 1);
       historyIndexRef.current = currentIndex + 1;
-      setObjectsState(nextState);
       
-      // Sync to Firestore
-      nextState.forEach(obj => {
-        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(err => console.error('Error syncing redo:', err));
+      // Filter to only restore objects created by current user
+      const currentObjects = objects;
+      const restoredObjects = nextState.map(histObj => {
+        const currentObj = currentObjects.find(obj => obj.id === histObj.id);
+        if (histObj.createdBy === currentUser?.uid) {
+          return histObj;
+        } else if (currentObj) {
+          return currentObj;
+        }
+        return histObj;
       });
       
-      // Delete removed objects
-      const currentIds = nextState.map(obj => obj.id);
-      objects.forEach(obj => {
-        if (!currentIds.includes(obj.id)) {
+      currentObjects.forEach(obj => {
+        if (obj.createdBy !== currentUser?.uid && !restoredObjects.find(r => r.id === obj.id)) {
+          restoredObjects.push(obj);
+        }
+      });
+      
+      setObjectsState(restoredObjects);
+      
+      // Sync only current user's objects
+      nextState.forEach(obj => {
+        if (obj.createdBy === currentUser?.uid) {
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(err => console.error('Error deleting:', err));
+          setDoc(objectRef, obj).catch(err => console.error('Error syncing redo:', err));
         }
       });
       
@@ -325,7 +360,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsUndoRedo(false);
       alert('Redo failed: ' + error);
     }
-  }, [objects]);
+  }, [objects, currentUser]);
 
   // Save canvas state
   const saveCanvas = useCallback(() => {
