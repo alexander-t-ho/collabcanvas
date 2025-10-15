@@ -12,7 +12,6 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
-import { User } from 'firebase/auth';
 import { AppUser } from '../types';
 import { generateRandomColor } from '../utils/colors';
 

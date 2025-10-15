@@ -43,6 +43,33 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { zIndex: minZ - 1 });
   };
 
+  const handleStraightenLine = () => {
+    if (!object.x2 || !object.y2) return;
+    
+    const deltaX = object.x2 - object.x;
+    const deltaY = object.y2 - object.y;
+    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // Find the closest perpendicular orientation (0°, 45°, 90°, 135°, 180°, etc.)
+    let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+    
+    // Round to nearest 45-degree increment
+    const roundedAngle = Math.round(angle / 45) * 45;
+    const radians = roundedAngle * Math.PI / 180;
+    
+    // Calculate new end point
+    const newX2 = object.x + length * Math.cos(radians);
+    const newY2 = object.y + length * Math.sin(radians);
+    
+    updateObject(object.id, { 
+      x2: newX2, 
+      y2: newY2,
+      curved: false, // Straightening removes curves
+      controlX: undefined,
+      controlY: undefined,
+    });
+  };
+
   return (
     <BaseEditor 
       object={object} 
@@ -116,6 +143,34 @@ const LineEditor: React.FC<Props> = ({ object }) => {
           />
           <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
         </div>
+      </div>
+
+      {/* Straighten Line Button */}
+      <div style={{ marginBottom: '12px' }}>
+        <button
+          onClick={handleStraightenLine}
+          style={{
+            width: '100%',
+            padding: '8px',
+            background: '#f59e0b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '12px',
+            fontFamily: 'inherit',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d97706';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f59e0b';
+          }}
+        >
+          Straighten to Nearest Angle
+        </button>
       </div>
     </BaseEditor>
   );

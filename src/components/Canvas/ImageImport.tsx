@@ -34,46 +34,50 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
     try {
       for (const file of Array.from(files)) {
         if (file.type.startsWith('image/')) {
-          // Upload to Firebase Storage
-          const imageUrl = await uploadImageToFirebase(file);
-          
-          // Create image element to get dimensions
-          const img = new Image();
-          img.onload = () => {
-            // Calculate dimensions to fit within reasonable bounds
-            const maxWidth = 300;
-            const maxHeight = 300;
-            let { width, height } = img;
+          // Convert to data URL for faster loading (no Firebase Storage upload)
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
             
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            }
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height;
-              height = maxHeight;
-            }
+            // Create image element to get dimensions
+            const img = new Image();
+            img.onload = () => {
+              // Calculate dimensions to fit within reasonable bounds
+              const maxWidth = 300;
+              const maxHeight = 300;
+              let { width, height } = img;
+              
+              if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+              }
+              if (height > maxHeight) {
+                width = (width * maxHeight) / height;
+                height = maxHeight;
+              }
 
-            addObject({
-              type: 'image',
-              x: Math.random() * 300 + 100,
-              y: Math.random() * 300 + 100,
-              width,
-              height,
-              fill: '#ffffff', // Not used for images but required by type
-              src: imageUrl, // Use Firebase Storage URL instead of data URL
-              nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-              zIndex: 0,
-              shadow: false,
-              createdBy: currentUser.uid,
-            });
+              addObject({
+                type: 'image',
+                x: Math.random() * 300 + 100,
+                y: Math.random() * 300 + 100,
+                width,
+                height,
+                fill: '#ffffff', // Not used for images but required by type
+                src: dataUrl, // Use data URL for immediate loading
+                nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+                zIndex: 0,
+                shadow: false,
+                createdBy: currentUser.uid,
+              });
+            };
+            img.src = dataUrl;
           };
-          img.src = imageUrl;
+          reader.readAsDataURL(file);
         }
       }
     } catch (error) {
-      console.error('Error uploading images:', error);
-      alert('Failed to upload images. Please try again.');
+      console.error('Error processing images:', error);
+      alert('Failed to process images. Please try again.');
     } finally {
       setUploading(false);
       onClose();

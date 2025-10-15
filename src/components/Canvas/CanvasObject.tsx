@@ -94,6 +94,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     const node = shapeRef.current;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
+    const rotation = node.rotation();
 
     node.scaleX(1);
     node.scaleY(1);
@@ -110,6 +111,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         height: newHeight,
         x2: node.x() + newWidth,
         y2: node.y() + newHeight,
+        rotation: rotation * 180 / Math.PI, // Convert radians to degrees
       });
     } else {
       updateObject(object.id, {
@@ -117,6 +119,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         y: node.y(),
         width: Math.max(5, node.width() * scaleX),
         height: Math.max(5, node.height() * scaleY),
+        rotation: rotation * 180 / Math.PI, // Convert radians to degrees
       });
     }
   };
@@ -133,6 +136,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             height={object.height}
             fill={object.fill}
             cornerRadius={object.cornerRadius || 0}
+            rotation={object.rotation || 0} // Add rotation
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
@@ -152,6 +156,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             y={object.y}
             radius={object.width / 2}
             fill={object.fill}
+            rotation={object.rotation || 0} // Add rotation
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
@@ -179,6 +184,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             width={object.width}
             height={object.height}
             image={image}
+            rotation={object.rotation || 0} // Add rotation
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}

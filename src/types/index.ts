@@ -20,6 +20,7 @@ export interface CanvasObject {
   nickname?: string; // User-defined name for the shape
   zIndex?: number; // Layering order
   shadow?: boolean; // Shadow effect toggle
+  rotation?: number; // Rotation in degrees
   // Line-specific properties
   x2?: number; // End point for lines
   y2?: number; // End point for lines
