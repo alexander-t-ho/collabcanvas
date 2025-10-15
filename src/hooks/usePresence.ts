@@ -13,10 +13,11 @@ export const usePresence = () => {
   useEffect(() => {
     if (!currentUser) {
       console.log('No current user, skipping presence setup');
+      setOnlineUsers([]);
       return;
     }
 
-    console.log('Setting presence for user:', currentUser);
+    console.log('🔥 PRESENCE: Setting up for user:', currentUser);
 
     const presenceRef = ref(rtdb, `presence/${CANVAS_ID}/${currentUser.uid}`);
     const allPresenceRef = ref(rtdb, `presence/${CANVAS_ID}`);
@@ -27,28 +28,36 @@ export const usePresence = () => {
       name: currentUser.displayName || 'Anonymous',
       color: currentUser.cursorColor || '#3b82f6',
       online: true,
-      lastSeen: Date.now() // Use regular timestamp instead of serverTimestamp for debugging
+      lastSeen: Date.now(),
+      timestamp: Date.now() // Add timestamp for debugging
     };
     
-    console.log('Setting presence data:', userData);
+    console.log('🔥 PRESENCE: Setting user online:', userData);
     
-    set(presenceRef, userData).then(() => {
-      console.log('Presence set successfully');
-    }).catch((error) => {
-      console.error('Error setting presence:', error);
-    });
+    // Set presence immediately and handle errors
+    set(presenceRef, userData)
+      .then(() => {
+        console.log('✅ PRESENCE: User set online successfully');
+      })
+      .catch((error) => {
+        console.error('❌ PRESENCE: Error setting user online:', error);
+      });
 
     // Remove presence on disconnect
-    onDisconnect(presenceRef).remove().catch((error) => {
-      console.error('Error setting onDisconnect:', error);
+    onDisconnect(presenceRef).remove().then(() => {
+      console.log('✅ PRESENCE: onDisconnect handler set');
+    }).catch((error) => {
+      console.error('❌ PRESENCE: Error setting onDisconnect:', error);
     });
 
-    // Listen to all presence updates
+    // Listen to all presence updates with enhanced logging
     const unsubscribe = onValue(allPresenceRef, (snapshot) => {
-      console.log('Raw presence snapshot:', snapshot.exists(), snapshot.val());
+      console.log('🔥 PRESENCE: Raw snapshot received');
+      console.log('🔥 PRESENCE: Snapshot exists:', snapshot.exists());
+      console.log('🔥 PRESENCE: Snapshot value:', snapshot.val());
       
       if (!snapshot.exists()) {
-        console.log('No presence data found');
+        console.log('⚠️ PRESENCE: No presence data found, setting empty array');
         setOnlineUsers([]);
         return;
       }
@@ -56,29 +65,44 @@ export const usePresence = () => {
       const users: PresenceData[] = [];
       const data = snapshot.val();
       
-      Object.keys(data || {}).forEach((userId) => {
+      if (!data) {
+        console.log('⚠️ PRESENCE: Data is null/undefined');
+        setOnlineUsers([]);
+        return;
+      }
+      
+      console.log('🔥 PRESENCE: Processing presence data:', data);
+      
+      Object.keys(data).forEach((userId) => {
         const user = data[userId] as PresenceData;
-        console.log('Processing user:', userId, user);
+        console.log(`🔥 PRESENCE: Processing user ${userId}:`, user);
         
         if (user && user.online) {
-          users.push({
+          const processedUser = {
             userId: user.userId || userId,
             name: user.name || 'Anonymous',
             color: user.color || '#3b82f6',
             online: true,
             lastSeen: user.lastSeen || Date.now()
-          });
+          };
+          users.push(processedUser);
+          console.log(`✅ PRESENCE: Added online user:`, processedUser);
+        } else {
+          console.log(`⚠️ PRESENCE: Skipping user ${userId} - not online or invalid data`);
         }
       });
 
-      console.log('Final online users array:', users);
+      console.log('🔥 PRESENCE: Final online users array:', users);
+      console.log('🔥 PRESENCE: Total online users:', users.length);
       setOnlineUsers(users);
     }, (error) => {
-      console.error('Error listening to presence:', error);
+      console.error('❌ PRESENCE: Error listening to presence:', error);
+      // Set empty array on error to avoid showing stale data
+      setOnlineUsers([]);
     });
 
     return () => {
-      console.log('Cleaning up presence for user:', currentUser.uid);
+      console.log('🔥 PRESENCE: Cleaning up for user:', currentUser.uid);
       unsubscribe();
       
       // Set user as offline
@@ -88,8 +112,10 @@ export const usePresence = () => {
         color: currentUser.cursorColor || '#3b82f6',
         online: false,
         lastSeen: Date.now()
+      }).then(() => {
+        console.log('✅ PRESENCE: User set offline successfully');
       }).catch((error) => {
-        console.error('Error setting offline status:', error);
+        console.error('❌ PRESENCE: Error setting user offline:', error);
       });
     };
   }, [currentUser]);

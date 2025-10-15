@@ -44,11 +44,21 @@ const LineEditor: React.FC<Props> = ({ object }) => {
   };
 
   const handleStraightenLine = () => {
-    if (!object.x2 || !object.y2) return;
+    console.log('Straightening line:', object); // DEBUG
     
-    const deltaX = object.x2 - object.x;
-    const deltaY = object.y2 - object.y;
+    // Ensure we have proper line endpoints
+    const startX = object.x;
+    const startY = object.y;
+    const endX = object.x2 || (object.x + object.width);
+    const endY = object.y2 || object.y;
+    
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
     const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    console.log('Line details:', { startX, startY, endX, endY, deltaX, deltaY, length }); // DEBUG
+    
+    if (length === 0) return; // Prevent division by zero
     
     // Find the closest perpendicular orientation (0°, 45°, 90°, 135°, 180°, etc.)
     let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
@@ -57,9 +67,13 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     const roundedAngle = Math.round(angle / 45) * 45;
     const radians = roundedAngle * Math.PI / 180;
     
+    console.log('Angle calculations:', { angle, roundedAngle, radians }); // DEBUG
+    
     // Calculate new end point
-    const newX2 = object.x + length * Math.cos(radians);
-    const newY2 = object.y + length * Math.sin(radians);
+    const newX2 = startX + length * Math.cos(radians);
+    const newY2 = startY + length * Math.sin(radians);
+    
+    console.log('New coordinates:', { newX2, newY2 }); // DEBUG
     
     updateObject(object.id, { 
       x2: newX2, 

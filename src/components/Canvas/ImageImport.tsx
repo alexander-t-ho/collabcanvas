@@ -34,45 +34,51 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
     try {
       for (const file of Array.from(files)) {
         if (file.type.startsWith('image/')) {
-          // Convert to data URL for faster loading (no Firebase Storage upload)
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
+          console.log('Processing image:', file.name, 'Size:', file.size); // DEBUG
+          
+          // Compress image before upload to reduce size and improve performance
+          const compressedFile = await compressImage(file, 0.7); // 70% quality
+          
+          // Upload to Firebase Storage for persistence
+          const imageUrl = await uploadImageToFirebase(compressedFile);
+          console.log('Image uploaded successfully:', imageUrl); // DEBUG
+          
+          // Create image element to get dimensions
+          const img = new Image();
+          img.onload = () => {
+            // Calculate dimensions to fit within reasonable bounds
+            const maxWidth = 300;
+            const maxHeight = 300;
+            let { width, height } = img;
             
-            // Create image element to get dimensions
-            const img = new Image();
-            img.onload = () => {
-              // Calculate dimensions to fit within reasonable bounds
-              const maxWidth = 300;
-              const maxHeight = 300;
-              let { width, height } = img;
-              
-              if (width > maxWidth) {
-                height = (height * maxWidth) / width;
-                width = maxWidth;
-              }
-              if (height > maxHeight) {
-                width = (width * maxHeight) / height;
-                height = maxHeight;
-              }
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
 
-              addObject({
-                type: 'image',
-                x: Math.random() * 300 + 100,
-                y: Math.random() * 300 + 100,
-                width,
-                height,
-                fill: '#ffffff', // Not used for images but required by type
-                src: dataUrl, // Use data URL for immediate loading
-                nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-                zIndex: 0,
-                shadow: false,
-                createdBy: currentUser.uid,
-              });
-            };
-            img.src = dataUrl;
+            console.log('Adding image object to canvas'); // DEBUG
+            addObject({
+              type: 'image',
+              x: Math.random() * 300 + 100,
+              y: Math.random() * 300 + 100,
+              width,
+              height,
+              fill: '#ffffff', // Not used for images but required by type
+              src: imageUrl, // Use Firebase Storage URL for persistence
+              nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+              zIndex: 0,
+              shadow: false,
+              createdBy: currentUser.uid,
+            });
           };
-          reader.readAsDataURL(file);
+          img.onerror = (error) => {
+            console.error('Error loading image:', error);
+          };
+          img.src = imageUrl;
         }
       }
     } catch (error) {
@@ -82,6 +88,50 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
       setUploading(false);
       onClose();
     }
+  };
+
+  // Compress image to reduce file size
+  const compressImage = (file: File, quality: number): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Set canvas size to image size (or smaller for compression)
+        const maxSize = 800; // Max width/height
+        let { width, height } = img;
+        
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback to original if compression fails
+          }
+        }, file.type, quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
