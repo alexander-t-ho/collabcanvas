@@ -111,6 +111,18 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         y2: node.y() + newHeight,
         rotation,
       });
+    } else if (object.type === 'text') {
+      // For text, update width and font size based on scale
+      const newWidth = Math.max(50, node.width() * scaleX);
+      const newFontSize = Math.max(8, Math.min(200, (object.fontSize || 24) * scaleY));
+      
+      updateObject(object.id, {
+        x: node.x(),
+        y: node.y(),
+        width: newWidth,
+        fontSize: newFontSize,
+        rotation,
+      });
     } else if (object.type === 'rectangle' || object.type === 'image') {
       // For rectangles and images with offset, we need to adjust position
       const newWidth = Math.max(5, node.width() * scaleX);
@@ -270,7 +282,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   return (
     <>
       {renderShape()}
-      {isSelected && object.type !== 'line' && object.type !== 'group' && object.type !== 'text' && <Transformer ref={transformerRef} />}
+      {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
     </>
   );
 };
