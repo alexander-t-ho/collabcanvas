@@ -8,12 +8,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
+import { usePresence } from './usePresence';
 import { CursorPosition } from '../types';
 
 const CANVAS_ID = 'default';
 
 export const useCursorSync = () => {
   const { currentUser } = useAuth();
+  const { onlineUsers } = usePresence();
   const [remoteCursors, setRemoteCursors] = useState<CursorPosition[]>([]);
   const lastUpdateRef = useRef<number>(0);
 
@@ -24,11 +26,12 @@ export const useCursorSync = () => {
     const cursorsRef = collection(db, 'canvases', CANVAS_ID, 'cursors');
     const unsubscribe = onSnapshot(cursorsRef, (snapshot) => {
       const cursors: CursorPosition[] = [];
+      const onlineUserIds = onlineUsers.map(u => u.userId);
       
       snapshot.forEach((doc) => {
         const cursor = doc.data() as CursorPosition;
-        // Don't show own cursor
-        if (cursor.userId !== currentUser.uid) {
+        // Only show cursor if user is online and not self
+        if (cursor.userId !== currentUser.uid && onlineUserIds.includes(cursor.userId)) {
           cursors.push(cursor);
         }
       });
@@ -37,7 +40,7 @@ export const useCursorSync = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, onlineUsers]);
 
   // Throttled cursor update function
   const updateCursorPosition = useCallback(async (x: number, y: number) => {
