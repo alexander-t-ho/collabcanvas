@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
@@ -11,6 +11,32 @@ const Toolbar: React.FC = () => {
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [, forceUpdate] = useState({});
+
+  // Force component to re-render when onlineUsers changes
+  useEffect(() => {
+    console.log('🔥 TOOLBAR: onlineUsers changed, forcing update. Count:', onlineUsers.length);
+    forceUpdate({});
+  }, [onlineUsers]);
+
+  // Memoize the count to ensure it updates
+  const totalOnlineCount = useMemo(() => {
+    const count = onlineUsers.length;
+    console.log('🔥 TOOLBAR: Computing totalOnlineCount:', count);
+    return count;
+  }, [onlineUsers]);
+
+  // Filter out current user - only show others
+  const otherUsers = useMemo(() => {
+    const filtered = onlineUsers.filter(user => user.userId !== currentUser?.uid);
+    console.log('🔥 TOOLBAR: Computing otherUsers:', filtered.length);
+    return filtered;
+  }, [onlineUsers, currentUser]);
+
+  // Add debugging for the toolbar
+  console.log('🔥 TOOLBAR: Rendering with onlineUsers:', onlineUsers.length, onlineUsers);
+  console.log('🔥 TOOLBAR: totalOnlineCount:', totalOnlineCount);
+  console.log('🔥 TOOLBAR: otherUsers:', otherUsers.length, otherUsers);
 
   const handleCreateRectangle = () => {
     if (!currentUser) return;
@@ -57,18 +83,10 @@ const Toolbar: React.FC = () => {
     window.dispatchEvent(event);
   };
 
-  // Filter out current user - only show others
-  const otherUsers = onlineUsers.filter(user => user.userId !== currentUser?.uid);
-
-  // Add debugging for the toolbar
-  console.log('🔥 TOOLBAR: onlineUsers received:', onlineUsers.length, onlineUsers);
-  console.log('🔥 TOOLBAR: otherUsers:', otherUsers.length, otherUsers);
-
   // Enhanced OnlineStatus component with user count
   const EnhancedOnlineStatus: React.FC = () => {
-    const totalOnlineCount = onlineUsers.length;
-    
-    console.log('🔥 TOOLBAR: Rendering with totalOnlineCount:', totalOnlineCount);
+    // Use the memoized totalOnlineCount from parent scope
+    console.log('🔥 TOOLBAR: EnhancedOnlineStatus rendering with count:', totalOnlineCount);
     
     return (
       <div style={{ 
@@ -109,7 +127,7 @@ const Toolbar: React.FC = () => {
           ))}
         </div>
         
-        {/* Online count */}
+        {/* Online count - using memoized value */}
         <span style={{
           fontSize: '14px',
           color: '#6b7280',
