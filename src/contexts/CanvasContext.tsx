@@ -88,7 +88,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [isUndoRedo]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('❌ ADD OBJECT: No current user!');
+      alert('Error: You must be logged in to add objects');
+      return;
+    }
     
     const newObject: CanvasObject = {
       ...object,
@@ -97,28 +101,35 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       lastModified: Date.now()
     };
     
-    console.log('Adding object to Firestore:', newObject); // DEBUG
+    console.log('➕ ADD OBJECT: Adding to Firestore:', newObject.id, newObject.type);
     
     try {
       // Write to Firestore
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', newObject.id);
       await setDoc(objectRef, newObject);
-      console.log('Object added successfully to Firestore'); // DEBUG
+      console.log('✅ ADD OBJECT: Successfully added to Firestore');
     } catch (error) {
-      console.error('Error adding object to Firestore:', error);
+      console.error('❌ ADD OBJECT: Error adding to Firestore:', error);
+      alert(`Failed to add object: ${error}`);
     }
   }, [currentUser]);
 
   const updateObject = useCallback(async (id: string, updates: Partial<CanvasObject>) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('❌ UPDATE OBJECT: No current user!');
+      return;
+    }
     
-    console.log('Updating object in Firestore:', id, updates); // DEBUG
+    console.log('🔄 UPDATE OBJECT: Updating in Firestore:', id, updates);
     
     try {
       // Get current state to avoid stale closure
       setObjectsState(prev => {
         const existingObject = prev.find(obj => obj.id === id);
-        if (!existingObject) return prev;
+        if (!existingObject) {
+          console.error('❌ UPDATE OBJECT: Object not found:', id);
+          return prev;
+        }
         
         // Update local state optimistically
         const updatedObjects = prev.map(obj => 
@@ -135,15 +146,17 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const updatedObject = { ...existingObject, ...updates, lastModified: Date.now() };
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
         setDoc(objectRef, updatedObject).then(() => {
-          console.log('Object updated successfully in Firestore'); // DEBUG
+          console.log('✅ UPDATE OBJECT: Successfully updated in Firestore');
         }).catch((error) => {
-          console.error('Error updating object in Firestore:', error);
+          console.error('❌ UPDATE OBJECT: Error updating in Firestore:', error);
+          alert(`Failed to update object: ${error.message || error}`);
         });
         
         return updatedObjects;
       });
     } catch (error) {
-      console.error('Error updating object in Firestore:', error);
+      console.error('❌ UPDATE OBJECT: Critical error:', error);
+      alert(`Critical error updating object: ${error}`);
     }
   }, [currentUser, isUndoRedo, saveToHistory]);
 
