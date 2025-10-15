@@ -32,71 +32,72 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
     setUploading(true);
 
     try {
-      for (const file of Array.from(files)) {
-        if (file.type.startsWith('image/')) {
-          console.log('Processing image:', file.name, 'Size:', file.size); // DEBUG
-          
-          // Use data URL for instant display, then upload to Firebase Storage in background
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            const dataUrl = e.target?.result as string;
+      const uploadPromises = Array.from(files).map(async (file) => {
+        if (!file.type.startsWith('image/')) return;
+        
+        console.log('🔥 IMAGE: Processing image:', file.name, 'Size:', file.size);
+        
+        // Compress and upload to Firebase Storage immediately
+        const compressedFile = await compressImage(file, 0.8); // 80% quality
+        console.log('🔥 IMAGE: Compressed size:', compressedFile.size);
+        
+        const firebaseUrl = await uploadImageToFirebase(compressedFile);
+        console.log('🔥 IMAGE: Uploaded to Firebase Storage:', firebaseUrl);
+        
+        // Create image element to get dimensions from the Firebase URL
+        return new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.onload = async () => {
+            // Calculate dimensions to fit within reasonable bounds
+            const maxWidth = 300;
+            const maxHeight = 300;
+            let { width, height } = img;
             
-            // Create image element to get dimensions
-            const img = new Image();
-            img.onload = async () => {
-              // Calculate dimensions to fit within reasonable bounds
-              const maxWidth = 300;
-              const maxHeight = 300;
-              let { width, height } = img;
-              
-              if (width > maxWidth) {
-                height = (height * maxWidth) / width;
-                width = maxWidth;
-              }
-              if (height > maxHeight) {
-                width = (width * maxHeight) / height;
-                height = maxHeight;
-              }
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
 
-              console.log('Adding image object to canvas immediately'); // DEBUG
-              
-              // Add image immediately with data URL for instant display
-              const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-              await addObject({
-                type: 'image',
-                x: Math.random() * 300 + 100,
-                y: Math.random() * 300 + 100,
-                width,
-                height,
-                fill: '#ffffff', // Not used for images but required by type
-                src: dataUrl, // Use data URL for immediate display
-                nickname: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-                zIndex: 0,
-                shadow: false,
-                cornerRadius: 0, // Add corner radius support for images
-                createdBy: currentUser.uid,
-              });
-              
-              // Upload to Firebase Storage in background for persistence
-              try {
-                const compressedFile = await compressImage(file, 0.7);
-                const firebaseUrl = await uploadImageToFirebase(compressedFile);
-                
-                // Update the object with Firebase Storage URL for persistence
-                console.log('Updating image with Firebase Storage URL for persistence'); // DEBUG
-                // Note: We'll need to implement updateObjectBySrc or similar to update the specific image
-              } catch (uploadError) {
-                console.error('Background upload failed, but image is still visible:', uploadError);
-                // Image remains visible with data URL even if Firebase upload fails
-              }
-            };
-            img.src = dataUrl;
+            console.log('🔥 IMAGE: Adding to canvas with dimensions:', width, 'x', height);
+            
+            // Add image object with Firebase Storage URL (permanent persistence)
+            await addObject({
+              type: 'image',
+              x: Math.random() * 300 + 100,
+              y: Math.random() * 300 + 100,
+              width,
+              height,
+              fill: '#ffffff',
+              src: firebaseUrl, // Use Firebase Storage URL for persistence
+              nickname: file.name.replace(/\.[^/.]+$/, ''),
+              zIndex: 0,
+              shadow: false,
+              cornerRadius: 0,
+              createdBy: currentUser.uid,
+            });
+            
+            console.log('✅ IMAGE: Successfully added to canvas');
+            resolve();
           };
-          reader.readAsDataURL(file);
-        }
-      }
+          
+          img.onerror = (error) => {
+            console.error('❌ IMAGE: Error loading image:', error);
+            reject(error);
+          };
+          
+          img.src = firebaseUrl;
+        });
+      });
+
+      await Promise.all(uploadPromises);
+      console.log('✅ IMAGE: All images processed successfully');
+      
     } catch (error) {
-      console.error('Error processing images:', error);
+      console.error('❌ IMAGE: Error processing images:', error);
       alert('Failed to process images. Please try again.');
     } finally {
       setUploading(false);

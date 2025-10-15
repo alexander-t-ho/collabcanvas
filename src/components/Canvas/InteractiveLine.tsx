@@ -70,13 +70,19 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   };
 
   // Handle dragging control points with real-time updates
+  const handleControlPointDragStart = (pointType: 'start' | 'end' | 'control') => (e: any) => {
+    e.cancelBubble = true; // Prevent event from bubbling to Group
+    setIsDragging(true);
+    setDragType(pointType);
+    console.log('🔥 LINE: Started dragging', pointType, 'point');
+  };
+
   const handleControlPointDragMove = (pointType: 'start' | 'end' | 'control') => (e: any) => {
+    e.cancelBubble = true; // Prevent event from bubbling to Group
+    
     const newX = e.target.x();
     const newY = e.target.y();
     const isShiftPressed = e.evt?.shiftKey || false;
-
-    setIsDragging(true);
-    setDragType(pointType);
 
     switch (pointType) {
       case 'start':
@@ -98,7 +104,8 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         }
         break;
       case 'control':
-        // Control point should only affect the curve, not move the line endpoints
+        // Control point ONLY affects the curve, does NOT move line endpoints
+        console.log('🔥 LINE: Moving control point to', newX, newY);
         updateObject(object.id, { 
           controlX: newX, 
           controlY: newY,
@@ -109,6 +116,8 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   };
 
   const handleControlPointDragEnd = (pointType: 'start' | 'end' | 'control') => (e: any) => {
+    e.cancelBubble = true; // Prevent event from bubbling to Group
+    console.log('🔥 LINE: Finished dragging', pointType, 'point');
     setIsDragging(false);
     setDragType(null);
     
@@ -134,6 +143,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         }
         break;
       case 'control':
+        // Final update for control point
         updateObject(object.id, { 
           controlX: newX, 
           controlY: newY,
@@ -187,7 +197,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
   return (
     <Group
       ref={groupRef}
-      draggable={!isDragging} // Enable dragging when not manipulating control points
+      draggable={!isDragging && dragType === null} // Only allow dragging when NO control points are being dragged
       onDragEnd={handleLineDragEnd}
       onClick={() => selectObject(object.id)}
     >
@@ -217,6 +227,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
             stroke="white"
             strokeWidth={2}
             draggable
+            onDragStart={handleControlPointDragStart('start')}
             onDragMove={handleControlPointDragMove('start')}
             onDragEnd={handleControlPointDragEnd('start')}
             onMouseEnter={(e) => {
@@ -236,6 +247,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
             stroke="white"
             strokeWidth={2}
             draggable
+            onDragStart={handleControlPointDragStart('end')}
             onDragMove={handleControlPointDragMove('end')}
             onDragEnd={handleControlPointDragEnd('end')}
             onMouseEnter={(e) => {
@@ -255,6 +267,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
             stroke="white"
             strokeWidth={2}
             draggable
+            onDragStart={handleControlPointDragStart('control')}
             onDragMove={handleControlPointDragMove('control')}
             onDragEnd={handleControlPointDragEnd('control')}
             onMouseEnter={(e) => {
