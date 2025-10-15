@@ -228,22 +228,36 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Undo function
   const undo = useCallback(() => {
-    const currentIndex = historyIndexRef.current;
-    const currentHistory = historyRef.current;
-    
-    console.log('UNDO: Attempting. Index:', currentIndex, 'Length:', currentHistory.length);
-    
-    if (currentIndex > 0) {
+    try {
+      const currentIndex = historyIndexRef.current;
+      const currentHistory = historyRef.current;
+      
+      console.log('UNDO: Attempting. Index:', currentIndex, 'Length:', currentHistory.length);
+      
+      if (currentIndex <= 0 || currentHistory.length === 0) {
+        console.log('UNDO: No history available');
+        return;
+      }
+      
       setIsUndoRedo(true);
       const previousState = currentHistory[currentIndex - 1];
+      
+      if (!previousState) {
+        console.error('UNDO: Previous state is undefined');
+        setIsUndoRedo(false);
+        return;
+      }
+      
+      console.log('UNDO: Restoring', previousState.length, 'objects');
+      
       setHistoryIndex(currentIndex - 1);
       historyIndexRef.current = currentIndex - 1;
       setObjectsState(previousState);
       
-      // Sync to Firestore
+      // Sync to Firestore (don't await to avoid blocking)
       previousState.forEach(obj => {
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(console.error);
+        setDoc(objectRef, obj).catch(err => console.error('Error syncing undo:', err));
       });
       
       // Delete removed objects
@@ -251,23 +265,41 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       objects.forEach(obj => {
         if (!currentIds.includes(obj.id)) {
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(console.error);
+          deleteDoc(objectRef).catch(err => console.error('Error deleting:', err));
         }
       });
       
-      console.log('UNDO: Complete. New index:', currentIndex - 1);
-      setTimeout(() => setIsUndoRedo(false), 100);
+      console.log('UNDO: Complete');
+      setTimeout(() => setIsUndoRedo(false), 200);
+    } catch (error) {
+      console.error('UNDO: Critical error:', error);
+      setIsUndoRedo(false);
+      alert('Undo failed: ' + error);
     }
   }, [objects]);
 
   // Redo function
   const redo = useCallback(() => {
-    const currentIndex = historyIndexRef.current;
-    const currentHistory = historyRef.current;
-    
-    if (currentIndex < currentHistory.length - 1) {
+    try {
+      const currentIndex = historyIndexRef.current;
+      const currentHistory = historyRef.current;
+      
+      console.log('REDO: Attempting. Index:', currentIndex, 'Length:', currentHistory.length);
+      
+      if (currentIndex >= currentHistory.length - 1 || currentHistory.length === 0) {
+        console.log('REDO: No forward history available');
+        return;
+      }
+      
       setIsUndoRedo(true);
       const nextState = currentHistory[currentIndex + 1];
+      
+      if (!nextState) {
+        console.error('REDO: Next state is undefined');
+        setIsUndoRedo(false);
+        return;
+      }
+      
       setHistoryIndex(currentIndex + 1);
       historyIndexRef.current = currentIndex + 1;
       setObjectsState(nextState);
@@ -275,7 +307,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Sync to Firestore
       nextState.forEach(obj => {
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(console.error);
+        setDoc(objectRef, obj).catch(err => console.error('Error syncing redo:', err));
       });
       
       // Delete removed objects
@@ -283,11 +315,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       objects.forEach(obj => {
         if (!currentIds.includes(obj.id)) {
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(console.error);
+          deleteDoc(objectRef).catch(err => console.error('Error deleting:', err));
         }
       });
       
-      setTimeout(() => setIsUndoRedo(false), 100);
+      setTimeout(() => setIsUndoRedo(false), 200);
+    } catch (error) {
+      console.error('REDO: Critical error:', error);
+      setIsUndoRedo(false);
+      alert('Redo failed: ' + error);
     }
   }, [objects]);
 
