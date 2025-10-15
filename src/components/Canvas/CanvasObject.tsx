@@ -16,8 +16,6 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [isEditingText, setIsEditingText] = useState(false);
-  const [editedText, setEditedText] = useState('');
 
   useEffect(() => {
     if (isSelected && transformerRef.current && shapeRef.current) {
@@ -41,12 +39,13 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     }
   };
 
-  // Handle double-click for text editing
+  // Handle double-click for text - just select it (editing happens in TextEditor panel)
   const handleDoubleClick = (e: any) => {
     if (object.type === 'text') {
       e.cancelBubble = true;
-      setIsEditingText(true);
-      setEditedText(object.text || '');
+      selectObject(object.id);
+      // Fire event to focus text editor
+      window.dispatchEvent(new CustomEvent('focusTextEditor', { detail: { objectId: object.id } }));
     }
   };
   useEffect(() => {
@@ -246,10 +245,6 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
           />
         ) : null;
       case 'text':
-        if (isEditingText) {
-          // Show HTML input for editing
-          return null; // We'll render the HTML input outside the canvas
-        }
         return (
           <Text
             ref={shapeRef}
@@ -304,63 +299,6 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     <>
       {renderShape()}
       {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
-      
-      {/* Inline text editor for double-click editing */}
-      {isEditingText && object.type === 'text' && (
-        <div
-          style={{
-            position: 'absolute',
-            left: object.x - object.width / 2,
-            top: object.y - (object.fontSize || 24) / 2,
-            zIndex: 10000,
-          }}
-        >
-          <textarea
-            value={editedText}
-            onChange={(e) => setEditedText(e.target.value)}
-            onBlur={() => {
-              updateObject(object.id, { text: editedText });
-              setIsEditingText(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setIsEditingText(false);
-              } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                updateObject(object.id, { text: editedText });
-                setIsEditingText(false);
-              }
-            }}
-            autoFocus
-            style={{
-              width: object.width,
-              minHeight: (object.fontSize || 24) * 1.5,
-              fontSize: object.fontSize || 24,
-              fontFamily: object.fontFamily || 'Arial',
-              fontWeight: object.fontStyle?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: object.fontStyle?.includes('italic') ? 'italic' : 'normal',
-              color: object.fill,
-              background: 'rgba(255, 255, 255, 0.95)',
-              border: '2px solid #3b82f6',
-              borderRadius: '4px',
-              padding: '4px 8px',
-              outline: 'none',
-              resize: 'none',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-            }}
-          />
-          <div style={{ 
-            fontSize: '10px', 
-            color: '#6b7280', 
-            marginTop: '4px',
-            background: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            border: '1px solid #d1d5db'
-          }}>
-            Ctrl+Enter to save, ESC to cancel
-          </div>
-        </div>
-      )}
     </>
   );
 };

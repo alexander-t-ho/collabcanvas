@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CanvasObject } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
 import BaseEditor from './BaseEditor';
@@ -9,8 +9,23 @@ interface Props {
 
 const TextEditor: React.FC<Props> = ({ object }) => {
   const { updateObject, objects } = useCanvas();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Listen for focus event from double-click
+  useEffect(() => {
+    const handleFocusEvent = (e: any) => {
+      if (e.detail.objectId === object.id && textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.select();
+      }
+    };
+    
+    window.addEventListener('focusTextEditor', handleFocusEvent as EventListener);
+    return () => window.removeEventListener('focusTextEditor', handleFocusEvent as EventListener);
+  }, [object.id]);
 
   const handleTextChange = (value: string) => {
+    // Live update as user types
     updateObject(object.id, { text: value });
   };
 
@@ -55,25 +70,28 @@ const TextEditor: React.FC<Props> = ({ object }) => {
         <label style={{ 
           display: 'block', 
           marginBottom: '4px', 
-          fontWeight: '500',
-          color: '#6b7280'
+          fontWeight: '600',
+          color: '#374151',
+          fontSize: '12px'
         }}>
-          Text Content
+          ✏️ Text Content (Double-click text to edit)
         </label>
         <textarea
+          ref={textareaRef}
           value={object.text || ''}
           onChange={(e) => handleTextChange(e.target.value)}
           placeholder="Enter text..."
           style={{
             width: '100%',
-            padding: '6px',
-            border: '1px solid #d1d5db',
+            padding: '8px',
+            border: '2px solid #3b82f6',
             borderRadius: '4px',
-            fontSize: '11px',
+            fontSize: '12px',
             fontFamily: 'inherit',
             boxSizing: 'border-box',
-            minHeight: '60px',
-            resize: 'vertical'
+            minHeight: '80px',
+            resize: 'vertical',
+            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
           }}
         />
       </div>
