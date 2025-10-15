@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
+import UserInfoDropdown from './UserInfoDropdown';
+import { PresenceData } from '../../types';
 
 const Toolbar: React.FC = () => {
   const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup, saveCanvas, undo, redo, canUndo, canRedo } = useCanvas();
@@ -11,6 +13,7 @@ const Toolbar: React.FC = () => {
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showUserInfo, setShowUserInfo] = useState<PresenceData | null>(null);
   const [, forceUpdate] = useState({});
 
   // Force component to re-render when onlineUsers changes
@@ -100,14 +103,18 @@ const Toolbar: React.FC = () => {
         display: 'flex', 
         alignItems: 'center', 
         gap: '8px',
-        marginRight: '12px'
+        marginRight: '12px',
+        position: 'relative'
       }}>
         {/* Other users circles */}
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-4px' }}>
           {otherUsers.slice(0, 3).map((user, index) => (
             <div
               key={user.userId}
-              onClick={() => alert(`👤 ${user.name}\n🎨 Color: ${user.color}\n🆔 ID: ${user.userId.slice(0, 8)}...`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowUserInfo(showUserInfo?.userId === user.userId ? null : user);
+              }}
               style={{
                 width: 32,
                 height: 32,
@@ -135,7 +142,7 @@ const Toolbar: React.FC = () => {
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
               }}
-              title={`${user.name} - Click for details`}
+              title={`${user.name} - Click for info`}
             >
               {user.name.charAt(0).toUpperCase()}
             </div>
@@ -151,6 +158,14 @@ const Toolbar: React.FC = () => {
         }}>
           {totalOnlineCount} online
         </span>
+        
+        {/* User Info Dropdown */}
+        {showUserInfo && (
+          <UserInfoDropdown 
+            user={showUserInfo} 
+            onClose={() => setShowUserInfo(null)} 
+          />
+        )}
       </div>
     );
   };
