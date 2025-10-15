@@ -219,7 +219,8 @@ const Toolbar: React.FC = () => {
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '18px',
+            fontSize: '24px',
+            fontWeight: 'bold',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -240,31 +241,37 @@ const Toolbar: React.FC = () => {
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '18px',
+            fontSize: '24px',
+            fontWeight: 'bold',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
           title="Add Circle"
         >
-          ●
+          ○
         </button>
 
         <button
           onClick={handleCreateLine}
           style={{
-            padding: '8px 16px',
+            padding: '10px',
+            width: '44px',
+            height: '44px',
             background: drawingMode === 'line' ? '#dc2626' : '#f59e0b',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontSize: '24px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
+          title={drawingMode === 'line' ? 'Drawing Line...' : 'Draw Line'}
         >
-          {drawingMode === 'line' ? 'Drawing Line...' : 'Draw Line'}
+          —
         </button>
 
         <button
@@ -408,7 +415,7 @@ const Toolbar: React.FC = () => {
           }}
         >
           Group ({selectedIds.length})
-        </button>
+      </button>
       </div>
 
       {/* Right side - Online status, user profile, and logout */}
