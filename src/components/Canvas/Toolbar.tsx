@@ -37,6 +37,7 @@ const Toolbar: React.FC = () => {
   console.log('🔥 TOOLBAR: Rendering with onlineUsers:', onlineUsers.length, onlineUsers);
   console.log('🔥 TOOLBAR: totalOnlineCount:', totalOnlineCount);
   console.log('🔥 TOOLBAR: otherUsers:', otherUsers.length, otherUsers);
+  console.log('🔄 TOOLBAR: canUndo:', canUndo, 'canRedo:', canRedo);
 
   const handleCreateRectangle = () => {
     if (!currentUser) return;

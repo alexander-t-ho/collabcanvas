@@ -54,14 +54,28 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Save state to history (for undo/redo) - only if not during undo/redo operation
   const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
-    if (isUndoRedo) return; // Don't save during undo/redo
+    if (isUndoRedo) {
+      console.log('⏭️ SKIP HISTORY: During undo/redo, not saving');
+      return;
+    }
+    
+    console.log('💾 SAVE HISTORY: Starting save. Current index:', historyIndex);
     
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
       newHistory.push(JSON.parse(JSON.stringify(newObjects)));
-      return newHistory.slice(-50);
+      const trimmedHistory = newHistory.slice(-50);
+      console.log('💾 SAVE HISTORY: New history length:', trimmedHistory.length);
+      return trimmedHistory;
     });
-    setHistoryIndex(prev => Math.min(prev + 1, 49));
+    
+    setHistoryIndex(prev => {
+      const newIndex = Math.min(prev + 1, 49);
+      console.log('💾 SAVE HISTORY: New index:', newIndex);
+      return newIndex;
+    });
+    
+    console.log('✅ SAVE HISTORY: Complete');
   }, [historyIndex, isUndoRedo]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
