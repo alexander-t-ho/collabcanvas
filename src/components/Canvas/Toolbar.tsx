@@ -211,35 +211,43 @@ const Toolbar: React.FC = () => {
         <button
           onClick={handleCreateRectangle}
           style={{
-            padding: '8px 16px',
+            padding: '10px',
+            width: '44px',
+            height: '44px',
             background: '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
+          title="Add Rectangle"
         >
-        Add Rectangle
-      </button>
+          ▭
+        </button>
 
         <button
           onClick={handleCreateCircle}
           style={{
-            padding: '8px 16px',
+            padding: '10px',
+            width: '44px',
+            height: '44px',
             background: '#10b981',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
+          title="Add Circle"
         >
-          Add Circle
+          ●
         </button>
 
         <button
