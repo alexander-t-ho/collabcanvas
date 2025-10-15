@@ -6,7 +6,7 @@ import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
 
 const Toolbar: React.FC = () => {
-  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup, saveCanvas } = useCanvas();
+  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup, saveCanvas, undo, redo, canUndo, canRedo } = useCanvas();
   const { currentUser, logout } = useAuth();
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
@@ -309,6 +309,66 @@ const Toolbar: React.FC = () => {
           title="Save canvas as JSON file"
         >
           💾 Save
+        </button>
+
+        <button
+          onClick={undo}
+          disabled={!canUndo}
+          style={{
+            padding: '8px 16px',
+            background: canUndo ? '#f59e0b' : '#d1d5db',
+            color: canUndo ? 'white' : '#9ca3af',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: canUndo ? 'pointer' : 'not-allowed',
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (canUndo) {
+              e.currentTarget.style.background = '#d97706';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (canUndo) {
+              e.currentTarget.style.background = '#f59e0b';
+            }
+          }}
+          title="Undo (Ctrl+Z)"
+        >
+          ↶ Undo
+        </button>
+
+        <button
+          onClick={redo}
+          disabled={!canRedo}
+          style={{
+            padding: '8px 16px',
+            background: canRedo ? '#f59e0b' : '#d1d5db',
+            color: canRedo ? 'white' : '#9ca3af',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: canRedo ? 'pointer' : 'not-allowed',
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (canRedo) {
+              e.currentTarget.style.background = '#d97706';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (canRedo) {
+              e.currentTarget.style.background = '#f59e0b';
+            }
+          }}
+          title="Redo (Ctrl+Y)"
+        >
+          ↷ Redo
         </button>
 
         <button
