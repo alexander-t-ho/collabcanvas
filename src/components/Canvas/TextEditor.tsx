@@ -87,13 +87,16 @@ const TextEditor: React.FC<Props> = ({ object }) => {
             border: '2px solid #3b82f6',
             borderRadius: '4px',
             fontSize: '12px',
-            fontFamily: 'inherit',
+            fontFamily: 'monospace',
             boxSizing: 'border-box',
             minHeight: '80px',
             resize: 'vertical',
             boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-            caretColor: '#3b82f6', // Blue blinking cursor
-            lineHeight: '1.5'
+            caretColor: '#ef4444',
+            color: '#1f2937',
+            backgroundColor: 'white',
+            lineHeight: '1.5',
+            WebkitTextFillColor: '#1f2937',
           }}
         />
       </div>
