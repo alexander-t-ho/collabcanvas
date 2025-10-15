@@ -49,20 +49,20 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tempLineStart, setTempLineStart] = useState<{ x: number; y: number } | null>(null);
   const [history, setHistory] = useState<CanvasObject[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isUndoRedo, setIsUndoRedo] = useState(false); // Flag to prevent history saving during undo/redo
   const { currentUser } = useAuth();
 
-  // Save state to history (for undo/redo)
+  // Save state to history (for undo/redo) - only if not during undo/redo operation
   const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
+    if (isUndoRedo) return; // Don't save during undo/redo
+    
     setHistory(prev => {
-      // Remove any future history if we're in the middle of the stack
       const newHistory = prev.slice(0, historyIndex + 1);
-      // Add new state
       newHistory.push(JSON.parse(JSON.stringify(newObjects)));
-      // Limit history to last 50 states
       return newHistory.slice(-50);
     });
     setHistoryIndex(prev => Math.min(prev + 1, 49));
-  }, [historyIndex]);
+  }, [historyIndex, isUndoRedo]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
@@ -205,11 +205,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const setObjects = useCallback((newObjects: CanvasObject[]) => {
     setObjectsState(newObjects);
-  }, []);
+    // Save to history when objects are set from Firestore
+    if (!isUndoRedo) {
+      saveToHistory(newObjects);
+    }
+  }, [isUndoRedo, saveToHistory]);
 
   // Undo function
   const undo = useCallback(() => {
     if (historyIndex > 0) {
+      setIsUndoRedo(true);
       const previousState = history[historyIndex - 1];
       setHistoryIndex(historyIndex - 1);
       setObjectsState(previousState);
@@ -220,13 +225,24 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setDoc(objectRef, obj).catch(console.error);
       });
       
+      // Clean up deleted objects
+      const currentIds = previousState.map(obj => obj.id);
+      objects.forEach(obj => {
+        if (!currentIds.includes(obj.id)) {
+          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+          deleteDoc(objectRef).catch(console.error);
+        }
+      });
+      
       console.log('🔄 UNDO: Restored to history index', historyIndex - 1);
+      setTimeout(() => setIsUndoRedo(false), 100);
     }
-  }, [historyIndex, history]);
+  }, [historyIndex, history, objects]);
 
   // Redo function
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
+      setIsUndoRedo(true);
       const nextState = history[historyIndex + 1];
       setHistoryIndex(historyIndex + 1);
       setObjectsState(nextState);
@@ -237,9 +253,19 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setDoc(objectRef, obj).catch(console.error);
       });
       
+      // Clean up deleted objects
+      const currentIds = nextState.map(obj => obj.id);
+      objects.forEach(obj => {
+        if (!currentIds.includes(obj.id)) {
+          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+          deleteDoc(objectRef).catch(console.error);
+        }
+      });
+      
       console.log('🔄 REDO: Restored to history index', historyIndex + 1);
+      setTimeout(() => setIsUndoRedo(false), 100);
     }
-  }, [historyIndex, history]);
+  }, [historyIndex, history, objects]);
 
   // Save canvas state
   const saveCanvas = useCallback(() => {
