@@ -105,12 +105,25 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         break;
       case 'control':
         // Control point ONLY affects the curve, does NOT move line endpoints
-        console.log('🔥 LINE: Moving control point to', newX, newY);
-        updateObject(object.id, { 
-          controlX: newX, 
-          controlY: newY,
-          curved: true 
-        });
+        // If Shift is pressed, align control point with the line (straighten)
+        if (isShiftPressed) {
+          // Align control point with the line (midpoint between endpoints)
+          const midX = (startX + endX) / 2;
+          const midY = (startY + endY) / 2;
+          console.log('🔥 LINE: Shift pressed - aligning control point to midpoint', midX, midY);
+          updateObject(object.id, { 
+            controlX: midX, 
+            controlY: midY,
+            curved: false // Straighten the line
+          });
+        } else {
+          console.log('🔥 LINE: Moving control point to', newX, newY);
+          updateObject(object.id, { 
+            controlX: newX, 
+            controlY: newY,
+            curved: true 
+          });
+        }
         break;
     }
   };
@@ -143,12 +156,23 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         }
         break;
       case 'control':
-        // Final update for control point
-        updateObject(object.id, { 
-          controlX: newX, 
-          controlY: newY,
-          curved: true 
-        });
+        // If Shift was pressed, align to midpoint (straighten)
+        if (isShiftPressed) {
+          const midX = (startX + endX) / 2;
+          const midY = (startY + endY) / 2;
+          updateObject(object.id, { 
+            controlX: midX, 
+            controlY: midY,
+            curved: false
+          });
+        } else {
+          // Normal curve update
+          updateObject(object.id, { 
+            controlX: newX, 
+            controlY: newY,
+            curved: true 
+          });
+        }
         break;
     }
   };
