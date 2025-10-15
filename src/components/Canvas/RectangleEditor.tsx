@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CanvasObject } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
 import BaseEditor from './BaseEditor';
@@ -9,19 +9,31 @@ interface Props {
 
 const RectangleEditor: React.FC<Props> = ({ object }) => {
   const { updateObject, objects } = useCanvas();
+  const [widthInput, setWidthInput] = useState(String(object.width));
+  const [heightInput, setHeightInput] = useState(String(object.height));
 
-  const handleCornerRadiusChange = (value: number) => {
-    updateObject(object.id, { cornerRadius: Math.max(0, value) });
-  };
+  // Update local input when object changes from elsewhere
+  useEffect(() => {
+    setWidthInput(String(object.width));
+    setHeightInput(String(object.height));
+  }, [object.width, object.height]);
 
-  const handleWidthChange = (value: number) => {
-    const width = Math.max(1, value || 1);
+  const handleWidthBlur = () => {
+    const value = parseInt(widthInput) || 1;
+    const width = Math.max(1, value);
+    setWidthInput(String(width));
     updateObject(object.id, { width });
   };
 
-  const handleHeightChange = (value: number) => {
-    const height = Math.max(1, value || 1);
+  const handleHeightBlur = () => {
+    const value = parseInt(heightInput) || 1;
+    const height = Math.max(1, value);
+    setHeightInput(String(height));
     updateObject(object.id, { height });
+  };
+
+  const handleCornerRadiusChange = (value: number) => {
+    updateObject(object.id, { cornerRadius: Math.max(0, value) });
   };
 
   const handleMoveUp = () => {
@@ -91,8 +103,9 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
           <input
             type="number"
             min="1"
-            value={object.width || 1}
-            onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
+            value={widthInput}
+            onChange={(e) => setWidthInput(e.target.value)}
+            onBlur={handleWidthBlur}
             style={{
               flex: 1,
               padding: '6px',
@@ -119,8 +132,9 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
           <input
             type="number"
             min="1"
-            value={object.height || 1}
-            onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
+            value={heightInput}
+            onChange={(e) => setHeightInput(e.target.value)}
+            onBlur={handleHeightBlur}
             style={{
               flex: 1,
               padding: '6px',
