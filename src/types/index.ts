@@ -7,7 +7,7 @@ export interface AppUser {
 
 export interface CanvasObject {
   id: string;
-  type: 'rectangle' | 'circle' | 'line' | 'image';
+  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group';
   x: number;
   y: number;
   width: number;
@@ -17,22 +17,24 @@ export interface CanvasObject {
   createdAt: number;
   lastModified: number;
   // Common properties for all shapes
-  nickname?: string; // User-defined name for the shape
-  zIndex?: number; // Layering order
-  shadow?: boolean; // Shadow effect toggle
-  rotation?: number; // Rotation in degrees
+  nickname?: string;
+  zIndex?: number;
+  shadow?: boolean;
+  rotation?: number;
   // Line-specific properties
-  x2?: number; // End point for lines
-  y2?: number; // End point for lines
-  strokeWidth?: number; // Line thickness
+  x2?: number;
+  y2?: number;
+  strokeWidth?: number;
   // Curve properties
-  controlX?: number; // Control point X for curves
-  controlY?: number; // Control point Y for curves
-  curved?: boolean; // Whether the line is curved
+  controlX?: number;
+  controlY?: number;
+  curved?: boolean;
   // Rectangle-specific properties
-  cornerRadius?: number; // Corner radius for rectangles
+  cornerRadius?: number;
   // Image-specific properties
-  src?: string; // Image source URL or data URL
+  src?: string;
+  // Group-specific properties
+  groupedObjects?: string[];
 }
 
 export interface CursorPosition {

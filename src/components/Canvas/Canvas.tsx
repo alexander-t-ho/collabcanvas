@@ -8,6 +8,7 @@ import RectangleEditor from './RectangleEditor';
 import CircleEditor from './CircleEditor';
 import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
+import GroupEditor from './GroupEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 
@@ -17,7 +18,10 @@ const Canvas: React.FC = () => {
   const { 
     objects, 
     selectedId,
+    selectedIds,
     selectObject,
+    addToSelection,
+    clearSelection,
     drawingMode, 
     setDrawingMode, 
     tempLineStart, 
@@ -198,8 +202,11 @@ const Canvas: React.FC = () => {
           setDrawingMode('none');
         }
       } else {
-        // Normal click - deselect
-        selectObject(null);
+        // Normal click - check for multi-select modifier
+        const isMultiSelect = e.evt?.ctrlKey || e.evt?.metaKey;
+        if (!isMultiSelect) {
+          clearSelection();
+        }
       }
     }
   };
@@ -307,7 +314,7 @@ const Canvas: React.FC = () => {
                 <CanvasObject 
                   key={obj.id} 
                   object={obj} 
-                  isSelected={obj.id === selectedId}
+                  isSelected={selectedIds.includes(obj.id)}
                   onDrag={(position) => {
                     const guides = generateAlignmentGuides(obj, position);
                     setAlignmentGuides(guides);
@@ -373,6 +380,8 @@ const Canvas: React.FC = () => {
               return <LineEditor object={selectedObject} />;
             } else if (selectedObject.type === 'image') {
               return <ImageEditor object={selectedObject} />;
+            } else if (selectedObject.type === 'group') {
+              return <GroupEditor object={selectedObject} />;
             }
           }
           return null;

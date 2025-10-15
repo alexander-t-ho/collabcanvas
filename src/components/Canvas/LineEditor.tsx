@@ -43,6 +43,44 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { zIndex: minZ - 1 });
   };
 
+  const handleStraightenLine = () => {
+    // Get line endpoints
+    const startX = object.x;
+    const startY = object.y;
+    const endX = object.x2 || (object.x + object.width);
+    const endY = object.y2 || object.y;
+    
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    if (length === 0) return;
+    
+    // Calculate current angle
+    let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    
+    // Determine closest 90-degree orientation
+    let targetAngle;
+    if ((angle >= 315 || angle < 45) || (angle >= 135 && angle < 225)) {
+      targetAngle = (angle >= 135 && angle < 225) ? 180 : 0;
+    } else {
+      targetAngle = (angle >= 45 && angle < 135) ? 90 : 270;
+    }
+    
+    const radians = targetAngle * Math.PI / 180;
+    const newX2 = startX + length * Math.cos(radians);
+    const newY2 = startY + length * Math.sin(radians);
+    
+    updateObject(object.id, { 
+      x2: newX2, 
+      y2: newY2,
+      curved: false,
+      controlX: undefined,
+      controlY: undefined,
+    });
+  };
+
   return (
     <BaseEditor 
       object={object} 
@@ -116,6 +154,34 @@ const LineEditor: React.FC<Props> = ({ object }) => {
           />
           <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
         </div>
+      </div>
+
+      {/* Straighten Line Button */}
+      <div style={{ marginBottom: '12px' }}>
+        <button
+          onClick={handleStraightenLine}
+          style={{
+            width: '100%',
+            padding: '8px',
+            background: '#f59e0b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '12px',
+            fontFamily: 'inherit',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d97706';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f59e0b';
+          }}
+        >
+          Straighten Line (0° or 90°)
+        </button>
       </div>
     </BaseEditor>
   );
