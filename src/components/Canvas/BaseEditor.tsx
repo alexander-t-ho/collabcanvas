@@ -13,6 +13,82 @@ interface Props {
 const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, hideColorPicker }) => {
   const { updateObject, addObject, deleteObject } = useCanvas();
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [hue, setHue] = useState(0);
+  const [saturation, setSaturation] = useState(100);
+  const [lightness, setLightness] = useState(50);
+
+  // Convert hex to HSL
+  const hexToHSL = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return { h: 0, s: 100, l: 50 };
+    
+    let r = parseInt(result[1], 16) / 255;
+    let g = parseInt(result[2], 16) / 255;
+    let b = parseInt(result[3], 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      l: Math.round(l * 100)
+    };
+  };
+
+  // Convert HSL to hex
+  const hslToHex = (h: number, s: number, l: number) => {
+    h /= 360;
+    s /= 100;
+    l /= 100;
+    
+    let r, g, b;
+    
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    const toHex = (x: number) => {
+      const hex = Math.round(x * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  // Update color from HSL sliders
+  const updateColorFromHSL = (h: number, s: number, l: number) => {
+    const hex = hslToHex(h, s, l);
+    handleColorChange(hex);
+  };
 
   const handleNicknameChange = (value: string) => {
     updateObject(object.id, { nickname: value });
@@ -209,34 +285,180 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
               background: 'white',
               border: '1px solid #d1d5db',
               borderRadius: '8px',
-              padding: '12px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              padding: '16px',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
               zIndex: 1003,
-              width: '250px'
+              width: '280px'
             }}>
-              {/* Color Wheel using native HTML5 color input */}
-              <div style={{ marginBottom: '12px' }}>
+              <h4 style={{ 
+                margin: '0 0 12px 0', 
+                fontSize: '13px', 
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Color Picker
+              </h4>
+              
+              {/* Native Color Wheel */}
+              <div style={{ marginBottom: '16px' }}>
                 <input
                   type="color"
                   value={object.fill}
                   onChange={(e) => {
                     handleColorChange(e.target.value);
+                    const hsl = hexToHSL(e.target.value);
+                    setHue(hsl.h);
+                    setSaturation(hsl.s);
+                    setLightness(hsl.l);
                   }}
                   style={{
                     width: '100%',
-                    height: '150px',
-                    border: 'none',
-                    borderRadius: '4px',
+                    height: '120px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
                     cursor: 'pointer'
                   }}
                 />
               </div>
               
+              {/* HSL Sliders */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ 
+                  marginBottom: '6px', 
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: '#6b7280',
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>Hue</span>
+                  <span>{hue}°</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={hue}
+                  onChange={(e) => {
+                    const newHue = Number(e.target.value);
+                    setHue(newHue);
+                    updateColorFromHSL(newHue, saturation, lightness);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ 
+                  marginBottom: '6px', 
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: '#6b7280',
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>Saturation</span>
+                  <span>{saturation}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={saturation}
+                  onChange={(e) => {
+                    const newSat = Number(e.target.value);
+                    setSaturation(newSat);
+                    updateColorFromHSL(hue, newSat, lightness);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: `linear-gradient(to right, hsl(${hue}, 0%, ${lightness}%), hsl(${hue}, 100%, ${lightness}%))`,
+                    borderRadius: '4px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ 
+                  marginBottom: '6px', 
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: '#6b7280',
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>Lightness</span>
+                  <span>{lightness}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={lightness}
+                  onChange={(e) => {
+                    const newLight = Number(e.target.value);
+                    setLightness(newLight);
+                    updateColorFromHSL(hue, saturation, newLight);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`,
+                    borderRadius: '4px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              
+              {/* Color Preview */}
+              <div style={{ 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  background: object.fill,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                    Current Color
+                  </div>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    fontFamily: 'monospace',
+                    color: '#374151'
+                  }}>
+                    {object.fill.toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>
+                    HSL({hue}, {saturation}%, {lightness}%)
+                  </div>
+                </div>
+              </div>
+              
               {/* Quick color presets */}
-              <div style={{ marginBottom: '8px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <label style={{ 
                   display: 'block', 
-                  marginBottom: '6px', 
+                  marginBottom: '8px', 
                   fontSize: '11px',
                   fontWeight: '500',
                   color: '#6b7280'
@@ -250,16 +472,20 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                       key={color}
                       onClick={() => {
                         handleColorChange(color);
-                        setShowColorPicker(false);
+                        const hsl = hexToHSL(color);
+                        setHue(hsl.h);
+                        setSaturation(hsl.s);
+                        setLightness(hsl.l);
                       }}
                       style={{
-                        width: '24px',
-                        height: '24px',
+                        width: '28px',
+                        height: '28px',
                         background: color,
                         border: object.fill === color ? '2px solid #3b82f6' : '1px solid #d1d5db',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        transition: 'transform 0.1s ease'
+                        transition: 'transform 0.1s ease',
+                        boxShadow: object.fill === color ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'scale(1.15)';
@@ -267,6 +493,7 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
+                      title={color}
                     />
                   ))}
                 </div>
@@ -276,18 +503,24 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                 onClick={() => setShowColorPicker(false)}
                 style={{
                   width: '100%',
-                  padding: '6px',
-                  background: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
+                  padding: '8px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: '500',
-                  marginTop: '8px'
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#3b82f6';
                 }}
               >
-                Close
+                Done
               </button>
             </div>
           )}
