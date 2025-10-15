@@ -211,67 +211,58 @@ const Toolbar: React.FC = () => {
         <button
           onClick={handleCreateRectangle}
           style={{
-            padding: '10px',
-            width: '44px',
-            height: '44px',
+            padding: '8px 16px',
             background: '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            whiteSpace: 'nowrap'
           }}
           title="Add Rectangle"
         >
-          ▭
+          Add Rectangle
         </button>
 
         <button
           onClick={handleCreateCircle}
           style={{
-            padding: '10px',
-            width: '44px',
-            height: '44px',
+            padding: '8px 16px',
             background: '#10b981',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            whiteSpace: 'nowrap'
           }}
           title="Add Circle"
         >
-          ○
+          Add Circle
         </button>
 
         <button
           onClick={handleCreateLine}
           style={{
-            padding: '10px',
-            width: '44px',
-            height: '44px',
+            padding: '8px 16px',
             background: drawingMode === 'line' ? '#dc2626' : '#f59e0b',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            whiteSpace: 'nowrap'
           }}
           title={drawingMode === 'line' ? 'Drawing Line...' : 'Draw Line'}
         >
-          —
+          {drawingMode === 'line' ? 'Drawing...' : 'Draw Line'}
         </button>
 
         <button
