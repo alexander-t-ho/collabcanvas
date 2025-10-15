@@ -278,29 +278,24 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
           {/* Color Wheel Picker */}
           {showColorPicker && (
             <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
               marginTop: '8px',
-              background: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '16px',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
-              zIndex: 1003,
-              width: '280px'
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              padding: '12px',
+              marginBottom: '12px'
             }}>
               <h4 style={{ 
-                margin: '0 0 12px 0', 
-                fontSize: '13px', 
+                margin: '0 0 10px 0', 
+                fontSize: '12px', 
                 fontWeight: '600',
                 color: '#374151'
               }}>
                 Color Picker
               </h4>
               
-              {/* Native Color Wheel */}
-              <div style={{ marginBottom: '16px' }}>
+              {/* Native Color Wheel - Compact */}
+              <div style={{ marginBottom: '12px' }}>
                 <input
                   type="color"
                   value={object.fill}
@@ -313,26 +308,71 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                   }}
                   style={{
                     width: '100%',
-                    height: '120px',
+                    height: '80px',
                     border: '1px solid #d1d5db',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     cursor: 'pointer'
                   }}
                 />
               </div>
               
-              {/* HSL Sliders */}
+              {/* Current Color Display with Editable Hex */}
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ 
-                  marginBottom: '6px', 
-                  fontSize: '11px',
+                  display: 'block',
+                  marginBottom: '4px', 
+                  fontSize: '10px',
+                  fontWeight: '500',
+                  color: '#6b7280'
+                }}>
+                  Hex Code
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    background: object.fill,
+                    border: '2px solid #d1d5db',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }} />
+                  <input
+                    type="text"
+                    value={object.fill}
+                    onChange={(e) => {
+                      handleColorChange(e.target.value);
+                      const hsl = hexToHSL(e.target.value);
+                      setHue(hsl.h);
+                      setSaturation(hsl.s);
+                      setLightness(hsl.l);
+                    }}
+                    placeholder="#000000"
+                    style={{
+                      flex: 1,
+                      padding: '6px 8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      fontWeight: '600',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* HSL Sliders - Compact */}
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ 
+                  marginBottom: '4px', 
+                  fontSize: '10px',
                   fontWeight: '500',
                   color: '#6b7280',
                   display: 'flex',
                   justifyContent: 'space-between'
                 }}>
                   <span>Hue</span>
-                  <span>{hue}°</span>
+                  <span style={{ fontSize: '9px' }}>{hue}°</span>
                 </label>
                 <input
                   type="range"
@@ -346,26 +386,26 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                   }}
                   style={{
                     width: '100%',
-                    height: '8px',
+                    height: '6px',
                     background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                    borderRadius: '4px',
+                    borderRadius: '3px',
                     outline: 'none',
                     cursor: 'pointer'
                   }}
                 />
               </div>
               
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ 
-                  marginBottom: '6px', 
-                  fontSize: '11px',
+                  marginBottom: '4px', 
+                  fontSize: '10px',
                   fontWeight: '500',
                   color: '#6b7280',
                   display: 'flex',
                   justifyContent: 'space-between'
                 }}>
                   <span>Saturation</span>
-                  <span>{saturation}%</span>
+                  <span style={{ fontSize: '9px' }}>{saturation}%</span>
                 </label>
                 <input
                   type="range"
@@ -379,26 +419,26 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                   }}
                   style={{
                     width: '100%',
-                    height: '8px',
+                    height: '6px',
                     background: `linear-gradient(to right, hsl(${hue}, 0%, ${lightness}%), hsl(${hue}, 100%, ${lightness}%))`,
-                    borderRadius: '4px',
+                    borderRadius: '3px',
                     outline: 'none',
                     cursor: 'pointer'
                   }}
                 />
               </div>
               
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <label style={{ 
-                  marginBottom: '6px', 
-                  fontSize: '11px',
+                  marginBottom: '4px', 
+                  fontSize: '10px',
                   fontWeight: '500',
                   color: '#6b7280',
                   display: 'flex',
                   justifyContent: 'space-between'
                 }}>
                   <span>Lightness</span>
-                  <span>{lightness}%</span>
+                  <span style={{ fontSize: '9px' }}>{lightness}%</span>
                 </label>
                 <input
                   type="range"
@@ -412,60 +452,27 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                   }}
                   style={{
                     width: '100%',
-                    height: '8px',
+                    height: '6px',
                     background: `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`,
-                    borderRadius: '4px',
+                    borderRadius: '3px',
                     outline: 'none',
                     cursor: 'pointer'
                   }}
                 />
               </div>
               
-              {/* Color Preview */}
-              <div style={{ 
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  background: object.fill,
-                  border: '2px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                    Current Color
-                  </div>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    fontWeight: '600', 
-                    fontFamily: 'monospace',
-                    color: '#374151'
-                  }}>
-                    {object.fill.toUpperCase()}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>
-                    HSL({hue}, {saturation}%, {lightness}%)
-                  </div>
-                </div>
-              </div>
-              
-              {/* Quick color presets */}
-              <div style={{ marginBottom: '12px' }}>
+              {/* Quick color presets - Compact */}
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ 
                   display: 'block', 
-                  marginBottom: '8px', 
-                  fontSize: '11px',
+                  marginBottom: '6px', 
+                  fontSize: '10px',
                   fontWeight: '500',
                   color: '#6b7280'
                 }}>
                   Quick Colors
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '4px' }}>
                   {['#000000', '#ffffff', '#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6',
                     '#ec4899', '#06b6d4', '#14b8a6', '#84cc16', '#f97316', '#6366f1', '#a855f7', '#d1d5db'].map(color => (
                     <div
@@ -478,17 +485,16 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                         setLightness(hsl.l);
                       }}
                       style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '24px',
+                        height: '24px',
                         background: color,
                         border: object.fill === color ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                        borderRadius: '4px',
+                        borderRadius: '3px',
                         cursor: 'pointer',
-                        transition: 'transform 0.1s ease',
-                        boxShadow: object.fill === color ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none'
+                        transition: 'transform 0.1s ease'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.15)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'scale(1)';
@@ -503,13 +509,13 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                 onClick={() => setShowColorPicker(false)}
                 style={{
                   width: '100%',
-                  padding: '8px',
+                  padding: '6px',
                   background: '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: '500',
                   transition: 'background 0.2s ease'
                 }}
