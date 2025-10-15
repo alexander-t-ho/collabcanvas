@@ -233,15 +233,29 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [currentUser, selectedIds, objects, addObject]);
 
   const setObjects = useCallback((newObjects: CanvasObject[]) => {
-    setObjectsState(newObjects);
-    // Save to history when objects are set from Firestore
-    if (!isUndoRedo) {
-      console.log('💾 HISTORY: Saving state with', newObjects.length, 'objects. History index:', historyIndex);
-      saveToHistory(newObjects);
-    } else {
-      console.log('⏭️ HISTORY: Skipping save during undo/redo operation');
-    }
-  }, [isUndoRedo, saveToHistory, historyIndex]);
+    setObjectsState(prev => {
+      // Check if this is actually a change
+      const prevJson = JSON.stringify(prev);
+      const newJson = JSON.stringify(newObjects);
+      
+      if (prevJson === newJson) {
+        console.log('⏭️ HISTORY: No change detected, skipping save');
+        return prev;
+      }
+      
+      console.log('💾 HISTORY: Objects changed, saving state with', newObjects.length, 'objects');
+      
+      // Save to history when objects are set from Firestore
+      if (!isUndoRedo) {
+        console.log('💾 HISTORY: Saving state with', newObjects.length, 'objects. History index:', historyIndexRef.current);
+        saveToHistory(newObjects);
+      } else {
+        console.log('⏭️ HISTORY: Skipping save during undo/redo operation');
+      }
+      
+      return newObjects;
+    });
+  }, [isUndoRedo, saveToHistory]);
 
   // Undo function
   const undo = useCallback(() => {
@@ -365,6 +379,10 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setDrawingMode,
     setTempLineStart
   };
+  
+  // Debug canUndo/canRedo
+  console.log('📊 CONTEXT: historyIndex:', historyIndex, 'history.length:', history.length);
+  console.log('📊 CONTEXT: canUndo:', historyIndex > 0, 'canRedo:', historyIndex < history.length - 1);
 
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
 };
