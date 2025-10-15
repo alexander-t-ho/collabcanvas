@@ -7,7 +7,7 @@ export interface AppUser {
 
 export interface CanvasObject {
   id: string;
-  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group';
+  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group' | 'text';
   x: number;
   y: number;
   width: number;
@@ -35,6 +35,12 @@ export interface CanvasObject {
   src?: string;
   // Group-specific properties
   groupedObjects?: string[];
+  // Text-specific properties
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fontStyle?: string; // 'normal' | 'bold' | 'italic' | 'bold italic'
+  textAlign?: string; // 'left' | 'center' | 'right'
 }
 
 export interface CursorPosition {

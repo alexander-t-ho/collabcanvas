@@ -77,6 +77,28 @@ const Toolbar: React.FC = () => {
     setDrawingMode('line');
   };
 
+  const handleCreateText = () => {
+    if (!currentUser) return;
+    
+    addObject({
+      type: 'text',
+      x: Math.random() * 500 + 100,
+      y: Math.random() * 500 + 100,
+      width: 200,
+      height: 50,
+      fill: '#000000',
+      text: 'Double-click to edit',
+      fontSize: 24,
+      fontFamily: 'Arial',
+      fontStyle: 'normal',
+      textAlign: 'left',
+      nickname: '',
+      zIndex: 0,
+      shadow: false,
+      createdBy: currentUser.uid,
+    });
+  };
+
   const handleImport = () => {
     // This will be handled by the parent component
     const event = new CustomEvent('openImageImport');
@@ -186,8 +208,8 @@ const Toolbar: React.FC = () => {
             fontFamily: 'system-ui, -apple-system, sans-serif'
           }}
         >
-          Add Rectangle
-        </button>
+        Add Rectangle
+      </button>
 
         <button
           onClick={handleCreateCircle}
@@ -221,6 +243,30 @@ const Toolbar: React.FC = () => {
           }}
         >
           {drawingMode === 'line' ? 'Drawing Line...' : 'Draw Line'}
+        </button>
+
+        <button
+          onClick={handleCreateText}
+          style={{
+            padding: '8px 16px',
+            background: '#06b6d4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#0891b2';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#06b6d4';
+          }}
+        >
+          Add Text
         </button>
 
         <button
@@ -336,7 +382,7 @@ const Toolbar: React.FC = () => {
           )}
         </div>
         
-        <button 
+      <button 
           onClick={logout}
           style={{
             background: '#f3f4f6',
@@ -360,7 +406,7 @@ const Toolbar: React.FC = () => {
           }}
         >
           Logout
-        </button>
+      </button>
       </div>
     </div>
   );

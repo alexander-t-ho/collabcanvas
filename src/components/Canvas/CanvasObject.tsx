@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Rect, Circle, Image as KonvaImage, Transformer } from 'react-konva';
+import { Rect, Circle, Image as KonvaImage, Transformer, Text } from 'react-konva';
 import { CanvasObject as CanvasObjectType } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
 import InteractiveLine from './InteractiveLine';
@@ -200,6 +200,31 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             onTransformEnd={handleTransformEnd}
           />
         ) : null;
+      case 'text':
+        return (
+          <Text
+            ref={shapeRef}
+            x={object.x}
+            y={object.y}
+            width={object.width}
+            text={object.text || 'Double-click to edit'}
+            fontSize={object.fontSize || 24}
+            fontFamily={object.fontFamily || 'Arial'}
+            fontStyle={object.fontStyle || 'normal'}
+            fill={object.fill}
+            align={object.textAlign || 'left'}
+            rotation={object.rotation || 0}
+            shadowEnabled={object.shadow || false}
+            shadowBlur={object.shadow ? 15 : 0}
+            shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
+            shadowOpacity={object.shadow ? 0.5 : 0}
+            draggable
+            onClick={handleClick}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            onTransformEnd={handleTransformEnd}
+          />
+        );
       case 'group':
         return (
           <Rect
@@ -226,7 +251,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   return (
     <>
       {renderShape()}
-      {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
+      {isSelected && object.type !== 'line' && object.type !== 'group' && object.type !== 'text' && <Transformer ref={transformerRef} />}
     </>
   );
 };

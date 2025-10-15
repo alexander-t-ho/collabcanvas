@@ -8,6 +8,7 @@ import RectangleEditor from './RectangleEditor';
 import CircleEditor from './CircleEditor';
 import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
+import TextEditor from './TextEditor';
 import GroupEditor from './GroupEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
@@ -380,6 +381,8 @@ const Canvas: React.FC = () => {
               return <LineEditor object={selectedObject} />;
             } else if (selectedObject.type === 'image') {
               return <ImageEditor object={selectedObject} />;
+            } else if (selectedObject.type === 'text') {
+              return <TextEditor object={selectedObject} />;
             } else if (selectedObject.type === 'group') {
               return <GroupEditor object={selectedObject} />;
             }
