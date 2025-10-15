@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { CanvasObject } from '../types';
@@ -49,8 +49,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tempLineStart, setTempLineStart] = useState<{ x: number; y: number } | null>(null);
   const [history, setHistory] = useState<CanvasObject[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [isUndoRedo, setIsUndoRedo] = useState(false); // Flag to prevent history saving during undo/redo
+  const [isUndoRedo, setIsUndoRedo] = useState(false);
+  const historyIndexRef = useRef(-1); // Use ref to avoid stale closures
+  const historyRef = useRef<CanvasObject[][]>([]); // Use ref for history
   const { currentUser } = useAuth();
+
+  // Sync refs with state
+  historyIndexRef.current = historyIndex;
+  historyRef.current = history;
 
   // Save state to history (for undo/redo) - only if not during undo/redo operation
   const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
@@ -59,24 +65,27 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
-    console.log('💾 SAVE HISTORY: Starting save. Current index:', historyIndex);
+    const currentIndex = historyIndexRef.current;
+    console.log('💾 SAVE HISTORY: Starting save. Current index:', currentIndex);
     
     setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
+      const newHistory = prev.slice(0, currentIndex + 1);
       newHistory.push(JSON.parse(JSON.stringify(newObjects)));
       const trimmedHistory = newHistory.slice(-50);
       console.log('💾 SAVE HISTORY: New history length:', trimmedHistory.length);
+      historyRef.current = trimmedHistory;
       return trimmedHistory;
     });
     
     setHistoryIndex(prev => {
       const newIndex = Math.min(prev + 1, 49);
       console.log('💾 SAVE HISTORY: New index:', newIndex);
+      historyIndexRef.current = newIndex;
       return newIndex;
     });
     
     console.log('✅ SAVE HISTORY: Complete');
-  }, [historyIndex, isUndoRedo]);
+  }, [isUndoRedo]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
@@ -236,13 +245,17 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Undo function
   const undo = useCallback(() => {
-    console.log('⏪ UNDO: Attempting undo. Current index:', historyIndex, 'History length:', history.length);
+    const currentIndex = historyIndexRef.current;
+    const currentHistory = historyRef.current;
     
-    if (historyIndex > 0) {
+    console.log('⏪ UNDO: Attempting undo. Current index:', currentIndex, 'History length:', currentHistory.length);
+    
+    if (currentIndex > 0) {
       setIsUndoRedo(true);
-      const previousState = history[historyIndex - 1];
+      const previousState = currentHistory[currentIndex - 1];
       console.log('⏪ UNDO: Restoring state with', previousState.length, 'objects');
-      setHistoryIndex(historyIndex - 1);
+      setHistoryIndex(currentIndex - 1);
+      historyIndexRef.current = currentIndex - 1;
       setObjectsState(previousState);
       
       // Sync to Firestore
@@ -261,22 +274,26 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       });
       
-      console.log('✅ UNDO: Complete. New index:', historyIndex - 1);
+      console.log('✅ UNDO: Complete. New index:', currentIndex - 1);
       setTimeout(() => setIsUndoRedo(false), 100);
     } else {
-      console.log('⚠️ UNDO: No history to undo');
+      console.log('⚠️ UNDO: No history to undo. Index:', currentIndex);
     }
-  }, [historyIndex, history, objects]);
+  }, [objects]);
 
   // Redo function
   const redo = useCallback(() => {
-    console.log('⏩ REDO: Attempting redo. Current index:', historyIndex, 'History length:', history.length);
+    const currentIndex = historyIndexRef.current;
+    const currentHistory = historyRef.current;
     
-    if (historyIndex < history.length - 1) {
+    console.log('⏩ REDO: Attempting redo. Current index:', currentIndex, 'History length:', currentHistory.length);
+    
+    if (currentIndex < currentHistory.length - 1) {
       setIsUndoRedo(true);
-      const nextState = history[historyIndex + 1];
+      const nextState = currentHistory[currentIndex + 1];
       console.log('⏩ REDO: Restoring state with', nextState.length, 'objects');
-      setHistoryIndex(historyIndex + 1);
+      setHistoryIndex(currentIndex + 1);
+      historyIndexRef.current = currentIndex + 1;
       setObjectsState(nextState);
       
       // Sync to Firestore
@@ -295,12 +312,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       });
       
-      console.log('✅ REDO: Complete. New index:', historyIndex + 1);
+      console.log('✅ REDO: Complete. New index:', currentIndex + 1);
       setTimeout(() => setIsUndoRedo(false), 100);
     } else {
-      console.log('⚠️ REDO: No history to redo');
+      console.log('⚠️ REDO: No history to redo. Index:', currentIndex, 'Length:', currentHistory.length);
     }
-  }, [historyIndex, history, objects]);
+  }, [objects]);
 
   // Save canvas state
   const saveCanvas = useCallback(() => {
