@@ -226,84 +226,60 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [isUndoRedo, saveToHistory]);
 
-  // Undo function - undo all changes (collaborative)
+  // Undo function
   const undo = useCallback(() => {
-    console.log('==================== UNDO FUNCTION CALLED ====================');
-    console.log('UNDO: Starting...');
+    console.log('UNDO CALLED');
     
-    try {
-      const currentIndex = historyIndexRef.current;
-      const currentHistory = historyRef.current;
-      
-      console.log('UNDO: currentIndex:', currentIndex);
-      console.log('UNDO: currentHistory.length:', currentHistory.length);
-      console.log('UNDO: Current objects count:', objects.length);
-      
-      if (currentIndex <= 0) {
-        console.log('UNDO: BLOCKED - currentIndex <= 0');
-        alert('No history to undo (index <= 0)');
-        return;
-      }
-      
-      if (currentHistory.length === 0) {
-        console.log('UNDO: BLOCKED - history is empty');
-        alert('No history to undo (empty history)');
-        return;
-      }
-      
-      setIsUndoRedo(true);
-      const previousState = currentHistory[currentIndex - 1];
-      
-      console.log('UNDO: previousState:', previousState);
-      console.log('UNDO: previousState.length:', previousState?.length);
-      
-      if (!previousState) {
-        console.error('UNDO: previousState is null/undefined!');
-        alert('Undo failed: Previous state is undefined');
-        setIsUndoRedo(false);
-        return;
-      }
-      
-      console.log('UNDO: Setting historyIndex to', currentIndex - 1);
-      setHistoryIndex(currentIndex - 1);
-      historyIndexRef.current = currentIndex - 1;
-      
-      console.log('UNDO: Calling setObjectsState with', previousState.length, 'objects');
-      setObjectsState(previousState);
-      console.log('UNDO: setObjectsState called successfully');
-      
-      // Sync to Firestore
-      console.log('UNDO: Syncing to Firestore...');
+    const currentIndex = historyIndexRef.current;
+    const currentHistory = historyRef.current;
+    
+    console.log('UNDO: Index:', currentIndex, 'History length:', currentHistory.length);
+    
+    if (currentIndex <= 0 || currentHistory.length === 0) {
+      console.log('UNDO: No history available');
+      return;
+    }
+    
+    const previousState = currentHistory[currentIndex - 1];
+    if (!previousState) {
+      console.error('UNDO: Previous state is undefined');
+      return;
+    }
+    
+    console.log('UNDO: Restoring', previousState.length, 'objects');
+    
+    // Set flag to prevent realtime sync from overwriting
+    setIsUndoRedo(true);
+    
+    // Update index
+    setHistoryIndex(currentIndex - 1);
+    historyIndexRef.current = currentIndex - 1;
+    
+    // Update local state immediately
+    setObjectsState(previousState);
+    
+    // Sync to Firestore after a delay to ensure local state is set first
+    setTimeout(() => {
       previousState.forEach(obj => {
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(err => console.error('Firestore sync error:', err));
+        setDoc(objectRef, obj).catch(console.error);
       });
       
       // Delete removed objects
       const previousIds = previousState.map(obj => obj.id);
       objects.forEach(obj => {
         if (!previousIds.includes(obj.id)) {
-          console.log('UNDO: Deleting object', obj.id);
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(err => console.error('Delete error:', err));
+          deleteDoc(objectRef).catch(console.error);
         }
       });
       
-      console.log('UNDO: Setting isUndoRedo to false in 200ms');
-      setTimeout(() => {
-        setIsUndoRedo(false);
-        console.log('UNDO: isUndoRedo set to false');
-      }, 200);
-      
-      console.log('==================== UNDO COMPLETE ====================');
-      alert(`Undo complete! Restored to ${previousState.length} objects`);
-    } catch (error) {
-      console.error('==================== UNDO ERROR ====================');
-      console.error('UNDO: Critical error:', error);
-      setIsUndoRedo(false);
-      alert('Undo crashed: ' + error);
-    }
-  }, [objects, currentUser]);
+      // Clear flag after sync completes
+      setTimeout(() => setIsUndoRedo(false), 500);
+    }, 100);
+    
+    console.log('UNDO: Complete');
+  }, [objects]);
 
   // Redo function - redo all changes (collaborative)
   const redo = useCallback(() => {
