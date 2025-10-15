@@ -48,6 +48,13 @@ export const usePresence = () => {
 
     // Listen to all users
     console.log('PRESENCE: Setting up listener on presence/default');
+    
+    // First, try a one-time read to test if Firebase is working
+    onValue(allPresenceRef, (snapshot) => {
+      console.log('PRESENCE: ONE-TIME READ - exists:', snapshot.exists());
+      console.log('PRESENCE: ONE-TIME READ - data:', snapshot.val());
+    }, { onlyOnce: true });
+    
     const unsubscribe = onValue(allPresenceRef, (snapshot) => {
       console.log('========== PRESENCE LISTENER FIRED ==========');
       console.log('PRESENCE: Snapshot exists:', snapshot.exists());
