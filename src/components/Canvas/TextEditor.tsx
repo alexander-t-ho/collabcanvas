@@ -91,7 +91,9 @@ const TextEditor: React.FC<Props> = ({ object }) => {
             boxSizing: 'border-box',
             minHeight: '80px',
             resize: 'vertical',
-            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
+            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+            caretColor: '#3b82f6', // Blue blinking cursor
+            lineHeight: '1.5'
           }}
         />
       </div>
