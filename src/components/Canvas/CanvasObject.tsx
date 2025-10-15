@@ -16,6 +16,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [isEditingText, setIsEditingText] = useState(false);
 
   useEffect(() => {
     if (isSelected && transformerRef.current && shapeRef.current) {
@@ -39,13 +40,85 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     }
   };
 
-  // Handle double-click for text - just select it (editing happens in TextEditor panel)
+  // Handle double-click for text - enable editing on canvas
   const handleDoubleClick = (e: any) => {
     if (object.type === 'text') {
       e.cancelBubble = true;
-      selectObject(object.id);
-      // Fire event to focus text editor
-      window.dispatchEvent(new CustomEvent('focusTextEditor', { detail: { objectId: object.id } }));
+      setIsEditingText(true);
+      
+      // Create a temporary HTML text input at the text position
+      const textNode = shapeRef.current;
+      if (!textNode) return;
+      
+      const stage = textNode.getStage();
+      const textPosition = textNode.absolutePosition();
+      const stageBox = stage.container().getBoundingClientRect();
+      
+      // Calculate position accounting for stage transform
+      const scale = stage.scaleX();
+      const rotation = object.rotation || 0;
+      
+      const areaPosition = {
+        x: stageBox.left + textPosition.x * scale + stage.x(),
+        y: stageBox.top + textPosition.y * scale + stage.y(),
+      };
+
+      // Create textarea at the exact position
+      const textarea = document.createElement('textarea');
+      document.body.appendChild(textarea);
+
+      textarea.value = object.text || '';
+      textarea.style.position = 'absolute';
+      textarea.style.left = `${areaPosition.x}px`;
+      textarea.style.top = `${areaPosition.y}px`;
+      textarea.style.width = `${object.width * scale}px`;
+      textarea.style.fontSize = `${(object.fontSize || 24) * scale}px`;
+      textarea.style.fontFamily = object.fontFamily || 'Arial';
+      textarea.style.fontWeight = object.fontStyle?.includes('bold') ? 'bold' : 'normal';
+      textarea.style.fontStyle = object.fontStyle?.includes('italic') ? 'italic' : 'normal';
+      textarea.style.color = object.fill;
+      textarea.style.background = 'white';
+      textarea.style.border = '2px solid #3b82f6';
+      textarea.style.borderRadius = '4px';
+      textarea.style.padding = '4px';
+      textarea.style.outline = 'none';
+      textarea.style.resize = 'none';
+      textarea.style.overflow = 'hidden';
+      textarea.style.lineHeight = '1.2';
+      textarea.style.transform = `rotate(${rotation}deg)`;
+      textarea.style.transformOrigin = 'top left';
+      textarea.style.zIndex = '1000';
+      textarea.style.caretColor = '#ef4444'; // Red blinking cursor
+      textarea.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+
+      textarea.focus();
+      textarea.select();
+
+      const removeTextarea = () => {
+        textarea.parentNode?.removeChild(textarea);
+        setIsEditingText(false);
+      };
+
+      textarea.addEventListener('blur', () => {
+        updateObject(object.id, { text: textarea.value });
+        removeTextarea();
+      });
+
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          removeTextarea();
+        } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          updateObject(object.id, { text: textarea.value });
+          removeTextarea();
+        }
+        // Stop propagation to prevent canvas shortcuts
+        e.stopPropagation();
+      });
+
+      // Update text live as user types
+      textarea.addEventListener('input', () => {
+        updateObject(object.id, { text: textarea.value });
+      });
     }
   };
   useEffect(() => {
@@ -260,6 +333,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             rotation={object.rotation || 0}
             offsetX={object.width / 2}
             offsetY={(object.fontSize || 24) / 2}
+            visible={!isEditingText}
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
