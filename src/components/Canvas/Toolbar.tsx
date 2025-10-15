@@ -313,7 +313,10 @@ const Toolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={undo}
+          onClick={() => {
+            console.log('🖱️ UNDO BUTTON CLICKED! canUndo:', canUndo);
+            undo();
+          }}
           disabled={!canUndo}
           style={{
             padding: '8px 16px',
@@ -343,7 +346,10 @@ const Toolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={redo}
+          onClick={() => {
+            console.log('🖱️ REDO BUTTON CLICKED! canRedo:', canRedo);
+            redo();
+          }}
           disabled={!canRedo}
           style={{
             padding: '8px 16px',
