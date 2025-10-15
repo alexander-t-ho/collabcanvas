@@ -102,6 +102,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           obj.id === id ? { ...obj, ...updates, lastModified: Date.now() } : obj
         );
         
+        // Save to history after update
+        if (!isUndoRedo) {
+          console.log('💾 HISTORY: Saving after update');
+          saveToHistory(updatedObjects);
+        }
+        
         // Update Firestore asynchronously
         const updatedObject = { ...existingObject, ...updates, lastModified: Date.now() };
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
@@ -116,7 +122,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Error updating object in Firestore:', error);
     }
-  }, [currentUser]);
+  }, [currentUser, isUndoRedo, saveToHistory]);
 
   // For real-time dragging updates - only updates local state, no Firestore
   const updateObjectLive = useCallback((id: string, updates: Partial<CanvasObject>) => {
