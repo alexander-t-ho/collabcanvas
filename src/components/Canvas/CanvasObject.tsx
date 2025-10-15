@@ -109,7 +109,26 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         height: newHeight,
         x2: node.x() + newWidth,
         y2: node.y() + newHeight,
-        rotation: rotation * 180 / Math.PI, // Convert radians to degrees
+        rotation,
+      });
+    } else if (object.type === 'rectangle' || object.type === 'image') {
+      // For rectangles and images with offset, we need to adjust position
+      const newWidth = Math.max(5, node.width() * scaleX);
+      const newHeight = Math.max(5, node.height() * scaleY);
+      
+      // When using offsetX/offsetY, Konva position is at the center
+      // We need to convert back to top-left corner for storage
+      const centerX = node.x();
+      const centerY = node.y();
+      const topLeftX = centerX; // Keep center as position for consistency
+      const topLeftY = centerY;
+      
+      updateObject(object.id, {
+        x: topLeftX,
+        y: topLeftY,
+        width: newWidth,
+        height: newHeight,
+        rotation,
       });
     } else {
       updateObject(object.id, {
@@ -117,7 +136,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         y: node.y(),
         width: Math.max(5, node.width() * scaleX),
         height: Math.max(5, node.height() * scaleY),
-        rotation: rotation * 180 / Math.PI, // Convert radians to degrees
+        rotation,
       });
     }
   };
@@ -135,8 +154,8 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             fill={object.fill}
             cornerRadius={object.cornerRadius || 0}
             rotation={object.rotation || 0}
-            offsetX={object.width / 2} // Rotate around center
-            offsetY={object.height / 2} // Rotate around center
+            offsetX={object.width / 2}
+            offsetY={object.height / 2}
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
