@@ -316,16 +316,16 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                 />
               </div>
               
-              {/* Current Color Display with Editable Hex */}
+              {/* Editable Hex Code - Prominent */}
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ 
                   display: 'block',
-                  marginBottom: '4px', 
-                  fontSize: '10px',
-                  fontWeight: '500',
-                  color: '#6b7280'
+                  marginBottom: '6px', 
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: '#374151'
                 }}>
-                  Hex Code
+                  ✏️ Edit Hex Code
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{
@@ -349,15 +349,26 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                     placeholder="#000000"
                     style={{
                       flex: 1,
-                      padding: '6px 8px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px',
+                      padding: '8px',
+                      border: '2px solid #3b82f6',
+                      borderRadius: '6px',
+                      fontSize: '13px',
                       fontFamily: 'monospace',
-                      fontWeight: '600',
-                      textTransform: 'uppercase'
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      backgroundColor: 'white',
+                      color: '#1f2937',
+                      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
                     }}
                   />
+                </div>
+                <div style={{ 
+                  fontSize: '9px', 
+                  color: '#9ca3af', 
+                  marginTop: '4px',
+                  fontStyle: 'italic'
+                }}>
+                  Type any hex color code (e.g., #FF5733)
                 </div>
               </div>
               
