@@ -15,11 +15,13 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
   };
 
   const handleWidthChange = (value: number) => {
-    updateObject(object.id, { width: Math.max(10, value) });
+    const width = Math.max(1, value || 1);
+    updateObject(object.id, { width });
   };
 
   const handleHeightChange = (value: number) => {
-    updateObject(object.id, { height: Math.max(10, value) });
+    const height = Math.max(1, value || 1);
+    updateObject(object.id, { height });
   };
 
   const handleMoveUp = () => {
@@ -88,9 +90,9 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="number"
-            min="10"
-            value={Math.round(object.width)}
-            onChange={(e) => handleWidthChange(Number(e.target.value))}
+            min="1"
+            value={object.width || 1}
+            onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
             style={{
               flex: 1,
               padding: '6px',
@@ -116,9 +118,9 @@ const RectangleEditor: React.FC<Props> = ({ object }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="number"
-            min="10"
-            value={Math.round(object.height)}
-            onChange={(e) => handleHeightChange(Number(e.target.value))}
+            min="1"
+            value={object.height || 1}
+            onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
             style={{
               flex: 1,
               padding: '6px',

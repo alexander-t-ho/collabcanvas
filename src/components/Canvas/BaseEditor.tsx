@@ -103,7 +103,8 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
   };
 
   const handleRotationChange = (value: number) => {
-    updateObject(object.id, { rotation: value });
+    const rotation = isNaN(value) ? 0 : value;
+    updateObject(object.id, { rotation });
   };
 
   const handleShadowToggle = () => {
@@ -556,8 +557,11 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
         </label>
         <input
           type="number"
-          value={Math.round(object.rotation || 0)}
-          onChange={(e) => handleRotationChange(Number(e.target.value))}
+          value={object.rotation || 0}
+          onChange={(e) => {
+            const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+            handleRotationChange(val);
+          }}
           min={-360}
           max={360}
           style={{
