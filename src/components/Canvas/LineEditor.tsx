@@ -43,60 +43,6 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { zIndex: minZ - 1 });
   };
 
-  const handleStraightenLine = () => {
-    console.log('Straightening line:', object); // DEBUG
-    
-    // Ensure we have proper line endpoints
-    const startX = object.x;
-    const startY = object.y;
-    const endX = object.x2 || (object.x + object.width);
-    const endY = object.y2 || object.y;
-    
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    console.log('Line details:', { startX, startY, endX, endY, deltaX, deltaY, length }); // DEBUG
-    
-    if (length === 0) return; // Prevent division by zero
-    
-    // Find the closest 90-degree orientation (0° horizontal or 90° vertical)
-    let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
-    
-    // Normalize angle to 0-360 range
-    if (angle < 0) angle += 360;
-    
-    console.log('Current angle:', angle); // DEBUG
-    
-    // Determine if closer to horizontal (0°/180°) or vertical (90°/270°)
-    let targetAngle;
-    if ((angle >= 315 || angle < 45) || (angle >= 135 && angle < 225)) {
-      // Closer to horizontal (0° or 180°)
-      targetAngle = (angle >= 135 && angle < 225) ? 180 : 0;
-    } else {
-      // Closer to vertical (90° or 270°)
-      targetAngle = (angle >= 45 && angle < 135) ? 90 : 270;
-    }
-    
-    console.log('Target angle:', targetAngle); // DEBUG
-    
-    const radians = targetAngle * Math.PI / 180;
-    
-    // Calculate new end point
-    const newX2 = startX + length * Math.cos(radians);
-    const newY2 = startY + length * Math.sin(radians);
-    
-    console.log('New coordinates:', { newX2, newY2 }); // DEBUG
-    
-    updateObject(object.id, { 
-      x2: newX2, 
-      y2: newY2,
-      curved: false, // Straightening removes curves
-      controlX: undefined,
-      controlY: undefined,
-    });
-  };
-
   return (
     <BaseEditor 
       object={object} 
@@ -170,34 +116,6 @@ const LineEditor: React.FC<Props> = ({ object }) => {
           />
           <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
         </div>
-      </div>
-
-      {/* Straighten Line Button */}
-      <div style={{ marginBottom: '12px' }}>
-        <button
-          onClick={handleStraightenLine}
-          style={{
-            width: '100%',
-            padding: '8px',
-            background: '#f59e0b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#d97706';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f59e0b';
-          }}
-        >
-          Straighten to Nearest Angle
-        </button>
       </div>
     </BaseEditor>
   );

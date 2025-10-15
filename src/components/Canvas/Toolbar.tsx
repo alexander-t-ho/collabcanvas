@@ -6,7 +6,7 @@ import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
 
 const Toolbar: React.FC = () => {
-  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup } = useCanvas();
+  const { addObject, drawingMode, setDrawingMode } = useCanvas();
   const { currentUser, logout } = useAuth();
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
@@ -238,24 +238,6 @@ const Toolbar: React.FC = () => {
           }}
         >
           Import Image
-        </button>
-
-        <button
-          onClick={createGroup}
-          disabled={selectedIds.length < 2}
-          style={{
-            padding: '8px 16px',
-            background: selectedIds.length >= 2 ? '#ef4444' : '#d1d5db',
-            color: selectedIds.length >= 2 ? 'white' : '#9ca3af',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: selectedIds.length >= 2 ? 'pointer' : 'not-allowed',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}
-        >
-          Group ({selectedIds.length})
         </button>
       </div>
 

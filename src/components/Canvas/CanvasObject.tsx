@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }) => {
-  const { updateObject, updateObjectLive, selectObject, selectedIds, addToSelection, removeFromSelection } = useCanvas();
+  const { updateObject, updateObjectLive, selectObject } = useCanvas();
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -24,21 +24,9 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     }
   }, [isSelected]);
 
-  // Handle click with multi-selection support
+  // Handle click for selection
   const handleClick = (e: any) => {
-    const isMultiSelect = e.evt?.ctrlKey || e.evt?.metaKey;
-    
-    if (isMultiSelect) {
-      // Multi-select mode: add/remove from selection
-      if (selectedIds.includes(object.id)) {
-        removeFromSelection(object.id);
-      } else {
-        addToSelection(object.id);
-      }
-    } else {
-      // Single select mode
-      selectObject(object.id);
-    }
+    selectObject(object.id);
   };
   useEffect(() => {
     if (object.type === 'image' && object.src) {
@@ -202,25 +190,6 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             onTransformEnd={handleTransformEnd}
           />
         ) : null;
-      case 'group':
-        // Groups render as a dashed border around grouped objects
-        return (
-          <Rect
-            ref={shapeRef}
-            x={object.x}
-            y={object.y}
-            width={object.width}
-            height={object.height}
-            fill="transparent"
-            stroke={isSelected ? "#3b82f6" : "#94a3b8"}
-            strokeWidth={2}
-            dash={[10, 5]}
-            opacity={0.8}
-            draggable
-            onClick={handleClick}
-            onDragEnd={handleDragEnd}
-          />
-        );
       default:
         return null;
     }
@@ -229,7 +198,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   return (
     <>
       {renderShape()}
-      {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
+      {isSelected && object.type !== 'line' && <Transformer ref={transformerRef} />}
     </>
   );
 };

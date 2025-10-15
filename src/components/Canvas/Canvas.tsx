@@ -8,7 +8,6 @@ import RectangleEditor from './RectangleEditor';
 import CircleEditor from './CircleEditor';
 import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
-import GroupEditor from './GroupEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 
@@ -18,10 +17,7 @@ const Canvas: React.FC = () => {
   const { 
     objects, 
     selectedId,
-    selectedIds,
     selectObject,
-    addToSelection,
-    clearSelection,
     drawingMode, 
     setDrawingMode, 
     tempLineStart, 
@@ -202,11 +198,8 @@ const Canvas: React.FC = () => {
           setDrawingMode('none');
         }
       } else {
-        // Normal click - check for multi-select modifier
-        const isMultiSelect = e.evt?.ctrlKey || e.evt?.metaKey;
-        if (!isMultiSelect) {
-          clearSelection();
-        }
+        // Normal click - deselect
+        selectObject(null);
       }
     }
   };
@@ -281,28 +274,28 @@ const Canvas: React.FC = () => {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <CursorOverlay stageRef={stageRef} />
-        
-        <Stage
-          ref={stageRef}
-          width={window.innerWidth}
+      <CursorOverlay stageRef={stageRef} />
+      
+      <Stage
+        ref={stageRef}
+        width={window.innerWidth}
           height={window.innerHeight - 60} // Account for toolbar height
-          scaleX={stageScale}
-          scaleY={stageScale}
-          x={stagePosition.x}
-          y={stagePosition.y}
-          draggable
-          onClick={handleStageClick}
+        scaleX={stageScale}
+        scaleY={stageScale}
+        x={stagePosition.x}
+        y={stagePosition.y}
+        draggable
+        onClick={handleStageClick}
           onMouseMove={handleMouseMove}
-          onWheel={handleWheel}
-        >
+        onWheel={handleWheel}
+      >
           {/* Grid Layer */}
           <Layer>
             {gridLines}
           </Layer>
           
           {/* Alignment Guides Layer */}
-          <Layer>
+        <Layer>
             {alignmentGuides}
           </Layer>
           
@@ -335,8 +328,8 @@ const Canvas: React.FC = () => {
                 lineCap="round"
               />
             )}
-          </Layer>
-        </Stage>
+        </Layer>
+      </Stage>
         
         {/* Mini controls in bottom right */}
         <div style={{
@@ -380,8 +373,6 @@ const Canvas: React.FC = () => {
               return <LineEditor object={selectedObject} />;
             } else if (selectedObject.type === 'image') {
               return <ImageEditor object={selectedObject} />;
-            } else if (selectedObject.type === 'group') {
-              return <GroupEditor object={selectedObject} />;
             }
           }
           return null;

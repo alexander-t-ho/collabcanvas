@@ -7,7 +7,7 @@ export interface AppUser {
 
 export interface CanvasObject {
   id: string;
-  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group';
+  type: 'rectangle' | 'circle' | 'line' | 'image';
   x: number;
   y: number;
   width: number;
@@ -33,8 +33,6 @@ export interface CanvasObject {
   cornerRadius?: number; // Corner radius for rectangles
   // Image-specific properties
   src?: string; // Image source URL or data URL
-  // Group-specific properties
-  groupedObjects?: string[]; // Array of object IDs in the group
 }
 
 export interface CursorPosition {

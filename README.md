@@ -1,301 +1,242 @@
-# CollabCanvas MVP
+# CollabCanvas
 
-Real-time collaborative canvas application with multiplayer support, built with React, TypeScript, and Firebase.
+A real-time collaborative canvas application built with React, TypeScript, and Firebase.
 
-## ✨ Features
+🚀 **Live Demo**: [https://collabcanvas-five.vercel.app](https://collabcanvas-five.vercel.app)
 
-- ✅ **Real-time collaboration** with multiple users
-- ✅ **Multiplayer cursors** with user names and colors
-- ✅ **Canvas objects**: Create, move, resize, and delete rectangles
-- ✅ **Pan and zoom** canvas with smooth interactions
-- ✅ **Presence awareness**: See who's online in real-time
-- ✅ **State persistence**: All changes automatically saved
-- ✅ **User authentication**: Secure email/password signup and login
-- ✅ **Responsive design**: Works on desktop browsers
+## 🎯 Features
 
-## 🚀 Quick Start
+### Core Functionality
+- **Real-time Collaboration**: See other users' cursors and edits in real-time
+- **Online Status**: View who's currently online with Google Docs-style presence indicators
+- **User Authentication**: Secure email/password authentication with Firebase Auth
+- **User Profiles**: Customizable display names, profile photos, and password management
 
-### Prerequisites
-- Node.js 16+ and npm
-- Firebase account
+### Canvas Tools
+- **Infinite Canvas**: Pan and zoom with dynamic grid pattern
+- **Shape Creation**:
+  - Rectangles with customizable corner radius
+  - Circles with adjustable radius
+  - Lines with curved/straight options
+  - Image imports with drag-and-drop support
 
-### Installation
+### Shape Editing
+- **Transform Controls**: Resize, rotate, and position shapes
+- **Property Editors**: Dedicated panels for each shape type
+  - Color picker with hex code input
+  - Rotation controls (degrees)
+  - Corner radius sliders (rectangles and images)
+  - Line thickness controls
+  - Size adjustments (width, height, radius, length)
+- **Visual Effects**:
+  - Drop shadows with prominence controls
+  - Z-index layering (move forward/backward)
+  - Custom nicknames for all shapes
+- **Alignment Guides**: Visual cues when aligning objects (within 100px)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/collabcanvas.git
-   cd collabcanvas
-   ```
+### Advanced Line Features
+- **Interactive Drawing**: Click-to-draw with real-time preview
+- **Curved Lines**: Drag control point to create arcs
+- **Endpoint Control**: Individual endpoint manipulation
+- **Line Body Dragging**: Click line body to move entire line
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Set up Firebase:**
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Create a new project
-   - Enable Authentication → Email/Password
-   - Create Firestore Database (start in test mode)
-   - Create Realtime Database (start in test mode)
-   - Register a web app and get configuration
-
-4. **Configure environment variables:**
-   ```bash
-   # Copy the example file
-   cp env-example.md .env.local
-   
-   # Edit .env.local with your Firebase configuration
-   ```
-
-5. **Deploy Firebase security rules:**
-   - Follow instructions in `FIREBASE_RULES.md`
-
-6. **Start the development server:**
-   ```bash
-   npm start
-   ```
-
-7. **Open your browser:**
-   - Go to `http://localhost:3000`
-   - Create an account or sign in
-   - Open multiple browser windows to test multiplayer features!
+### Image Features
+- **Instant Upload**: Fast image loading with compression
+- **Permanent Storage**: Images persist across sessions
+- **Corner Radius**: Round image corners like rectangles
+- **Cross-User Visibility**: All users see uploaded images in real-time
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React Client  │    │   React Client  │    │   React Client  │
-│   (Browser A)   │    │   (Browser B)   │    │   (Browser C)   │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          └──────────────────────┼──────────────────────┘
-                                 │
-                    ┌────────────┴────────────┐
-                    │      Firebase           │
-                    │  ┌─────────────────────┐ │
-                    │  │    Firestore DB     │ │  ← Canvas Objects
-                    │  │  (Objects & Cursors)│ │  ← Cursor Positions
-                    │  └─────────────────────┘ │
-                    │  ┌─────────────────────┐ │
-                    │  │   Realtime DB      │ │  ← Presence Data
-                    │  │   (Presence)       │ │
-                    │  └─────────────────────┘ │
-                    │  ┌─────────────────────┐ │
-                    │  │   Authentication   │ │  ← User Management
-                    │  └─────────────────────┘ │
-                    └─────────────────────────┘
-```
-
-## 🛠️ Tech Stack
-
 ### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Konva.js** - 2D canvas rendering
-- **React Konva** - React bindings for Konva
-
-### Backend
-- **Firebase Authentication** - User management
-- **Firestore** - Document database for canvas objects and cursors
-- **Realtime Database** - Real-time presence system
-
-### Development
-- **Create React App** - Build tooling
-- **ESLint** - Code linting
-- **Firebase CLI** - Deployment and rules
-
-## 📁 Project Structure
-
 ```
 src/
 ├── components/
 │   ├── Auth/
-│   │   └── Login.tsx           # Authentication UI
+│   │   └── Login.tsx              # Authentication UI
 │   ├── Canvas/
-│   │   ├── Canvas.tsx          # Main canvas component
-│   │   ├── CanvasObject.tsx    # Individual canvas objects
-│   │   └── Toolbar.tsx         # Canvas toolbar
+│   │   ├── Canvas.tsx              # Main canvas with Konva
+│   │   ├── CanvasObject.tsx        # Renders individual objects
+│   │   ├── Toolbar.tsx             # Top toolbar with tools and status
+│   │   ├── InteractiveLine.tsx     # Line component with control points
+│   │   ├── BaseEditor.tsx          # Shared editor controls
+│   │   ├── RectangleEditor.tsx     # Rectangle-specific controls
+│   │   ├── CircleEditor.tsx        # Circle-specific controls
+│   │   ├── LineEditor.tsx          # Line-specific controls
+│   │   ├── ImageEditor.tsx         # Image-specific controls
+│   │   ├── ImageImport.tsx         # Image upload modal
+│   │   └── UserProfileDropdown.tsx # User profile management
 │   └── Collaboration/
-│       ├── CursorOverlay.tsx   # Cursor management
-│       ├── RemoteCursor.tsx    # Remote user cursors
-│       └── PresenceIndicator.tsx # Online users list
+│       ├── CursorOverlay.tsx       # Other users' cursors
+│       └── RemoteCursor.tsx        # Individual cursor component
 ├── contexts/
-│   ├── AuthContext.tsx         # Authentication state
-│   └── CanvasContext.tsx       # Canvas state management
+│   ├── AuthContext.tsx             # Authentication state
+│   ├── CanvasContext.tsx           # Canvas objects and operations
+│   └── UserProfileContext.tsx      # User profile management
 ├── hooks/
-│   ├── useCursorSync.ts        # Cursor synchronization
-│   ├── usePresence.ts          # Presence management
-│   └── useRealtimeSync.ts      # Object synchronization
-├── firebase/
-│   └── config.ts               # Firebase configuration
+│   ├── usePresence.ts              # Online user tracking
+│   ├── useCursorSync.ts            # Cursor position sync
+│   └── useRealtimeSync.ts          # Firestore object sync
 ├── types/
-│   └── index.ts                # TypeScript definitions
-├── utils/
-│   ├── colors.ts               # Color utilities
-│   └── helpers.ts              # Helper functions
-└── App.tsx                     # Main application
+│   └── index.ts                    # TypeScript interfaces
+└── utils/
+    ├── colors.ts                   # Color generation utilities
+    └── helpers.ts                  # Helper functions
 ```
 
-## 🎮 How to Use
+### Backend (Firebase)
+- **Firebase Authentication**: Email/password auth with user management
+- **Firestore Database**: Canvas objects storage with real-time sync
+- **Realtime Database**: User presence and cursor positions
+- **Firebase Storage**: Image file storage (optional for large images)
 
-1. **Sign Up/Login**: Create an account or sign in with existing credentials
-2. **Create Objects**: Click "Add Rectangle" to create new objects on the canvas
-3. **Interact with Objects**: 
-   - Click to select objects
-   - Drag to move objects
-   - Use corner handles to resize selected objects
-   - Press Delete/Backspace to remove selected objects
-4. **Navigate Canvas**: 
-   - Drag empty areas to pan
-   - Use mouse wheel to zoom in/out
-5. **Collaborate**: 
-   - Open multiple browser windows/tabs
-   - See other users' cursors in real-time
-   - Watch objects update live as others edit them
-   - Check the presence indicator to see who's online
+### Data Models
 
-## 🚀 Deployment
+#### CanvasObject
+```typescript
+{
+  id: string;
+  type: 'rectangle' | 'circle' | 'line' | 'image';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill: string;
+  rotation?: number;
+  nickname?: string;
+  zIndex?: number;
+  shadow?: boolean;
+  cornerRadius?: number;        // For rectangles and images
+  x2?: number;                  // Line endpoint
+  y2?: number;                  // Line endpoint
+  strokeWidth?: number;         // Line thickness
+  controlX?: number;            // Curve control point
+  controlY?: number;            // Curve control point
+  curved?: boolean;             // Line curvature flag
+  src?: string;                 // Image data URL
+}
+```
 
-### Firebase Hosting
+#### PresenceData
+```typescript
+{
+  userId: string;
+  name: string;
+  color: string;
+  online: boolean;
+  lastSeen: number;
+}
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+- Firebase project with:
+  - Authentication enabled (Email/Password)
+  - Firestore Database
+  - Realtime Database
+  - Storage (optional)
+
+### Installation
+
+1. **Clone the repository**
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Build the project
-npm run build
-
-# Initialize Firebase hosting
-firebase login
-firebase init hosting
-
-# Deploy
-firebase deploy --only hosting
+git clone https://github.com/alexander-t-ho/collabcanvas.git
+cd collabcanvas
 ```
 
-### Vercel (Alternative)
+2. **Install dependencies**
 ```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-vercel
-
-# Set environment variables in Vercel dashboard
+npm install
 ```
 
-## 🔧 Configuration
+3. **Configure Firebase**
 
-### Environment Variables
-All Firebase configuration should be placed in `.env.local`:
-
+Create a `.env.local` file in the root directory:
 ```env
 REACT_APP_FIREBASE_API_KEY=your_api_key
 REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
 REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456789
-REACT_APP_FIREBASE_APP_ID=1:123456789:web:abcdef
-REACT_APP_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.firebaseio.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+REACT_APP_FIREBASE_APP_ID=your_app_id
+REACT_APP_FIREBASE_DATABASE_URL=https://your_project.firebaseio.com
 ```
 
-### Firebase Security Rules
-See `FIREBASE_RULES.md` for detailed security rule configuration.
+4. **Deploy Firebase Rules**
 
-## 🧪 Testing Multiplayer Features
+Deploy Firestore rules:
+```bash
+firebase deploy --only firestore
+```
 
-1. **Open multiple browser windows**:
-   ```bash
-   # Terminal 1
-   npm start
-   
-   # Open multiple browser windows/tabs to http://localhost:3000
-   # Use incognito/private browsing for separate user sessions
-   ```
+Deploy Realtime Database rules:
+```bash
+firebase deploy --only database
+```
 
-2. **Test scenarios**:
-   - Create accounts in different windows
-   - Create objects in one window, verify they appear in others
-   - Move objects in one window, watch real-time updates
-   - Move cursor in one window, see cursor appear in others
-   - Close one window, verify presence updates in remaining windows
+5. **Run the development server**
+```bash
+npm start
+```
 
-## ⚡ Performance
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-- **60 FPS** canvas rendering with Konva.js
-- **Sub-100ms** object synchronization via Firestore
-- **50ms throttled** cursor updates for smooth performance
-- **Optimistic updates** for responsive local interactions
+### Production Deployment
 
-## 🐛 Known Limitations
+Deploy to Vercel:
+```bash
+vercel --prod
+```
 
-- **Single canvas**: MVP supports one shared canvas
-- **Rectangle objects only**: Limited to rectangle shapes
-- **No undo/redo**: No action history management
-- **Last-write-wins**: Simple conflict resolution
-- **Desktop only**: Not optimized for mobile/touch
-- **No object ownership**: Any user can modify any object
+Ensure all Firebase environment variables are configured in Vercel:
+- Go to your Vercel project settings
+- Add all `REACT_APP_FIREBASE_*` variables
+- Redeploy
 
-## 🔒 Security
+## 🎨 Usage
 
-- **Authentication required**: All operations require user login
-- **Firestore security rules**: Prevent unauthorized access
-- **Input validation**: Client-side validation for user inputs
-- **Rate limiting**: Throttled updates prevent spam
+### Creating Shapes
+1. Click toolbar buttons to add rectangles, circles, or images
+2. Click "Draw Line" and click twice on canvas to create a line
+3. Click "Import Image" to upload images (drag-and-drop or file browser)
 
-## 🛣️ Roadmap
+### Editing Shapes
+1. Click any shape to select it
+2. Edit panel appears on the left with controls:
+   - Nickname, color, rotation, shadow
+   - Shape-specific properties (corner radius, thickness, etc.)
+   - Duplicate and delete buttons
+   - Z-index controls (move forward/backward)
 
-### Phase 2 (Post-MVP)
-- Multiple shape types (circles, lines, text)
-- Object ownership and permissions
-- Undo/redo functionality
-- Multiple canvas support
-- Enhanced UI/UX design
+### Line Editing
+- **Drag blue endpoints**: Move line endpoints independently
+- **Drag green/red control point**: Create curved lines (arcs)
+- **Click line body**: Move entire line
 
-### Phase 3 (Advanced)
-- Mobile/touch support
-- Voice/video chat integration
-- Comments and annotations
-- Export to PNG/SVG
-- Version history
+### Collaboration
+- See other users' cursors in real-time
+- Online status shows active collaborators with colored circles
+- All edits sync instantly across all users
+
+## 🔧 Technical Stack
+
+- **Frontend**: React 18, TypeScript
+- **Canvas Rendering**: Konva.js, React-Konva
+- **Backend**: Firebase (Auth, Firestore, Realtime Database, Storage)
+- **Deployment**: Vercel
+- **Styling**: Inline CSS with modern design system
+
+## 📝 License
+
+This project was created as part of a Gauntlet AI project.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Test thoroughly with multiple users
-5. Submit a pull request
+This is a private project for demonstration purposes.
 
-## 📄 License
+## 📞 Support
 
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🆘 Support
-
-### Common Issues
-
-**Firebase permissions error**
-- Ensure Firebase security rules are deployed correctly
-- Check that user is authenticated
-- Verify Firestore and Realtime Database are created
-
-**Objects not syncing**
-- Check browser console for Firebase errors
-- Verify internet connection
-- Ensure `.env.local` has correct Firebase config
-
-**Performance issues**
-- Limit number of objects on canvas (< 100 for best performance)
-- Close unnecessary browser tabs
-- Check if multiple users are creating objects rapidly
-
-### Getting Help
-- Check the `FIREBASE_RULES.md` for setup instructions
-- Review browser console for error messages
-- Test with Firebase console to verify data flow
-- Open GitHub issues for bugs or feature requests
-
----
-
-**Built with ❤️ for real-time collaboration**
+For issues or questions, please open an issue on GitHub.
