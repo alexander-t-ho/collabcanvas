@@ -112,13 +112,17 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         rotation,
       });
     } else if (object.type === 'text') {
-      // For text, update width and font size based on scale
+      // For text with offset, handle like rectangles/images
       const newWidth = Math.max(50, node.width() * scaleX);
       const newFontSize = Math.max(8, Math.min(200, (object.fontSize || 24) * scaleY));
       
+      // Position is at center due to offset
+      const centerX = node.x();
+      const centerY = node.y();
+      
       updateObject(object.id, {
-        x: node.x(),
-        y: node.y(),
+        x: centerX,
+        y: centerY,
         width: newWidth,
         fontSize: newFontSize,
         rotation,
@@ -245,6 +249,8 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             fill={object.fill}
             align={object.textAlign || 'left'}
             rotation={object.rotation || 0}
+            offsetX={object.width / 2}
+            offsetY={(object.fontSize || 24) / 2}
             shadowEnabled={object.shadow || false}
             shadowBlur={object.shadow ? 15 : 0}
             shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
