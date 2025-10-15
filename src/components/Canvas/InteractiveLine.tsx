@@ -179,21 +179,36 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
 
   // Handle dragging the entire line (only when clicking on the line itself, not control points)
   const handleLineDragEnd = (e: any) => {
-    const deltaX = e.target.x();
-    const deltaY = e.target.y();
-    
-    updateObject(object.id, {
-      x: startX + deltaX,
-      y: startY + deltaY,
-      x2: endX + deltaX,
-      y2: endY + deltaY,
-      controlX: object.curved ? controlX + deltaX : undefined,
-      controlY: object.curved ? controlY + deltaY : undefined,
-    });
+    try {
+      const deltaX = e.target.x();
+      const deltaY = e.target.y();
+      
+      // Build update object based on what exists
+      const updates: Partial<CanvasObject> = {
+        x: startX + deltaX,
+        y: startY + deltaY,
+        x2: endX + deltaX,
+        y2: endY + deltaY,
+      };
+      
+      // Only update control point if line is curved and has control point data
+      if (object.curved && object.controlX !== undefined && object.controlY !== undefined) {
+        updates.controlX = object.controlX + deltaX;
+        updates.controlY = object.controlY + deltaY;
+      }
+      
+      console.log('🔥 LINE: Moving entire line by', deltaX, deltaY, 'with updates:', updates);
+      updateObject(object.id, updates);
 
-    // Reset the group position
-    e.target.x(0);
-    e.target.y(0);
+      // Reset the group position
+      e.target.x(0);
+      e.target.y(0);
+    } catch (error) {
+      console.error('❌ LINE: Error moving line:', error);
+      // Reset position on error
+      e.target.x(0);
+      e.target.y(0);
+    }
   };
 
   // Generate points for the line (straight or curved)
