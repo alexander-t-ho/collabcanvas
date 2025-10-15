@@ -1,12 +1,31 @@
 {
   "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
     "presence": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$canvasId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
         "$userId": {
           ".read": "auth != null",
-          ".write": "auth.uid == $userId"
+          ".write": "auth == $userId || auth != null"
         }
       }
+    },
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth == $userId"
+      }
+    },
+    "canvases": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
+

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
+import { ref, onValue, set, onDisconnect } from 'firebase/database';
 import { rtdb } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { PresenceData } from '../types';
@@ -9,6 +9,7 @@ const CANVAS_ID = 'default';
 export const usePresence = () => {
   const { currentUser } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<PresenceData[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -17,11 +18,13 @@ export const usePresence = () => {
       return;
     }
 
-    console.log('🔥 PRESENCE: Setting up for user:', currentUser);
+    console.log('🔥 PRESENCE: ============ STARTING PRESENCE SETUP ============');
+    console.log('🔥 PRESENCE: Current user:', currentUser);
+    console.log('🔥 PRESENCE: Database URL:', rtdb.app.options.databaseURL);
 
-    // Use the original simpler path structure
-    const presenceRef = ref(rtdb, `presence/default/${currentUser.uid}`);
-    const allPresenceRef = ref(rtdb, 'presence/default');
+    // Use the simpler path structure
+    const presenceRef = ref(rtdb, `presence/${CANVAS_ID}/${currentUser.uid}`);
+    const allPresenceRef = ref(rtdb, `presence/${CANVAS_ID}`);
 
     // Set user as online with comprehensive data
     const userData = {
@@ -34,37 +37,55 @@ export const usePresence = () => {
       timestamp: Date.now()
     };
     
-    console.log('🔥 PRESENCE: Setting user online with data:', userData);
+    console.log('🔥 PRESENCE: Attempting to set user online with data:', userData);
     
-    // Set presence immediately
+    // Set presence immediately with comprehensive error handling
     set(presenceRef, userData)
       .then(() => {
-        console.log('✅ PRESENCE: User set online successfully');
+        console.log('✅ PRESENCE: ========== USER SET ONLINE SUCCESSFULLY ==========');
+        setError(null);
         
         // Force an immediate read to verify it worked
         onValue(presenceRef, (snapshot) => {
-          console.log('🔥 PRESENCE: Verification read:', snapshot.exists(), snapshot.val());
+          console.log('🔥 PRESENCE: Verification read - exists:', snapshot.exists());
+          console.log('🔥 PRESENCE: Verification read - data:', snapshot.val());
+          
+          if (!snapshot.exists()) {
+            console.error('❌ PRESENCE: WARNING - User was set but verification read shows no data!');
+            setError('Verification failed - data not persisted');
+          }
         }, { onlyOnce: true });
       })
-      .catch((error) => {
-        console.error('❌ PRESENCE: Error setting user online:', error);
+      .catch((error: any) => {
+        console.error('❌ PRESENCE: ========== CRITICAL ERROR SETTING USER ONLINE ==========');
+        console.error('❌ PRESENCE: Error object:', error);
+        console.error('❌ PRESENCE: Error message:', error?.message);
+        console.error('❌ PRESENCE: Error code:', error?.code);
+        setError(`Failed to set presence: ${error?.message || 'Unknown error'}`);
       });
 
     // Remove presence on disconnect
     onDisconnect(presenceRef).remove().then(() => {
-      console.log('✅ PRESENCE: onDisconnect handler set');
-    }).catch((error) => {
+      console.log('✅ PRESENCE: onDisconnect handler set successfully');
+    }).catch((error: any) => {
       console.error('❌ PRESENCE: Error setting onDisconnect:', error);
+      setError(`Failed to set disconnect handler: ${error?.message}`);
     });
 
-    // Listen to all presence updates with simpler processing
+    // Listen to all presence updates
+    let listenerActive = false;
     const unsubscribe = onValue(allPresenceRef, (snapshot) => {
-      console.log('🔥 PRESENCE: Raw presence snapshot received');
+      if (!listenerActive) {
+        console.log('🔥 PRESENCE: ========== LISTENER ACTIVATED ==========');
+        listenerActive = true;
+      }
+      
+      console.log('🔥 PRESENCE: ========== NEW SNAPSHOT RECEIVED ==========');
       console.log('🔥 PRESENCE: Snapshot exists:', snapshot.exists());
-      console.log('🔥 PRESENCE: Snapshot value:', snapshot.val());
+      console.log('🔥 PRESENCE: Snapshot value:', JSON.stringify(snapshot.val(), null, 2));
       
       if (!snapshot.exists()) {
-        console.log('⚠️ PRESENCE: No presence data found');
+        console.log('⚠️ PRESENCE: No presence data found - this might be the first user');
         setOnlineUsers([]);
         return;
       }
@@ -78,12 +99,17 @@ export const usePresence = () => {
         return;
       }
       
-      console.log('🔥 PRESENCE: Processing presence data with keys:', Object.keys(data));
+      const userIds = Object.keys(data);
+      console.log('🔥 PRESENCE: Found user IDs:', userIds);
+      console.log('🔥 PRESENCE: Total users in database:', userIds.length);
       
       // Process each user in the presence data
-      Object.keys(data).forEach((userId) => {
+      userIds.forEach((userId) => {
         const user = data[userId];
-        console.log(`🔥 PRESENCE: Processing user ${userId}:`, user);
+        console.log(`🔥 PRESENCE: -------- Processing user ${userId} --------`);
+        console.log(`🔥 PRESENCE: User data:`, user);
+        console.log(`🔥 PRESENCE: User online status:`, user?.online);
+        console.log(`🔥 PRESENCE: User online type:`, typeof user?.online);
         
         if (user && user.online === true) {
           const processedUser: PresenceData = {
@@ -94,24 +120,30 @@ export const usePresence = () => {
             lastSeen: user.lastSeen || Date.now()
           };
           users.push(processedUser);
-          console.log(`✅ PRESENCE: Added online user:`, processedUser);
+          console.log(`✅ PRESENCE: Added user to online list:`, processedUser);
         } else {
-          console.log(`⚠️ PRESENCE: Skipping user ${userId} - not online or invalid data. Online status:`, user?.online);
+          console.log(`⚠️ PRESENCE: Skipping user ${userId} - online=${user?.online}`);
         }
       });
 
-      console.log('🔥 PRESENCE: Final online users array:', users);
+      console.log('🔥 PRESENCE: ========== FINAL RESULTS ==========');
       console.log('🔥 PRESENCE: Total online users COUNT:', users.length);
-      setOnlineUsers(users);
+      console.log('🔥 PRESENCE: Full users array:', JSON.stringify(users, null, 2));
+      console.log('🔥 PRESENCE: Setting state with', users.length, 'users');
+      console.log('🔥 PRESENCE: ======================================');
       
-      // Extra verification log
-      console.log('🔥 PRESENCE: State should now show', users.length, 'users');
-    }, (error) => {
-      console.error('❌ PRESENCE: Error listening to presence:', error);
-      console.log('❌ PRESENCE: Keeping existing users due to error');
+      setOnlineUsers(users);
+      setError(null);
+    }, (error: any) => {
+      console.error('❌ PRESENCE: ========== ERROR IN LISTENER ==========');
+      console.error('❌ PRESENCE: Listener error:', error);
+      console.error('❌ PRESENCE: Error message:', error?.message);
+      console.error('❌ PRESENCE: Error code:', error?.code);
+      setError(`Listener error: ${error?.message || 'Unknown error'}`);
     });
 
     return () => {
+      console.log('🔥 PRESENCE: ========== CLEANING UP ==========');
       console.log('🔥 PRESENCE: Cleaning up for user:', currentUser.uid);
       unsubscribe();
       
@@ -122,7 +154,7 @@ export const usePresence = () => {
         lastSeen: Date.now()
       }).then(() => {
         console.log('✅ PRESENCE: User set offline successfully');
-      }).catch((error) => {
+      }).catch((error: any) => {
         console.error('❌ PRESENCE: Error setting user offline:', error);
       });
     };
@@ -130,9 +162,12 @@ export const usePresence = () => {
 
   // Add extra logging when onlineUsers changes
   useEffect(() => {
-    console.log('🔥 PRESENCE: onlineUsers state changed to:', onlineUsers.length, 'users');
-    console.log('🔥 PRESENCE: Full users array:', onlineUsers);
-  }, [onlineUsers]);
+    console.log('🔥 PRESENCE: ========== STATE CHANGED ==========');
+    console.log('🔥 PRESENCE: onlineUsers state updated to:', onlineUsers.length, 'users');
+    console.log('🔥 PRESENCE: Full state:', onlineUsers);
+    console.log('🔥 PRESENCE: Error state:', error);
+    console.log('🔥 PRESENCE: =====================================');
+  }, [onlineUsers, error]);
 
-  return { onlineUsers };
+  return { onlineUsers, error };
 };
