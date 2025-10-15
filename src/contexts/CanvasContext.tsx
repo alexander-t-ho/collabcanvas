@@ -58,41 +58,29 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   historyIndexRef.current = historyIndex;
   historyRef.current = history;
 
-  // Save state to history (for undo/redo) - only if not during undo/redo operation
+  // Save state to history (for undo/redo)
   const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
-    if (isUndoRedo) {
-      console.log('⏭️ SKIP HISTORY: During undo/redo, not saving');
-      return;
-    }
+    if (isUndoRedo) return;
     
     const currentIndex = historyIndexRef.current;
-    console.log('💾 SAVE HISTORY: Starting save. Current index:', currentIndex);
     
     setHistory(prev => {
       const newHistory = prev.slice(0, currentIndex + 1);
       newHistory.push(JSON.parse(JSON.stringify(newObjects)));
       const trimmedHistory = newHistory.slice(-50);
-      console.log('💾 SAVE HISTORY: New history length:', trimmedHistory.length);
       historyRef.current = trimmedHistory;
       return trimmedHistory;
     });
     
     setHistoryIndex(prev => {
       const newIndex = Math.min(prev + 1, 49);
-      console.log('💾 SAVE HISTORY: New index:', newIndex);
       historyIndexRef.current = newIndex;
       return newIndex;
     });
-    
-    console.log('✅ SAVE HISTORY: Complete');
   }, [isUndoRedo]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
-    if (!currentUser) {
-      console.error('❌ ADD OBJECT: No current user!');
-      alert('Error: You must be logged in to add objects');
-      return;
-    }
+    if (!currentUser) return;
     
     const newObject: CanvasObject = {
       ...object,
@@ -101,62 +89,40 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       lastModified: Date.now()
     };
     
-    console.log('➕ ADD OBJECT: Adding to Firestore:', newObject.id, newObject.type);
-    
     try {
-      // Write to Firestore
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', newObject.id);
       await setDoc(objectRef, newObject);
-      console.log('✅ ADD OBJECT: Successfully added to Firestore');
     } catch (error) {
-      console.error('❌ ADD OBJECT: Error adding to Firestore:', error);
-      alert(`Failed to add object: ${error}`);
+      console.error('Error adding object:', error);
     }
   }, [currentUser]);
 
   const updateObject = useCallback(async (id: string, updates: Partial<CanvasObject>) => {
-    if (!currentUser) {
-      console.error('❌ UPDATE OBJECT: No current user!');
-      return;
-    }
-    
-    console.log('🔄 UPDATE OBJECT: Updating in Firestore:', id, updates);
+    if (!currentUser) return;
     
     try {
-      // Get current state to avoid stale closure
       setObjectsState(prev => {
         const existingObject = prev.find(obj => obj.id === id);
-        if (!existingObject) {
-          console.error('❌ UPDATE OBJECT: Object not found:', id);
-          return prev;
-        }
+        if (!existingObject) return prev;
         
-        // Update local state optimistically
         const updatedObjects = prev.map(obj => 
           obj.id === id ? { ...obj, ...updates, lastModified: Date.now() } : obj
         );
         
         // Save to history after update
         if (!isUndoRedo) {
-          console.log('💾 HISTORY: Saving after update');
           saveToHistory(updatedObjects);
         }
         
         // Update Firestore asynchronously
         const updatedObject = { ...existingObject, ...updates, lastModified: Date.now() };
         const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
-        setDoc(objectRef, updatedObject).then(() => {
-          console.log('✅ UPDATE OBJECT: Successfully updated in Firestore');
-        }).catch((error) => {
-          console.error('❌ UPDATE OBJECT: Error updating in Firestore:', error);
-          alert(`Failed to update object: ${error.message || error}`);
-        });
+        setDoc(objectRef, updatedObject).catch(console.error);
         
         return updatedObjects;
       });
     } catch (error) {
-      console.error('❌ UPDATE OBJECT: Critical error:', error);
-      alert(`Critical error updating object: ${error}`);
+      console.error('Error updating object:', error);
     }
   }, [currentUser, isUndoRedo, saveToHistory]);
 
@@ -247,23 +213,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const setObjects = useCallback((newObjects: CanvasObject[]) => {
     setObjectsState(prev => {
-      // Check if this is actually a change
       const prevJson = JSON.stringify(prev);
       const newJson = JSON.stringify(newObjects);
       
-      if (prevJson === newJson) {
-        console.log('⏭️ HISTORY: No change detected, skipping save');
-        return prev;
-      }
+      if (prevJson === newJson) return prev;
       
-      console.log('💾 HISTORY: Objects changed, saving state with', newObjects.length, 'objects');
-      
-      // Save to history when objects are set from Firestore
       if (!isUndoRedo) {
-        console.log('💾 HISTORY: Saving state with', newObjects.length, 'objects. History index:', historyIndexRef.current);
         saveToHistory(newObjects);
-      } else {
-        console.log('⏭️ HISTORY: Skipping save during undo/redo operation');
       }
       
       return newObjects;
@@ -275,12 +231,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const currentIndex = historyIndexRef.current;
     const currentHistory = historyRef.current;
     
-    console.log('⏪ UNDO: Attempting undo. Current index:', currentIndex, 'History length:', currentHistory.length);
+    console.log('UNDO: Attempting. Index:', currentIndex, 'Length:', currentHistory.length);
     
     if (currentIndex > 0) {
       setIsUndoRedo(true);
       const previousState = currentHistory[currentIndex - 1];
-      console.log('⏪ UNDO: Restoring state with', previousState.length, 'objects');
       setHistoryIndex(currentIndex - 1);
       historyIndexRef.current = currentIndex - 1;
       setObjectsState(previousState);
@@ -291,20 +246,17 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setDoc(objectRef, obj).catch(console.error);
       });
       
-      // Clean up deleted objects
+      // Delete removed objects
       const currentIds = previousState.map(obj => obj.id);
       objects.forEach(obj => {
         if (!currentIds.includes(obj.id)) {
-          console.log('⏪ UNDO: Deleting object', obj.id);
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
           deleteDoc(objectRef).catch(console.error);
         }
       });
       
-      console.log('✅ UNDO: Complete. New index:', currentIndex - 1);
+      console.log('UNDO: Complete. New index:', currentIndex - 1);
       setTimeout(() => setIsUndoRedo(false), 100);
-    } else {
-      console.log('⚠️ UNDO: No history to undo. Index:', currentIndex);
     }
   }, [objects]);
 
@@ -313,12 +265,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const currentIndex = historyIndexRef.current;
     const currentHistory = historyRef.current;
     
-    console.log('⏩ REDO: Attempting redo. Current index:', currentIndex, 'History length:', currentHistory.length);
-    
     if (currentIndex < currentHistory.length - 1) {
       setIsUndoRedo(true);
       const nextState = currentHistory[currentIndex + 1];
-      console.log('⏩ REDO: Restoring state with', nextState.length, 'objects');
       setHistoryIndex(currentIndex + 1);
       historyIndexRef.current = currentIndex + 1;
       setObjectsState(nextState);
@@ -329,20 +278,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setDoc(objectRef, obj).catch(console.error);
       });
       
-      // Clean up deleted objects
+      // Delete removed objects
       const currentIds = nextState.map(obj => obj.id);
       objects.forEach(obj => {
         if (!currentIds.includes(obj.id)) {
-          console.log('⏩ REDO: Deleting object', obj.id);
           const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
           deleteDoc(objectRef).catch(console.error);
         }
       });
       
-      console.log('✅ REDO: Complete. New index:', currentIndex + 1);
       setTimeout(() => setIsUndoRedo(false), 100);
-    } else {
-      console.log('⚠️ REDO: No history to redo. Index:', currentIndex, 'Length:', currentHistory.length);
     }
   }, [objects]);
 
@@ -392,10 +337,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setDrawingMode,
     setTempLineStart
   };
-  
-  // Debug canUndo/canRedo
-  console.log('📊 CONTEXT: historyIndex:', historyIndex, 'history.length:', history.length);
-  console.log('📊 CONTEXT: canUndo:', historyIndex > 0, 'canRedo:', historyIndex < history.length - 1);
 
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
 };

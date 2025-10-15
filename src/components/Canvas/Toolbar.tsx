@@ -15,29 +15,16 @@ const Toolbar: React.FC = () => {
 
   // Force component to re-render when onlineUsers changes
   useEffect(() => {
-    console.log('🔥 TOOLBAR: onlineUsers changed, forcing update. Count:', onlineUsers.length);
     forceUpdate({});
   }, [onlineUsers]);
 
   // Memoize the count to ensure it updates
-  const totalOnlineCount = useMemo(() => {
-    const count = onlineUsers.length;
-    console.log('🔥 TOOLBAR: Computing totalOnlineCount:', count);
-    return count;
-  }, [onlineUsers]);
+  const totalOnlineCount = useMemo(() => onlineUsers.length, [onlineUsers]);
 
   // Filter out current user - only show others
   const otherUsers = useMemo(() => {
-    const filtered = onlineUsers.filter(user => user.userId !== currentUser?.uid);
-    console.log('🔥 TOOLBAR: Computing otherUsers:', filtered.length);
-    return filtered;
+    return onlineUsers.filter(user => user.userId !== currentUser?.uid);
   }, [onlineUsers, currentUser]);
-
-  // Add debugging for the toolbar
-  console.log('🔥 TOOLBAR: Rendering with onlineUsers:', onlineUsers.length, onlineUsers);
-  console.log('🔥 TOOLBAR: totalOnlineCount:', totalOnlineCount);
-  console.log('🔥 TOOLBAR: otherUsers:', otherUsers.length, otherUsers);
-  console.log('🔄 TOOLBAR: canUndo:', canUndo, 'canRedo:', canRedo);
 
   const handleCreateRectangle = () => {
     if (!currentUser) return;
@@ -314,10 +301,9 @@ const Toolbar: React.FC = () => {
 
         <button
           onClick={() => {
-            console.log('🖱️ UNDO BUTTON CLICKED! canUndo:', canUndo);
+            console.log('UNDO BUTTON CLICKED! canUndo:', canUndo);
             undo();
           }}
-          disabled={!canUndo}
           style={{
             padding: '8px 16px',
             background: canUndo ? '#f59e0b' : '#d1d5db',
@@ -328,29 +314,20 @@ const Toolbar: React.FC = () => {
             fontWeight: '500',
             fontSize: '14px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (canUndo) {
-              e.currentTarget.style.background = '#d97706';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (canUndo) {
-              e.currentTarget.style.background = '#f59e0b';
-            }
+            transition: 'background 0.2s ease',
+            opacity: canUndo ? 1 : 0.6,
+            pointerEvents: canUndo ? 'auto' : 'none'
           }}
           title="Undo (Ctrl+Z)"
         >
-          ↶ Undo
+          Undo
         </button>
 
         <button
           onClick={() => {
-            console.log('🖱️ REDO BUTTON CLICKED! canRedo:', canRedo);
+            console.log('REDO BUTTON CLICKED! canRedo:', canRedo);
             redo();
           }}
-          disabled={!canRedo}
           style={{
             padding: '8px 16px',
             background: canRedo ? '#f59e0b' : '#d1d5db',
@@ -361,21 +338,13 @@ const Toolbar: React.FC = () => {
             fontWeight: '500',
             fontSize: '14px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (canRedo) {
-              e.currentTarget.style.background = '#d97706';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (canRedo) {
-              e.currentTarget.style.background = '#f59e0b';
-            }
+            transition: 'background 0.2s ease',
+            opacity: canRedo ? 1 : 0.6,
+            pointerEvents: canRedo ? 'auto' : 'none'
           }}
           title="Redo (Ctrl+Y)"
         >
-          ↷ Redo
+          Redo
         </button>
 
         <button
