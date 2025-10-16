@@ -7,8 +7,12 @@ import UserProfileDropdown from './UserProfileDropdown';
 import UserInfoDropdown from './UserInfoDropdown';
 import { PresenceData } from '../../types';
 
-const Toolbar: React.FC = () => {
-  const { addObject, drawingMode, setDrawingMode, selectedIds, createGroup, saveCanvas, undo, redo, canUndo, canRedo } = useCanvas();
+interface ToolbarProps {
+  stageRef: React.RefObject<any>;
+}
+
+const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
+  const { addObject, drawingMode, setDrawingMode, exportCanvasAsPNG, undo, redo, canUndo, canRedo } = useCanvas();
   const { currentUser, logout } = useAuth();
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
@@ -30,10 +34,10 @@ const Toolbar: React.FC = () => {
   }, [onlineUsers, currentUser]);
 
   // DEBUG: Log what we're actually seeing
-  console.log('TOOLBAR: onlineUsers array:', onlineUsers);
-  console.log('TOOLBAR: onlineUsers.length:', onlineUsers.length);
-  console.log('TOOLBAR: totalOnlineCount:', totalOnlineCount);
-  console.log('TOOLBAR: otherUsers.length:', otherUsers.length);
+  // console.log('TOOLBAR: onlineUsers array:', onlineUsers);
+  // console.log('TOOLBAR: onlineUsers.length:', onlineUsers.length);
+  // console.log('TOOLBAR: totalOnlineCount:', totalOnlineCount);
+  // console.log('TOOLBAR: otherUsers.length:', otherUsers.length);
 
   const handleCreateRectangle = () => {
     if (!currentUser) return;
@@ -277,7 +281,8 @@ const Toolbar: React.FC = () => {
             fontWeight: '500',
             fontSize: '14px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease'
+            transition: 'background 0.2s ease',
+            whiteSpace: 'nowrap'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#0891b2';
@@ -300,14 +305,22 @@ const Toolbar: React.FC = () => {
             cursor: 'pointer',
             fontWeight: '500',
             fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#7c3aed';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#8b5cf6';
           }}
         >
           Import Image
         </button>
 
         <button
-          onClick={saveCanvas}
+          onClick={() => exportCanvasAsPNG(stageRef.current)}
           style={{
             padding: '8px 16px',
             background: '#10b981',
@@ -318,7 +331,8 @@ const Toolbar: React.FC = () => {
             fontWeight: '500',
             fontSize: '14px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease'
+            transition: 'background 0.2s ease',
+            whiteSpace: 'nowrap'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#059669';
@@ -326,14 +340,14 @@ const Toolbar: React.FC = () => {
           onMouseLeave={(e) => {
             e.currentTarget.style.background = '#10b981';
           }}
-          title="Save canvas as JSON file"
+          title="Export canvas as PNG image"
         >
-          💾 Save
+          📥 Export PNG
         </button>
 
         <button
           onClick={() => {
-            console.log('UNDO BUTTON CLICKED! canUndo:', canUndo);
+            // console.log('UNDO BUTTON CLICKED! canUndo:', canUndo);
             undo();
           }}
           style={{
@@ -348,16 +362,27 @@ const Toolbar: React.FC = () => {
             fontFamily: 'system-ui, -apple-system, sans-serif',
             transition: 'background 0.2s ease',
             opacity: canUndo ? 1 : 0.6,
-            pointerEvents: canUndo ? 'auto' : 'none'
+            pointerEvents: canUndo ? 'auto' : 'none',
+            whiteSpace: 'nowrap'
           }}
           title="Undo (Ctrl+Z)"
+          onMouseEnter={(e) => {
+            if (canUndo) {
+              e.currentTarget.style.background = '#d97706';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (canUndo) {
+              e.currentTarget.style.background = '#f59e0b';
+            }
+          }}
         >
           Undo
         </button>
 
         <button
           onClick={() => {
-            console.log('REDO BUTTON CLICKED! canRedo:', canRedo);
+            // console.log('REDO BUTTON CLICKED! canRedo:', canRedo);
             redo();
           }}
           style={{
@@ -372,41 +397,24 @@ const Toolbar: React.FC = () => {
             fontFamily: 'system-ui, -apple-system, sans-serif',
             transition: 'background 0.2s ease',
             opacity: canRedo ? 1 : 0.6,
-            pointerEvents: canRedo ? 'auto' : 'none'
+            pointerEvents: canRedo ? 'auto' : 'none',
+            whiteSpace: 'nowrap'
           }}
           title="Redo (Ctrl+Y)"
+          onMouseEnter={(e) => {
+            if (canRedo) {
+              e.currentTarget.style.background = '#d97706';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (canRedo) {
+              e.currentTarget.style.background = '#f59e0b';
+            }
+          }}
         >
           Redo
         </button>
 
-        <button
-          onClick={createGroup}
-          disabled={selectedIds.length < 2}
-          style={{
-            padding: '8px 16px',
-            background: selectedIds.length >= 2 ? '#8b5cf6' : '#d1d5db',
-            color: selectedIds.length >= 2 ? 'white' : '#9ca3af',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: selectedIds.length >= 2 ? 'pointer' : 'not-allowed',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (selectedIds.length >= 2) {
-              e.currentTarget.style.background = '#7c3aed';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedIds.length >= 2) {
-              e.currentTarget.style.background = '#8b5cf6';
-            }
-          }}
-        >
-          Group ({selectedIds.length})
-      </button>
       </div>
 
       {/* Right side - Online status, user profile, and logout */}
@@ -487,7 +495,8 @@ const Toolbar: React.FC = () => {
             cursor: 'pointer',
             fontFamily: 'system-ui, -apple-system, sans-serif',
             fontWeight: '500',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#e5e7eb';

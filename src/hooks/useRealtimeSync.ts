@@ -16,13 +16,13 @@ export const useRealtimeSync = () => {
 
   // Listen to object changes from Firestore
   useEffect(() => {
-    console.log('REALTIME SYNC: Setting up listener');
+    // console.log('REALTIME SYNC: Setting up listener');
     
     const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
     const q = query(objectsRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log('REALTIME SYNC: Received', snapshot.size, 'objects');
+      // console.log('REALTIME SYNC: Received', snapshot.size, 'objects');
       
       const updatedObjects: CanvasObject[] = [];
       
@@ -31,14 +31,14 @@ export const useRealtimeSync = () => {
         updatedObjects.push({ id: doc.id, ...data } as CanvasObject);
       });
 
-      console.log('REALTIME SYNC: Setting objects to state');
+      // console.log('REALTIME SYNC: Setting objects to state');
       setObjects(updatedObjects);
     }, (error) => {
       console.error('REALTIME SYNC: Error:', error);
     });
 
     return () => {
-      console.log('REALTIME SYNC: Cleanup');
+      // console.log('REALTIME SYNC: Cleanup');
       unsubscribe();
     };
   }, [setObjects]);

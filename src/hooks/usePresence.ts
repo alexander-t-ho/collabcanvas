@@ -4,25 +4,23 @@ import { rtdb } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { PresenceData } from '../types';
 
-const CANVAS_ID = 'default';
-
 export const usePresence = () => {
   const { currentUser } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<PresenceData[]>([]);
 
-  console.log('PRESENCE HOOK: Called. currentUser:', currentUser?.displayName || 'none');
-  console.log('PRESENCE HOOK: onlineUsers state:', onlineUsers.length);
+  // console.log('PRESENCE HOOK: Called. currentUser:', currentUser?.displayName || 'none');
+  // console.log('PRESENCE HOOK: onlineUsers state:', onlineUsers.length);
 
   useEffect(() => {
-    console.log('PRESENCE EFFECT: Running. currentUser:', currentUser?.displayName || 'none');
+    // console.log('PRESENCE EFFECT: Running. currentUser:', currentUser?.displayName || 'none');
     
     if (!currentUser) {
-      console.log('PRESENCE: No current user');
+      // console.log('PRESENCE: No current user');
       setOnlineUsers([]);
       return;
     }
 
-    console.log('PRESENCE: Setting up for user:', currentUser.displayName);
+    // console.log('PRESENCE: Setting up for user:', currentUser.displayName);
 
     const presenceRef = ref(rtdb, `presence/default/${currentUser.uid}`);
     const allPresenceRef = ref(rtdb, 'presence/default');
@@ -35,32 +33,32 @@ export const usePresence = () => {
       lastSeen: Date.now()
     };
     
-    console.log('PRESENCE: Setting user online:', userData);
+    // console.log('PRESENCE: Setting user online:', userData);
     
     // Set user online
     set(presenceRef, userData)
-      .then(() => console.log('PRESENCE: User set online SUCCESS'))
+      .then(() => {/* console.log('PRESENCE: User set online SUCCESS') */})
       .catch(err => console.error('PRESENCE: Set online FAILED:', err));
       
     onDisconnect(presenceRef).remove()
-      .then(() => console.log('PRESENCE: onDisconnect set'))
+      .then(() => {/* console.log('PRESENCE: onDisconnect set') */})
       .catch(err => console.error('PRESENCE: onDisconnect FAILED:', err));
 
     // Listen to all users
-    console.log('PRESENCE: Setting up listener on presence/default');
+    // console.log('PRESENCE: Setting up listener on presence/default');
     
     // First, try a one-time read to test if Firebase is working
     onValue(allPresenceRef, (snapshot) => {
-      console.log('PRESENCE: ONE-TIME READ - exists:', snapshot.exists());
-      console.log('PRESENCE: ONE-TIME READ - data:', snapshot.val());
+      // console.log('PRESENCE: ONE-TIME READ - exists:', snapshot.exists());
+      // console.log('PRESENCE: ONE-TIME READ - data:', snapshot.val());
     }, { onlyOnce: true });
     
     const unsubscribe = onValue(allPresenceRef, (snapshot) => {
-      console.log('========== PRESENCE LISTENER FIRED ==========');
-      console.log('PRESENCE: Snapshot exists:', snapshot.exists());
+      // console.log('========== PRESENCE LISTENER FIRED ==========');
+      // console.log('PRESENCE: Snapshot exists:', snapshot.exists());
       
       if (!snapshot.exists()) {
-        console.log('PRESENCE: No data in snapshot');
+        // console.log('PRESENCE: No data in snapshot');
         setOnlineUsers([]);
         return;
       }
@@ -69,12 +67,12 @@ export const usePresence = () => {
       const data = snapshot.val();
       
       const keys = Object.keys(data || {});
-      console.log('PRESENCE: Total keys:', keys.length);
-      console.log('PRESENCE: Keys:', keys);
+      // console.log('PRESENCE: Total keys:', keys.length);
+      // console.log('PRESENCE: Keys:', keys);
       
       keys.forEach((userId) => {
         const user = data[userId];
-        console.log(`PRESENCE: User ${userId}:`, user);
+        // console.log(`PRESENCE: User ${userId}:`, user);
         
         if (user && user.online === true) {
           const processedUser: PresenceData = {
@@ -85,28 +83,28 @@ export const usePresence = () => {
             lastSeen: user.lastSeen || Date.now()
           };
           users.push(processedUser);
-          console.log('PRESENCE: Added user:', processedUser.name);
+          // console.log('PRESENCE: Added user:', processedUser.name);
         } else {
-          console.log(`PRESENCE: Skipped user ${userId} - online:`, user?.online);
+          // console.log(`PRESENCE: Skipped user ${userId} - online:`, user?.online);
         }
       });
 
-      console.log('PRESENCE: Final count:', users.length, 'users');
-      console.log('PRESENCE: Setting state with users:', users);
+      // console.log('PRESENCE: Final count:', users.length, 'users');
+      // console.log('PRESENCE: Setting state with users:', users);
       setOnlineUsers(users);
-      console.log('========== PRESENCE UPDATE COMPLETE ==========');
+      // console.log('========== PRESENCE UPDATE COMPLETE ==========');
     }, (error) => {
       console.error('PRESENCE LISTENER ERROR:', error);
     });
 
     return () => {
-      console.log('PRESENCE: Cleanup');
+      // console.log('PRESENCE: Cleanup');
       unsubscribe();
       set(presenceRef, { ...userData, online: false }).catch(console.error);
     };
   }, [currentUser]);
 
-  console.log('PRESENCE HOOK: Returning onlineUsers.length:', onlineUsers.length);
+  // console.log('PRESENCE HOOK: Returning onlineUsers.length:', onlineUsers.length);
 
   return { onlineUsers };
 };

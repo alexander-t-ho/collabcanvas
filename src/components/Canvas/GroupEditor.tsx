@@ -12,12 +12,34 @@ const GroupEditor: React.FC<Props> = ({ object }) => {
 
   const handleMoveUp = () => {
     const maxZ = Math.max(...objects.map(obj => obj.zIndex || 0));
+    // Move the group forward
     updateObject(object.id, { zIndex: maxZ + 1 });
+    
+    // Move all grouped objects forward
+    if (object.groupedObjects) {
+      object.groupedObjects.forEach(objId => {
+        const groupedObj = objects.find(o => o.id === objId);
+        if (groupedObj) {
+          updateObject(objId, { zIndex: (groupedObj.zIndex || 0) + 1 });
+        }
+      });
+    }
   };
 
   const handleMoveDown = () => {
     const minZ = Math.min(...objects.map(obj => obj.zIndex || 0));
+    // Move the group backward
     updateObject(object.id, { zIndex: minZ - 1 });
+    
+    // Move all grouped objects backward
+    if (object.groupedObjects) {
+      object.groupedObjects.forEach(objId => {
+        const groupedObj = objects.find(o => o.id === objId);
+        if (groupedObj) {
+          updateObject(objId, { zIndex: (groupedObj.zIndex || 0) - 1 });
+        }
+      });
+    }
   };
 
   const handleRemoveFromGroup = (objectId: string) => {
@@ -45,14 +67,43 @@ const GroupEditor: React.FC<Props> = ({ object }) => {
       onMoveDown={handleMoveDown}
       hideColorPicker={true}
     >
+      {/* Ungroup Button - Above the list */}
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={handleUngroupAll}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: '#f59e0b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            fontFamily: 'inherit',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d97706';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f59e0b';
+          }}
+        >
+          📦 Ungroup All Objects
+        </button>
+      </div>
+
       <div style={{ marginBottom: '12px' }}>
         <label style={{
           display: 'block',
-          marginBottom: '4px',
-          fontWeight: '500',
-          color: '#6b7280'
+          marginBottom: '8px',
+          fontWeight: '600',
+          color: '#374151',
+          fontSize: '12px'
         }}>
-          Grouped Objects ({groupedCanvasObjects.length})
+          Objects in Group ({groupedCanvasObjects.length})
         </label>
         <div style={{
           border: '1px solid #e5e7eb',
@@ -74,7 +125,7 @@ const GroupEditor: React.FC<Props> = ({ object }) => {
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              onClick={() => selectObject(obj.id)}
+              onDoubleClick={() => selectObject(obj.id)}
             >
               <span style={{ fontSize: '12px', color: '#374151' }}>
                 {obj.nickname || `${obj.type.charAt(0).toUpperCase() + obj.type.slice(1)}`}
@@ -99,33 +150,15 @@ const GroupEditor: React.FC<Props> = ({ object }) => {
             </div>
           ))}
         </div>
+        <div style={{
+          marginTop: '6px',
+          fontSize: '10px',
+          color: '#6b7280',
+          fontStyle: 'italic'
+        }}>
+          💡 Double-click to select individual object
+        </div>
       </div>
-
-      <button
-        onClick={handleUngroupAll}
-        style={{
-          width: '100%',
-          padding: '8px',
-          background: '#f59e0b',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: '500',
-          fontSize: '12px',
-          fontFamily: 'inherit',
-          transition: 'background 0.2s ease',
-          marginTop: '10px'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#d97706';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#f59e0b';
-        }}
-      >
-        Ungroup All
-      </button>
     </BaseEditor>
   );
 };

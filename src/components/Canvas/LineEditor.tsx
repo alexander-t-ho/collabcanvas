@@ -43,6 +43,14 @@ const LineEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { zIndex: minZ - 1 });
   };
 
+  const handleArrowStartToggle = () => {
+    updateObject(object.id, { arrowStart: !object.arrowStart });
+  };
+
+  const handleArrowEndToggle = () => {
+    updateObject(object.id, { arrowEnd: !object.arrowEnd });
+  };
+
   return (
     <BaseEditor 
       object={object} 
@@ -115,6 +123,57 @@ const LineEditor: React.FC<Props> = ({ object }) => {
             }}
           />
           <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
+        </div>
+      </div>
+
+      {/* Arrow Options */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ 
+          display: 'block', 
+          marginBottom: '8px', 
+          fontWeight: '600',
+          color: '#374151',
+          fontSize: '12px'
+        }}>
+          Arrows
+        </label>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            color: '#6b7280',
+            fontSize: '11px'
+          }}>
+            <input
+              type="checkbox"
+              checked={object.arrowStart || false}
+              onChange={handleArrowStartToggle}
+              style={{ margin: 0 }}
+            />
+            ← Arrow at Start (Left)
+          </label>
+          
+          <label style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            color: '#6b7280',
+            fontSize: '11px'
+          }}>
+            <input
+              type="checkbox"
+              checked={object.arrowEnd || false}
+              onChange={handleArrowEndToggle}
+              style={{ margin: 0 }}
+            />
+            → Arrow at End (Right)
+          </label>
         </div>
       </div>
     </BaseEditor>

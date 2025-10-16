@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Group, Line, Circle } from 'react-konva';
+import { Group, Line, Circle, Arrow } from 'react-konva';
 import { CanvasObject } from '../../types';
 import { useCanvas } from '../../contexts/CanvasContext';
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
-  const { updateObject, selectObject } = useCanvas();
+  const { updateObject, selectObject, saveHistoryNow } = useCanvas();
   const groupRef = useRef<any>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'start' | 'end' | 'control' | null>(null);
@@ -74,7 +74,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
     e.cancelBubble = true; // Prevent event from bubbling to Group
     setIsDragging(true);
     setDragType(pointType);
-    console.log('🔥 LINE: Started dragging', pointType, 'point');
+    // console.log('🔥 LINE: Started dragging', pointType, 'point');
   };
 
   const handleControlPointDragMove = (pointType: 'start' | 'end' | 'control') => (e: any) => {
@@ -110,14 +110,14 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
           // Align control point with the line (midpoint between endpoints)
           const midX = (startX + endX) / 2;
           const midY = (startY + endY) / 2;
-          console.log('🔥 LINE: Shift pressed - aligning control point to midpoint', midX, midY);
+          // console.log('🔥 LINE: Shift pressed - aligning control point to midpoint', midX, midY);
           updateObject(object.id, { 
             controlX: midX, 
             controlY: midY,
             curved: false // Straighten the line
           });
         } else {
-          console.log('🔥 LINE: Moving control point to', newX, newY);
+          // console.log('🔥 LINE: Moving control point to', newX, newY);
           updateObject(object.id, { 
             controlX: newX, 
             controlY: newY,
@@ -130,7 +130,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
 
   const handleControlPointDragEnd = (pointType: 'start' | 'end' | 'control') => (e: any) => {
     e.cancelBubble = true; // Prevent event from bubbling to Group
-    console.log('🔥 LINE: Finished dragging', pointType, 'point');
+    // console.log('🔥 LINE: Finished dragging', pointType, 'point');
     setIsDragging(false);
     setDragType(null);
     
@@ -174,8 +174,11 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
           });
         }
         break;
-    }
-  };
+      }
+      
+      // Save to history after line point drag ends
+      setTimeout(() => saveHistoryNow(), 300);
+    };
 
   // Handle dragging the entire line (only when clicking on the line itself, not control points)
   const handleLineDragEnd = (e: any) => {
@@ -197,14 +200,17 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
         updates.controlY = object.controlY + deltaY;
       }
       
-      console.log('🔥 LINE: Moving entire line by', deltaX, deltaY, 'with updates:', updates);
+      // console.log('🔥 LINE: Moving entire line by', deltaX, deltaY, 'with updates:', updates);
       updateObject(object.id, updates);
 
       // Reset the group position
       e.target.x(0);
       e.target.y(0);
+      
+      // Save to history after line drag ends
+      setTimeout(() => saveHistoryNow(), 300);
     } catch (error) {
-      console.error('❌ LINE: Error moving line:', error);
+      // console.error('❌ LINE: Error moving line:', error);
       // Reset position on error
       e.target.x(0);
       e.target.y(0);
@@ -233,6 +239,82 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
     }
   };
 
+  const renderLine = () => {
+    const points = getLinePoints();
+    const hasArrows = object.arrowStart || object.arrowEnd;
+    
+    // If no arrows, use regular Line
+    if (!hasArrows) {
+      return (
+        <Line
+          points={points}
+          stroke={object.fill}
+          strokeWidth={object.strokeWidth || 3}
+          opacity={object.opacity ?? 1}
+          lineCap="round"
+          lineJoin="round"
+          tension={object.curved ? 0.5 : 0}
+          shadowEnabled={object.shadow || false}
+          shadowBlur={object.shadow ? 15 : 0}
+          shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
+          shadowOpacity={object.shadow ? 0.5 : 0}
+        />
+      );
+    }
+    
+    // If arrows, we need to render them separately
+    return (
+      <>
+        {/* Main line - use Arrow component from Konva */}
+        <Line
+          points={points}
+          stroke={object.fill}
+          strokeWidth={object.strokeWidth || 3}
+          opacity={object.opacity ?? 1}
+          lineCap="round"
+          lineJoin="round"
+          tension={object.curved ? 0.5 : 0}
+          shadowEnabled={object.shadow || false}
+          shadowBlur={object.shadow ? 15 : 0}
+          shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
+          shadowOpacity={object.shadow ? 0.5 : 0}
+        />
+        
+        {/* Arrow at start */}
+        {object.arrowStart && (
+          <Arrow
+            points={object.curved ? 
+              [controlX, controlY, startX, startY] : 
+              [endX, endY, startX, startY]
+            }
+            stroke={object.fill}
+            fill={object.fill}
+            strokeWidth={object.strokeWidth || 3}
+            opacity={object.opacity ?? 1}
+            pointerLength={10}
+            pointerWidth={10}
+          />
+        )}
+        
+        {/* Arrow at end */}
+        {object.arrowEnd && (
+          <Arrow
+            points={object.curved ? 
+              [controlX, controlY, endX, endY] : 
+              [startX, startY, endX, endY]
+            }
+            stroke={object.fill}
+            fill={object.fill}
+            strokeWidth={object.strokeWidth || 3}
+            opacity={object.opacity ?? 1}
+            pointerLength={10}
+            pointerWidth={10}
+          />
+        )}
+      </>
+    );
+  };
+
   return (
     <Group
       ref={groupRef}
@@ -240,19 +322,7 @@ const InteractiveLine: React.FC<Props> = ({ object, isSelected }) => {
       onDragEnd={handleLineDragEnd}
       onClick={() => selectObject(object.id)}
     >
-      {/* Main line */}
-      <Line
-        points={getLinePoints()}
-        stroke={object.fill}
-        strokeWidth={object.strokeWidth || 3}
-        lineCap="round"
-        lineJoin="round"
-        tension={object.curved ? 0.5 : 0}
-        shadowEnabled={object.shadow || false}
-        shadowBlur={object.shadow ? 15 : 0}
-        shadowOffset={object.shadow ? { x: 5, y: 5 } : { x: 0, y: 0 }}
-        shadowOpacity={object.shadow ? 0.5 : 0}
-      />
+      {renderLine()}
       
       {/* Control points - only show when selected */}
       {isSelected && (

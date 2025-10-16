@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }) => {
-  const { updateObject, updateObjectLive, selectObject, selectedIds, addToSelection, removeFromSelection } = useCanvas();
+  const { updateObject, updateObjectLive, selectObject, selectedIds, addToSelection, removeFromSelection, objects, saveHistoryNow } = useCanvas();
   const shapeRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -39,12 +39,24 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     }
   };
 
-  // Handle double-click for text - focus TextEditor panel
+  // Handle double-click for text - focus TextEditor panel, or select individual objects in groups
   const handleDoubleClick = (e: any) => {
+    e.cancelBubble = true;
+    
     if (object.type === 'text') {
-      e.cancelBubble = true;
       selectObject(object.id);
       window.dispatchEvent(new CustomEvent('focusTextEditor', { detail: { objectId: object.id } }));
+    } else {
+      // For objects in a group, double-click selects the individual object
+      // Check if this object is part of any group
+      const parentGroup = objects.find(obj => 
+        obj.type === 'group' && obj.groupedObjects?.includes(object.id)
+      );
+      
+      if (parentGroup) {
+        // Select the individual object, not the group
+        selectObject(object.id);
+      }
     }
   };
   useEffect(() => {
@@ -59,41 +71,138 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   }, [object.type, object.src]);
 
   const handleDragMove = (e: any) => {
-    if (onDrag && (object.type === 'rectangle' || object.type === 'circle' || object.type === 'image')) {
-      const newX = e.target.x();
-      const newY = e.target.y();
+    if (onDrag && (object.type === 'rectangle' || object.type === 'circle' || object.type === 'image' || object.type === 'text')) {
+      let newX = Math.round(e.target.x());
+      let newY = Math.round(e.target.y());
+      
+      // Snap to alignment with other objects
+      const snapThreshold = 10;
+      
+      objects.forEach(obj => {
+        if (obj.id === object.id) return;
+        
+        // Check horizontal alignment (same X)
+        if (Math.abs(obj.x - newX) < snapThreshold) {
+          newX = obj.x; // Snap to this object's X
+        }
+        
+        // Check vertical alignment (same Y)
+        if (Math.abs(obj.y - newY) < snapThreshold) {
+          newY = obj.y; // Snap to this object's Y
+        }
+      });
+      
+      // Update position on canvas (for visual feedback)
+      e.target.x(newX);
+      e.target.y(newY);
+      
       onDrag({ x: newX, y: newY });
       
-      // Update local state immediately for real-time feedback
+      // Update local state immediately for real-time feedback (no history)
       updateObjectLive(object.id, { x: newX, y: newY });
     }
   };
 
   const handleDragEnd = (e: any) => {
-    const newX = e.target.x();
-    const newY = e.target.y();
+    const newX = Math.round(e.target.x());
+    const newY = Math.round(e.target.y());
     
     if (object.type === 'line') {
       // For lines, we need to update both start and end points
       const deltaX = newX - object.x;
       const deltaY = newY - object.y;
       
+      // Use updateObject which saves to history
       updateObject(object.id, {
         x: newX,
         y: newY,
-        x2: (object.x2 || 0) + deltaX,
-        y2: (object.y2 || 0) + deltaY,
+        x2: Math.round((object.x2 || 0) + deltaX),
+        y2: Math.round((object.y2 || 0) + deltaY),
       });
+    } else if (object.type === 'group') {
+      // For groups, move all grouped objects together
+      const deltaX = newX - object.x;
+      const deltaY = newY - object.y;
+      
+      updateObject(object.id, {
+        x: newX,
+        y: newY,
+      });
+      
+      // Move all grouped objects
+      if (object.groupedObjects) {
+        object.groupedObjects.forEach(objId => {
+          const groupedObj = objects.find((o: any) => o.id === objId);
+          if (groupedObj) {
+            updateObject(objId, {
+              x: groupedObj.x + deltaX,
+              y: groupedObj.y + deltaY,
+            });
+          }
+        });
+      }
     } else {
-      updateObject(object.id, {
-        x: newX,
-        y: newY,
-      });
+      // Check if this object belongs to a group
+      const parentGroup = objects.find((obj: any) => 
+        obj.type === 'group' && obj.groupedObjects?.includes(object.id)
+      );
+      
+      if (parentGroup) {
+        // Object is part of a group - move all objects in the group
+        const deltaX = newX - object.x;
+        const deltaY = newY - object.y;
+        
+        // Update this object
+        updateObject(object.id, {
+          x: newX,
+          y: newY,
+        });
+        
+        // Update the group position
+        updateObject(parentGroup.id, {
+          x: parentGroup.x + deltaX,
+          y: parentGroup.y + deltaY,
+        });
+        
+        // Move all other objects in the group
+        if (parentGroup.groupedObjects) {
+          parentGroup.groupedObjects.forEach(objId => {
+            if (objId !== object.id) {
+              const groupedObj = objects.find((o: any) => o.id === objId);
+              if (groupedObj) {
+                updateObject(objId, {
+                  x: groupedObj.x + deltaX,
+                  y: groupedObj.y + deltaY,
+                });
+              }
+            }
+          });
+        }
+      } else {
+        // Not in a group - normal update
+        updateObject(object.id, {
+          x: newX,
+          y: newY,
+        });
+      }
     }
 
     // Clear alignment guides
     if (onDragEnd) {
       onDragEnd();
+    }
+    
+    // Save to history after all updates complete
+    setTimeout(() => saveHistoryNow(), 300);
+  };
+
+  const handleTransform = (e: any) => {
+    const node = shapeRef.current;
+    // Apply real-time snapping while rotating with shift key
+    if (e.evt?.shiftKey) {
+      const rotation = node.rotation();
+      const snappedRotation = Math.round(rotation / 45) * 45;
+      node.rotation(snappedRotation);
     }
   };
 
@@ -101,49 +210,89 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
     const node = shapeRef.current;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
-    const rotation = node.rotation();
+    let rotation = node.rotation();
+    
+    // Snap to 45-degree angles if shift key is pressed
+    if (e.evt?.shiftKey) {
+      rotation = Math.round(rotation / 45) * 45;
+      node.rotation(rotation);
+    }
 
     node.scaleX(1);
     node.scaleY(1);
 
-    if (object.type === 'line') {
-      // For lines, scaling affects the end points
-      const newWidth = Math.max(5, node.width() * scaleX);
-      const newHeight = Math.max(5, node.height() * scaleY);
+    if (object.type === 'group') {
+      // For groups, rotate all grouped objects together
+      const rotationDelta = rotation - (object.rotation || 0);
       
       updateObject(object.id, {
-        x: node.x(),
-        y: node.y(),
+        rotation: Math.round(rotation),
+      });
+      
+      // Rotate all grouped objects around the group center
+      if (object.groupedObjects && rotationDelta !== 0) {
+        const groupCenterX = object.x;
+        const groupCenterY = object.y;
+        
+        object.groupedObjects.forEach(objId => {
+          const groupedObj = objects.find((o: any) => o.id === objId);
+          if (groupedObj) {
+            // Calculate new position after rotation
+            const dx = groupedObj.x - groupCenterX;
+            const dy = groupedObj.y - groupCenterY;
+            const rad = (rotationDelta * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            
+            const newX = groupCenterX + (dx * cos - dy * sin);
+            const newY = groupCenterY + (dx * sin + dy * cos);
+            
+            updateObject(objId, {
+              x: Math.round(newX),
+              y: Math.round(newY),
+              rotation: Math.round((groupedObj.rotation || 0) + rotationDelta),
+            });
+          }
+        });
+      }
+    } else if (object.type === 'line') {
+      // For lines, scaling affects the end points
+      const newWidth = Math.round(Math.max(5, node.width() * scaleX));
+      const newHeight = Math.round(Math.max(5, node.height() * scaleY));
+      
+      updateObject(object.id, {
+        x: Math.round(node.x()),
+        y: Math.round(node.y()),
         width: newWidth,
         height: newHeight,
-        x2: node.x() + newWidth,
-        y2: node.y() + newHeight,
-        rotation,
+        x2: Math.round(node.x() + newWidth),
+        y2: Math.round(node.y() + newHeight),
+        rotation: Math.round(rotation),
       });
     } else if (object.type === 'text') {
       // For text with offset, only change width not font size
-      const newWidth = Math.max(50, node.width() * scaleX);
+      const newWidth = Math.round(Math.max(50, node.width() * scaleX));
       
       // Position is at center due to offset
-      const centerX = node.x();
-      const centerY = node.y();
+      const centerX = Math.round(node.x());
+      const centerY = Math.round(node.y());
       
       updateObject(object.id, {
         x: centerX,
         y: centerY,
         width: newWidth,
         // Font size stays the same - only text box width changes
-        rotation,
+        rotation: Math.round(rotation),
       });
     } else if (object.type === 'rectangle' || object.type === 'image') {
       // For rectangles and images with offset, we need to adjust position
-      const newWidth = Math.max(5, node.width() * scaleX);
-      const newHeight = Math.max(5, node.height() * scaleY);
+      const newWidth = Math.round(Math.max(5, node.width() * scaleX));
+      const newHeight = Math.round(Math.max(5, node.height() * scaleY));
       
       // When using offsetX/offsetY, Konva position is at the center
       // We need to convert back to top-left corner for storage
-      const centerX = node.x();
-      const centerY = node.y();
+      const centerX = Math.round(node.x());
+      const centerY = Math.round(node.y());
       const topLeftX = centerX; // Keep center as position for consistency
       const topLeftY = centerY;
       
@@ -152,17 +301,76 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
         y: topLeftY,
         width: newWidth,
         height: newHeight,
-        rotation,
+        rotation: Math.round(rotation),
       });
     } else {
-      updateObject(object.id, {
-        x: node.x(),
-        y: node.y(),
-        width: Math.max(5, node.width() * scaleX),
-        height: Math.max(5, node.height() * scaleY),
-        rotation,
-      });
+      // Check if this object belongs to a group
+      const parentGroup = objects.find((obj: any) => 
+        obj.type === 'group' && obj.groupedObjects?.includes(object.id)
+      );
+      
+      if (parentGroup) {
+        // Object is part of a group - rotate/scale all objects in the group
+        const rotationDelta = rotation - (object.rotation || 0);
+        const newWidth = Math.round(Math.max(5, node.width() * scaleX));
+        const newHeight = Math.round(Math.max(5, node.height() * scaleY));
+        
+        // Update this object
+        updateObject(object.id, {
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          width: newWidth,
+          height: newHeight,
+          rotation: Math.round(rotation),
+        });
+        
+        // Update the group rotation
+        updateObject(parentGroup.id, {
+          rotation: Math.round((parentGroup.rotation || 0) + rotationDelta),
+        });
+        
+        // Rotate/scale all other objects in the group
+        if (parentGroup.groupedObjects && rotationDelta !== 0) {
+          const groupCenterX = parentGroup.x;
+          const groupCenterY = parentGroup.y;
+          
+          parentGroup.groupedObjects.forEach(objId => {
+            if (objId !== object.id) {
+              const groupedObj = objects.find((o: any) => o.id === objId);
+              if (groupedObj) {
+                // Calculate new position after rotation
+                const dx = groupedObj.x - groupCenterX;
+                const dy = groupedObj.y - groupCenterY;
+                const rad = (rotationDelta * Math.PI) / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+                
+                const newX = groupCenterX + (dx * cos - dy * sin);
+                const newY = groupCenterY + (dx * sin + dy * cos);
+                
+                updateObject(objId, {
+                  x: Math.round(newX),
+                  y: Math.round(newY),
+                  rotation: Math.round((groupedObj.rotation || 0) + rotationDelta),
+                });
+              }
+            }
+          });
+        }
+      } else {
+        // Not in a group - normal update
+        updateObject(object.id, {
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          width: Math.round(Math.max(5, node.width() * scaleX)),
+          height: Math.round(Math.max(5, node.height() * scaleY)),
+          rotation: Math.round(rotation),
+        });
+      }
     }
+    
+    // Save to history after all updates complete
+    setTimeout(() => saveHistoryNow(), 300);
   };
 
   const renderShape = () => {
@@ -176,6 +384,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             width={object.width}
             height={object.height}
             fill={object.fill}
+            opacity={object.opacity ?? 1}
             cornerRadius={object.cornerRadius || 0}
             rotation={object.rotation || 0}
             offsetX={object.width / 2}
@@ -186,8 +395,10 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
             onClick={handleClick}
+            onDblClick={handleDoubleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onTransform={handleTransform}
             onTransformEnd={handleTransformEnd}
           />
         );
@@ -199,6 +410,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             y={object.y}
             radius={object.width / 2}
             fill={object.fill}
+            opacity={object.opacity ?? 1}
             rotation={object.rotation || 0}
             // Circles naturally rotate around center, no offset needed
             shadowEnabled={object.shadow || false}
@@ -207,8 +419,10 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
             onClick={handleClick}
+            onDblClick={handleDoubleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onTransform={handleTransform}
             onTransformEnd={handleTransformEnd}
           />
         );
@@ -228,6 +442,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             width={object.width}
             height={object.height}
             image={image}
+            opacity={object.opacity ?? 1}
             rotation={object.rotation || 0}
             offsetX={object.width / 2} // Rotate around center
             offsetY={object.height / 2} // Rotate around center
@@ -238,8 +453,10 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             shadowOpacity={object.shadow ? 0.5 : 0}
             draggable
             onClick={handleClick}
+            onDblClick={handleDoubleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onTransform={handleTransform}
             onTransformEnd={handleTransformEnd}
           />
         ) : null;
@@ -255,6 +472,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             fontFamily={object.fontFamily || 'Arial'}
             fontStyle={object.fontStyle || 'normal'}
             fill={object.fill}
+            opacity={object.opacity ?? 1}
             align={object.textAlign || 'left'}
             rotation={object.rotation || 0}
             offsetX={object.width / 2}
@@ -268,6 +486,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             onDblClick={handleDoubleClick}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onTransform={handleTransform}
             onTransformEnd={handleTransformEnd}
           />
         );
@@ -279,14 +498,18 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             y={object.y}
             width={object.width}
             height={object.height}
+            offsetX={object.width / 2}
+            offsetY={object.height / 2}
             fill="transparent"
-            stroke={isSelected ? "#3b82f6" : "#94a3b8"}
-            strokeWidth={2}
-            dash={[10, 5]}
-            opacity={0.8}
+            stroke={isSelected ? "rgba(59, 130, 246, 0.3)" : "transparent"}
+            strokeWidth={isSelected ? 2 : 0}
+            dash={isSelected ? [8, 4] : undefined}
             draggable
             onClick={handleClick}
+            onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onTransform={handleTransform}
+            onTransformEnd={handleTransformEnd}
           />
         );
       default:
@@ -297,7 +520,7 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
   return (
     <>
       {renderShape()}
-      {isSelected && object.type !== 'line' && object.type !== 'group' && <Transformer ref={transformerRef} />}
+      {isSelected && object.type !== 'line' && <Transformer ref={transformerRef} />}
     </>
   );
 };

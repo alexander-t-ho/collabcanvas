@@ -21,10 +21,13 @@ export interface CanvasObject {
   zIndex?: number;
   shadow?: boolean;
   rotation?: number;
+  opacity?: number; // 0 to 1, default 1
   // Line-specific properties
   x2?: number;
   y2?: number;
   strokeWidth?: number;
+  arrowStart?: boolean; // Arrow at start point (left)
+  arrowEnd?: boolean;   // Arrow at end point (right)
   // Curve properties
   controlX?: number;
   controlY?: number;

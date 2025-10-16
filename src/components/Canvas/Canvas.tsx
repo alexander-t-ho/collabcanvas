@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Stage, Layer, Line } from 'react-konva';
+import { Stage, Layer, Line, Rect, Circle } from 'react-konva';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
 import Toolbar from './Toolbar';
@@ -10,6 +10,7 @@ import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
 import TextEditor from './TextEditor';
 import GroupEditor from './GroupEditor';
+import MultiSelectEditor from './MultiSelectEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 
@@ -20,9 +21,8 @@ const Canvas: React.FC = () => {
     objects, 
     selectedId,
     selectedIds,
-    selectObject,
-    addToSelection,
     clearSelection,
+    selectMultiple,
     drawingMode, 
     setDrawingMode, 
     tempLineStart, 
@@ -41,6 +41,9 @@ const Canvas: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [alignmentGuides, setAlignmentGuides] = useState<React.ReactNode[]>([]);
   const [showImageImport, setShowImageImport] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
 
   // Generate grid lines based on current view
   const generateGridLines = useCallback((): React.ReactNode[] => {
@@ -90,7 +93,7 @@ const Canvas: React.FC = () => {
     }
 
     return lines;
-  }, [stagePosition.x, stagePosition.y, stageScale]);
+  }, [stagePosition.x, stagePosition.y]);
 
   // Update grid when position or scale changes
   useEffect(() => {
@@ -100,39 +103,108 @@ const Canvas: React.FC = () => {
   // Generate alignment guides for object being dragged
   const generateAlignmentGuides = useCallback((draggedObject: any, draggedPos: { x: number, y: number }) => {
     const guides: React.ReactNode[] = [];
-    const threshold = 100;
+    const snapThreshold = 10; // Only show guides when within 10px (snapping range)
+    const stage = stageRef.current;
+    if (!stage) return guides;
+
+    // Calculate visible area for guide lines
+    const scale = stage.scaleX();
+    const viewBox = {
+      x: -stagePosition.x / scale,
+      y: -stagePosition.y / scale,
+      width: window.innerWidth / scale,
+      height: window.innerHeight / scale
+    };
 
     objects.forEach((obj, index) => {
       if (obj.id === draggedObject?.id) return;
 
-      const objCenterX = obj.x + obj.width / 2;
-      const objCenterY = obj.y + obj.height / 2;
-      const draggedCenterX = draggedPos.x + (draggedObject?.width || 0) / 2;
-      const draggedCenterY = draggedPos.y + (draggedObject?.height || 0) / 2;
+      // Objects with offset store their center in x, y
+      const objCenterX = obj.x;
+      const objCenterY = obj.y;
+      const draggedCenterX = draggedPos.x;
+      const draggedCenterY = draggedPos.y;
 
-      // Vertical alignment (same X)
-      if (Math.abs(objCenterX - draggedCenterX) < threshold) {
+      const distanceX = Math.abs(objCenterX - draggedCenterX);
+      const distanceY = Math.abs(objCenterY - draggedCenterY);
+
+      // Vertical alignment (same X center) - Only show when snapping
+      if (distanceX < snapThreshold) {
         guides.push(
           <Line
             key={`v-${index}`}
-            points={[objCenterX, Math.min(obj.y, draggedPos.y) - 50, objCenterX, Math.max(obj.y + obj.height, draggedPos.y + (draggedObject?.height || 0)) + 50]}
-            stroke="#ff4444"
-            strokeWidth={1}
-            dash={[5, 5]}
+            points={[
+              objCenterX, 
+              viewBox.y, 
+              objCenterX, 
+              viewBox.y + viewBox.height
+            ]}
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dash={[10, 5]}
+            opacity={0.9}
+          />
+        );
+        
+        // Add indicator circles at object centers
+        guides.push(
+          <Circle
+            key={`v-marker-obj-${index}`}
+            x={objCenterX}
+            y={objCenterY}
+            radius={5}
+            fill="#3b82f6"
+            opacity={0.8}
+          />
+        );
+        guides.push(
+          <Circle
+            key={`v-marker-drag-${index}`}
+            x={draggedCenterX}
+            y={draggedCenterY}
+            radius={5}
+            fill="#3b82f6"
             opacity={0.8}
           />
         );
       }
 
-      // Horizontal alignment (same Y)
-      if (Math.abs(objCenterY - draggedCenterY) < threshold) {
+      // Horizontal alignment (same Y center) - Only show when snapping
+      if (distanceY < snapThreshold) {
         guides.push(
           <Line
             key={`h-${index}`}
-            points={[Math.min(obj.x, draggedPos.x) - 50, objCenterY, Math.max(obj.x + obj.width, draggedPos.x + (draggedObject?.width || 0)) + 50, objCenterY]}
-            stroke="#ff4444"
-            strokeWidth={1}
-            dash={[5, 5]}
+            points={[
+              viewBox.x, 
+              objCenterY, 
+              viewBox.x + viewBox.width, 
+              objCenterY
+            ]}
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dash={[10, 5]}
+            opacity={0.9}
+          />
+        );
+        
+        // Add indicator circles at object centers
+        guides.push(
+          <Circle
+            key={`h-marker-obj-${index}`}
+            x={objCenterX}
+            y={objCenterY}
+            radius={5}
+            fill="#3b82f6"
+            opacity={0.8}
+          />
+        );
+        guides.push(
+          <Circle
+            key={`h-marker-drag-${index}`}
+            x={draggedCenterX}
+            y={draggedCenterY}
+            radius={5}
+            fill="#3b82f6"
             opacity={0.8}
           />
         );
@@ -140,7 +212,7 @@ const Canvas: React.FC = () => {
     });
 
     return guides;
-  }, [objects]);
+  }, [objects, stagePosition.x, stagePosition.y]);
 
   // Handle mouse movement for line drawing and alignment guides
   const handleMouseMove = (e: any) => {
@@ -153,6 +225,71 @@ const Canvas: React.FC = () => {
     const canvasY = (pos.y - stage.y()) / scale;
     
     setMousePosition({ x: canvasX, y: canvasY });
+
+    // Update selection rectangle if selecting
+    if (isSelecting && selectionStart) {
+      setSelectionEnd({ x: canvasX, y: canvasY });
+    }
+  };
+
+  // Handle mouse down for selection rectangle
+  const handleStageMouseDown = (e: any) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // If we clicked on the stage itself (not an object)
+    if (e.target === stage) {
+      // Check if shift key is pressed and no objects are selected
+      if (e.evt?.shiftKey && selectedIds.length === 0) {
+        const pos = stage.getPointerPosition();
+        const scale = stage.scaleX();
+        const canvasX = (pos.x - stage.x()) / scale;
+        const canvasY = (pos.y - stage.y()) / scale;
+        
+        setIsSelecting(true);
+        setSelectionStart({ x: canvasX, y: canvasY });
+        setSelectionEnd({ x: canvasX, y: canvasY });
+      }
+    }
+  };
+
+  // Handle mouse up for selection rectangle
+  const handleStageMouseUp = (e: any) => {
+    if (isSelecting && selectionStart && selectionEnd) {
+      // Calculate selection rectangle bounds
+      const x1 = Math.min(selectionStart.x, selectionEnd.x);
+      const y1 = Math.min(selectionStart.y, selectionEnd.y);
+      const x2 = Math.max(selectionStart.x, selectionEnd.x);
+      const y2 = Math.max(selectionStart.y, selectionEnd.y);
+
+      // Find all objects within the selection rectangle
+      const selectedObjectIds = objects
+        .filter(obj => {
+          // Check if object's bounding box intersects with selection rectangle
+          const objLeft = obj.x - (obj.width / 2);
+          const objRight = obj.x + (obj.width / 2);
+          const objTop = obj.y - (obj.height / 2);
+          const objBottom = obj.y + (obj.height / 2);
+
+          return (
+            objLeft < x2 &&
+            objRight > x1 &&
+            objTop < y2 &&
+            objBottom > y1
+          );
+        })
+        .map(obj => obj.id);
+
+      // Select all objects within rectangle
+      if (selectedObjectIds.length > 0) {
+        selectMultiple(selectedObjectIds);
+      }
+
+      // Reset selection state
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+    }
   };
 
   // Handle canvas click for selection and line drawing
@@ -246,7 +383,7 @@ const Canvas: React.FC = () => {
         e.preventDefault();
         if (canUndo) {
           undo();
-          console.log('⏪ Undo triggered');
+          // console.log('⏪ Undo triggered');
         }
       }
       
@@ -256,7 +393,7 @@ const Canvas: React.FC = () => {
         e.preventDefault();
         if (canRedo) {
           redo();
-          console.log('⏩ Redo triggered');
+          // console.log('⏩ Redo triggered');
         }
       }
       
@@ -299,7 +436,7 @@ const Canvas: React.FC = () => {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      <Toolbar />
+      <Toolbar stageRef={stageRef} />
       <div style={{ 
         flex: 1, 
         position: 'relative',
@@ -315,9 +452,11 @@ const Canvas: React.FC = () => {
         scaleY={stageScale}
         x={stagePosition.x}
         y={stagePosition.y}
-        draggable
+        draggable={!isSelecting}
         onClick={handleStageClick}
-          onMouseMove={handleMouseMove}
+        onMouseDown={handleStageMouseDown}
+        onMouseUp={handleStageMouseUp}
+        onMouseMove={handleMouseMove}
         onWheel={handleWheel}
       >
           {/* Grid Layer */}
@@ -328,6 +467,22 @@ const Canvas: React.FC = () => {
           {/* Alignment Guides Layer */}
         <Layer>
             {alignmentGuides}
+          </Layer>
+          
+          {/* Selection Rectangle Layer */}
+          <Layer>
+            {isSelecting && selectionStart && selectionEnd && (
+              <Rect
+                x={Math.min(selectionStart.x, selectionEnd.x)}
+                y={Math.min(selectionStart.y, selectionEnd.y)}
+                width={Math.abs(selectionEnd.x - selectionStart.x)}
+                height={Math.abs(selectionEnd.y - selectionStart.y)}
+                fill="rgba(59, 130, 246, 0.2)"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dash={[5, 5]}
+              />
+            )}
           </Layer>
           
           {/* Objects Layer */}
@@ -388,12 +543,79 @@ const Canvas: React.FC = () => {
               )}
             </div>
           ) : (
-            <span>Zoom: {Math.round(stageScale * 100)}% | Press R to reset view</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  const newScale = Math.max(0.1, stageScale - 0.1);
+                  setStageScale(newScale);
+                }}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#3b82f6';
+                }}
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <span style={{ minWidth: '60px', textAlign: 'center' }}>
+                Zoom: {Math.round(stageScale * 100)}%
+              </span>
+              <button
+                onClick={() => {
+                  const newScale = Math.min(5, stageScale + 0.1);
+                  setStageScale(newScale);
+                }}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#3b82f6';
+                }}
+                title="Zoom In"
+              >
+                +
+              </button>
+              <span style={{ marginLeft: '8px', color: '#9ca3af' }}>Press R to reset</span>
+            </div>
           )}
         </div>
 
         {/* Shape Editors - Fixed position on left */}
-        {selectedId && (() => {
+        {selectedIds.length > 1 ? (
+          <MultiSelectEditor />
+        ) : selectedId ? (() => {
           const selectedObject = objects.find(obj => obj.id === selectedId);
           if (selectedObject) {
             if (selectedObject.type === 'rectangle') {
@@ -411,7 +633,7 @@ const Canvas: React.FC = () => {
             }
           }
           return null;
-        })()}
+        })() : null}
 
         {/* Image Import Modal */}
         {showImageImport && (

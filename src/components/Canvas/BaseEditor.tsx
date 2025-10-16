@@ -103,12 +103,17 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
   };
 
   const handleRotationChange = (value: number) => {
-    const rotation = isNaN(value) ? 0 : value;
+    const rotation = isNaN(value) ? 0 : Math.round(value);
     updateObject(object.id, { rotation });
   };
 
   const handleShadowToggle = () => {
     updateObject(object.id, { shadow: !object.shadow });
+  };
+
+  const handleOpacityChange = (value: number) => {
+    const opacity = Math.max(0, Math.min(1, value));
+    updateObject(object.id, { opacity });
   };
 
   const handleDuplicate = () => {
@@ -553,17 +558,18 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
           fontWeight: '500',
           color: '#6b7280'
         }}>
-          Rotation (degrees)
+          Rotation (degrees) - Hold Shift while rotating to snap to 45°
         </label>
         <input
           type="number"
-          value={object.rotation || 0}
+          value={Math.round(object.rotation || 0)}
           onChange={(e) => {
-            const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+            const val = e.target.value === '' ? 0 : Math.round(parseFloat(e.target.value)) || 0;
             handleRotationChange(val);
           }}
           min={-360}
           max={360}
+          step={1}
           style={{
             width: '100%',
             padding: '6px',
@@ -593,6 +599,46 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
           />
           Drop Shadow
         </label>
+      </div>
+
+      {/* Opacity Slider */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ 
+          display: 'block', 
+          marginBottom: '4px', 
+          fontWeight: '500',
+          color: '#6b7280'
+        }}>
+          Opacity
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round((object.opacity ?? 1) * 100)}
+            onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
+            style={{ 
+              flex: 1,
+              accentColor: '#3b82f6'
+            }}
+          />
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={Math.round((object.opacity ?? 1) * 100)}
+            onChange={(e) => handleOpacityChange(Number(e.target.value) / 100)}
+            style={{
+              width: '50px',
+              padding: '4px',
+              border: '1px solid #d1d5db',
+              borderRadius: '4px',
+              fontSize: '11px'
+            }}
+          />
+          <span style={{ color: '#9ca3af', fontSize: '10px' }}>%</span>
+        </div>
       </div>
 
       {/* Shape-specific controls */}

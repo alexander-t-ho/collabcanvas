@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { ref as dbRef, set as dbSet, onValue, get } from 'firebase/database';
+import { db, rtdb } from '../firebase/config';
 import { CanvasObject } from '../types';
 import { generateId } from '../utils/helpers';
 import { useAuth } from './AuthContext';
@@ -27,10 +28,11 @@ interface CanvasContextType {
   createGroup: () => Promise<void>;
   undo: () => void;
   redo: () => void;
-  saveCanvas: () => void;
+  exportCanvasAsPNG: (stage: any) => void;
   setObjects: (objects: CanvasObject[]) => void;
   setDrawingMode: (mode: 'none' | 'line') => void;
   setTempLineStart: (point: { x: number; y: number } | null) => void;
+  saveHistoryNow: () => void;
 }
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined);
@@ -47,37 +49,108 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [drawingMode, setDrawingMode] = useState<'none' | 'line'>('none');
   const [tempLineStart, setTempLineStart] = useState<{ x: number; y: number } | null>(null);
-  const [history, setHistory] = useState<CanvasObject[][]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [isUndoRedo, setIsUndoRedo] = useState(false);
-  const historyIndexRef = useRef(-1); // Use ref to avoid stale closures
-  const historyRef = useRef<CanvasObject[][]>([]); // Use ref for history
+  const historyIndexRef = useRef(0);
+  const saveHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { currentUser } = useAuth();
 
-  // Sync refs with state
-  historyIndexRef.current = historyIndex;
-  historyRef.current = history;
+  // Listen to history index changes from Firebase
+  useEffect(() => {
+    const indexRef = dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`);
+    const unsubscribe = onValue(indexRef, async (snapshot) => {
+      const index = snapshot.val();
+      if (index !== null && index !== historyIndexRef.current && !isUndoRedo) {
+        // Another user changed the history index - restore that state
+        try {
+          const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
+          const historySnapshot = await get(fbHistoryRef);
+          const historyData = historySnapshot.val() || [];
+          
+          if (historyData[index]) {
+            setIsUndoRedo(true);
+            setHistoryIndex(index);
+            historyIndexRef.current = index;
+            
+            // Don't update local state - let Firestore sync handle it
+            // This prevents the bounce by avoiding duplicate updates
+            
+            setTimeout(() => setIsUndoRedo(false), 1000);
+          }
+        } catch (error) {
+          console.error('Error syncing history:', error);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [isUndoRedo]);
 
-  // Save state to history (for undo/redo)
-  const saveToHistory = useCallback((newObjects: CanvasObject[]) => {
+  // Sync ref with state
+  historyIndexRef.current = historyIndex;
+
+  // Save state to history in Firebase - debounced for performance
+  const saveToHistory = useCallback((newObjects: CanvasObject[], immediate = false) => {
     if (isUndoRedo) return;
     
+    const doSave = async () => {
     const currentIndex = historyIndexRef.current;
     
-    setHistory(prev => {
-      const newHistory = prev.slice(0, currentIndex + 1);
+      try {
+        // Get current history from Firebase
+        const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
+        const snapshot = await get(fbHistoryRef);
+        const currentHistory = snapshot.val() || [];
+        
+        // Don't save if it's the same as current state
+        if (currentIndex >= 0 && currentIndex < currentHistory.length) {
+          const currentState = currentHistory[currentIndex];
+          if (JSON.stringify(currentState) === JSON.stringify(newObjects)) {
+            return;
+          }
+        }
+        
+        // Remove any history after current index (for redo)
+        const newHistory = currentHistory.slice(0, currentIndex + 1);
+        // Add new state
       newHistory.push(JSON.parse(JSON.stringify(newObjects)));
+        // Keep only last 50 states
       const trimmedHistory = newHistory.slice(-50);
-      historyRef.current = trimmedHistory;
-      return trimmedHistory;
-    });
+        
+        // Save to Firebase
+        await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/history`), trimmedHistory);
+        
+        // Update index
+        const newIndex = trimmedHistory.length - 1;
+        await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
+        
+        historyIndexRef.current = newIndex;
+        setHistoryIndex(newIndex);
+      } catch (error) {
+        console.error('Error saving history:', error);
+      }
+    };
     
-    setHistoryIndex(prev => {
-      const newIndex = Math.min(prev + 1, 49);
-      historyIndexRef.current = newIndex;
-      return newIndex;
-    });
+    if (immediate) {
+      // Save immediately for discrete actions
+      doSave();
+    } else {
+      // Clear existing timeout
+      if (saveHistoryTimeoutRef.current) {
+        clearTimeout(saveHistoryTimeoutRef.current);
+      }
+      
+      // Debounce: only save after 500ms of no changes
+      saveHistoryTimeoutRef.current = setTimeout(doSave, 500);
+    }
   }, [isUndoRedo]);
+  
+  // Force save history immediately
+  const saveHistoryNow = useCallback(() => {
+    if (saveHistoryTimeoutRef.current) {
+      clearTimeout(saveHistoryTimeoutRef.current);
+    }
+    saveToHistory(objects, true);
+  }, [objects, saveToHistory]);
 
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
@@ -92,6 +165,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', newObject.id);
       await setDoc(objectRef, newObject);
+      
+      // Let realtime sync update the local state
+      // History will be saved by the debounced function
     } catch (error) {
       console.error('Error adding object:', error);
     }
@@ -109,7 +185,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           obj.id === id ? { ...obj, ...updates, lastModified: Date.now() } : obj
         );
         
-        // Save to history after update
+        // Save to history (debounced) - only if not during undo/redo
         if (!isUndoRedo) {
           saveToHistory(updatedObjects);
         }
@@ -138,15 +214,18 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteObject = useCallback(async (id: string) => {
     if (!currentUser) return;
     
-    console.log('Deleting object from Firestore:', id); // DEBUG
+    // console.log('Deleting object from Firestore:', id); // DEBUG
     
     try {
       // Delete from Firestore
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
       await deleteDoc(objectRef);
-      console.log('Object deleted successfully from Firestore'); // DEBUG
+      // console.log('Object deleted successfully from Firestore'); // DEBUG
       
       if (selectedId === id) setSelectedId(null);
+      
+      // Let realtime sync update the local state
+      // History will be saved by the debounced function
     } catch (error) {
       console.error('Error deleting object from Firestore:', error);
     }
@@ -188,17 +267,54 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!currentUser || selectedIds.length < 2) return;
 
     const selectedObjects = objects.filter(obj => selectedIds.includes(obj.id));
-    const minX = Math.min(...selectedObjects.map(obj => obj.x));
-    const minY = Math.min(...selectedObjects.map(obj => obj.y));
-    const maxX = Math.max(...selectedObjects.map(obj => obj.x + obj.width));
-    const maxY = Math.max(...selectedObjects.map(obj => obj.y + obj.height));
+    
+    // Calculate bounds of all objects
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    selectedObjects.forEach(obj => {
+      if (obj.type === 'line') {
+        // For lines, check both start and end points
+        minX = Math.min(minX, obj.x, obj.x2 || obj.x);
+        minY = Math.min(minY, obj.y, obj.y2 || obj.y);
+        maxX = Math.max(maxX, obj.x, obj.x2 || obj.x);
+        maxY = Math.max(maxY, obj.y, obj.y2 || obj.y);
+      } else if (obj.type === 'circle') {
+        // For circles, x,y is center, radius is width/2
+        const radius = obj.width / 2;
+        minX = Math.min(minX, obj.x - radius);
+        minY = Math.min(minY, obj.y - radius);
+        maxX = Math.max(maxX, obj.x + radius);
+        maxY = Math.max(maxY, obj.y + radius);
+      } else {
+        // For rectangles, images, text: x,y is center (due to offset)
+        const halfWidth = obj.width / 2;
+        const halfHeight = obj.height / 2;
+        minX = Math.min(minX, obj.x - halfWidth);
+        minY = Math.min(minY, obj.y - halfHeight);
+        maxX = Math.max(maxX, obj.x + halfWidth);
+        maxY = Math.max(maxY, obj.y + halfHeight);
+      }
+    });
+    
+    // Add padding
+    const padding = 20;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+    
+    // Calculate width, height, and TRUE center from the bounds
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const centerX = minX + (width / 2);
+    const centerY = minY + (height / 2);
 
     const groupObject: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'> = {
       type: 'group',
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
+      x: centerX,
+      y: centerY,
+      width: width,
+      height: height,
       fill: '#000000',
       groupedObjects: [...selectedIds],
       nickname: `Group of ${selectedIds.length}`,
@@ -209,15 +325,23 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     await addObject(groupObject);
     clearSelection();
-  }, [currentUser, selectedIds, objects, addObject]);
+  }, [currentUser, selectedIds, objects, addObject, clearSelection]);
 
   const setObjects = useCallback((newObjects: CanvasObject[]) => {
+    // Skip updates during undo/redo to prevent bouncing
+    if (isUndoRedo) {
+      // console.log('REALTIME SYNC: Skipping update during undo/redo');
+      return;
+    }
+    
     setObjectsState(prev => {
       const prevJson = JSON.stringify(prev);
       const newJson = JSON.stringify(newObjects);
       
       if (prevJson === newJson) return prev;
       
+      // Save to history after objects update from realtime sync
+      // This captures changes from other users
       if (!isUndoRedo) {
         saveToHistory(newObjects);
       }
@@ -226,125 +350,272 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [isUndoRedo, saveToHistory]);
 
-  // Undo function
-  const undo = useCallback(() => {
-    console.log('UNDO CALLED');
+  // Undo function - collaborative version
+  const undo = useCallback(async () => {
+    // console.log('UNDO CALLED');
     
     const currentIndex = historyIndexRef.current;
-    const currentHistory = historyRef.current;
     
-    console.log('UNDO: Index:', currentIndex, 'History length:', currentHistory.length);
+    // console.log('UNDO: Current Index:', currentIndex);
     
-    if (currentIndex <= 0 || currentHistory.length === 0) {
-      console.log('UNDO: No history available');
+    if (currentIndex <= 0) {
+      // console.log('UNDO: No history available');
       return;
     }
     
-    const previousState = currentHistory[currentIndex - 1];
+    try {
+      // Get history from Firebase
+      const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
+      const snapshot = await get(fbHistoryRef);
+      const historyData = snapshot.val() || [];
+      
+      if (!historyData || historyData.length === 0 || currentIndex >= historyData.length) {
+        // console.log('UNDO: Invalid history');
+        return;
+      }
+      
+      const previousState = historyData[currentIndex - 1];
     if (!previousState) {
-      console.error('UNDO: Previous state is undefined');
+        // console.error('UNDO: Previous state is undefined');
       return;
     }
     
-    console.log('UNDO: Restoring', previousState.length, 'objects');
+      // console.log('UNDO: Restoring', previousState.length, 'objects');
     
-    // Set flag to prevent realtime sync from overwriting
+      // Set flag to prevent history saves during undo
     setIsUndoRedo(true);
     
-    // Update index
-    setHistoryIndex(currentIndex - 1);
-    historyIndexRef.current = currentIndex - 1;
+      // Update index in Firebase
+      const newIndex = currentIndex - 1;
+      await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex);
     
     // Update local state immediately
     setObjectsState(previousState);
-    
-    // Sync to Firestore after a delay to ensure local state is set first
-    setTimeout(() => {
-      previousState.forEach(obj => {
-        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(console.error);
-      });
+      clearSelection();
       
-      // Delete removed objects
-      const previousIds = previousState.map(obj => obj.id);
-      objects.forEach(obj => {
+      // Sync to Firestore - do this synchronously to avoid race conditions
+      const syncToFirestore = async () => {
+        const previousIds = previousState.map((obj: CanvasObject) => obj.id);
+        const currentObjects = objects;
+        
+        // Delete removed objects first
+        for (const obj of currentObjects) {
         if (!previousIds.includes(obj.id)) {
-          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(console.error);
+            const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+            await deleteDoc(objectRef).catch(console.error);
+          }
         }
+        
+        // Then update/add objects
+        for (const obj of previousState) {
+          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+          await setDoc(objectRef, obj).catch(console.error);
+        }
+      };
+      
+      syncToFirestore().then(() => {
+        // Clear flag after all syncing completes
+        setTimeout(() => setIsUndoRedo(false), 1000);
       });
       
-      // Clear flag after sync completes
-      setTimeout(() => setIsUndoRedo(false), 500);
-    }, 100);
-    
-    console.log('UNDO: Complete');
-  }, [objects]);
+      // console.log('UNDO: Complete');
+    } catch (error) {
+      // console.error('UNDO: Error:', error);
+      setIsUndoRedo(false);
+    }
+  }, [objects, clearSelection]);
 
-  // Redo function - redo all changes (collaborative)
-  const redo = useCallback(() => {
+  // Redo function - collaborative version
+  const redo = useCallback(async () => {
+    // console.log('REDO CALLED');
+    
+    const currentIndex = historyIndexRef.current;
+    
     try {
-      const currentIndex = historyIndexRef.current;
-      const currentHistory = historyRef.current;
+      // Get history from Firebase
+      const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
+      const snapshot = await get(fbHistoryRef);
+      const historyData = snapshot.val() || [];
       
-      if (currentIndex >= currentHistory.length - 1 || currentHistory.length === 0) {
+      if (!historyData || currentIndex >= historyData.length - 1) {
+        // console.log('REDO: No future history available');
         return;
       }
+      
+      const nextState = historyData[currentIndex + 1];
+      if (!nextState) {
+        // console.log('REDO: Next state is undefined');
+        return;
+      }
+      
+      // console.log('REDO: Restoring', nextState.length, 'objects');
       
       setIsUndoRedo(true);
-      const nextState = currentHistory[currentIndex + 1];
       
-      if (!nextState) {
-        setIsUndoRedo(false);
-        return;
+      // Update index in Firebase
+      const newIndex = currentIndex + 1;
+      await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex);
+      
+      // Update local state immediately
+      setObjectsState(nextState);
+      clearSelection();
+      
+      // Sync to Firestore - do this synchronously to avoid race conditions
+      const syncToFirestore = async () => {
+        const nextIds = nextState.map((obj: CanvasObject) => obj.id);
+        const currentObjects = objects;
+        
+        // Delete removed objects first
+        for (const obj of currentObjects) {
+          if (!nextIds.includes(obj.id)) {
+        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+            await deleteDoc(objectRef).catch(console.error);
+          }
+        }
+        
+        // Then update/add objects
+        for (const obj of nextState) {
+          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
+          await setDoc(objectRef, obj).catch(console.error);
+        }
+      };
+      
+      syncToFirestore().then(() => {
+        // Clear flag after all syncing completes
+        setTimeout(() => setIsUndoRedo(false), 1000);
+      });
+      
+      // console.log('REDO: Complete');
+    } catch (error) {
+      // console.error('REDO: Error:', error);
+      setIsUndoRedo(false);
+    }
+  }, [objects, clearSelection]);
+
+  // Export canvas as PNG
+  const exportCanvasAsPNG = useCallback((stage: any) => {
+    if (!stage) return;
+    
+    try {
+      // Get the stage's current state
+      const oldScale = stage.scaleX();
+      const oldPosition = { x: stage.x(), y: stage.y() };
+      
+      // Calculate bounding box of all objects
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      objects.forEach(obj => {
+        if (obj.type === 'group') return; // Skip group containers
+        
+        const objMinX = obj.x - (obj.width || 0) / 2;
+        const objMinY = obj.y - (obj.height || 0) / 2;
+        const objMaxX = obj.x + (obj.width || 0) / 2;
+        const objMaxY = obj.y + (obj.height || 0) / 2;
+        
+        minX = Math.min(minX, objMinX);
+        minY = Math.min(minY, objMinY);
+        maxX = Math.max(maxX, objMaxX);
+        maxY = Math.max(maxY, objMaxY);
+      });
+      
+      // Add padding
+      const padding = 50;
+      minX -= padding;
+      minY -= padding;
+      maxX += padding;
+      maxY += padding;
+      
+      // If no objects, use default canvas size
+      if (!isFinite(minX)) {
+        minX = 0;
+        minY = 0;
+        maxX = 1920;
+        maxY = 1080;
       }
       
-      setHistoryIndex(currentIndex + 1);
-      historyIndexRef.current = currentIndex + 1;
-      setObjectsState(nextState);
+      const width = maxX - minX;
+      const height = maxY - minY;
       
-      // Sync all objects to Firestore
-      nextState.forEach(obj => {
-        const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-        setDoc(objectRef, obj).catch(console.error);
-      });
+      // Create a temporary canvas with white background
+      const canvas = document.createElement('canvas');
+      canvas.width = width * 2; // 2x for high DPI
+      canvas.height = height * 2;
+      const ctx = canvas.getContext('2d');
       
-      // Delete objects that don't exist in next state
-      const nextIds = nextState.map(obj => obj.id);
-      objects.forEach(obj => {
-        if (!nextIds.includes(obj.id)) {
-          const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', obj.id);
-          deleteDoc(objectRef).catch(console.error);
-        }
-      });
-      
-      setTimeout(() => setIsUndoRedo(false), 200);
+      if (ctx) {
+        // Fill with white background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Temporarily reset stage position and scale for export
+        stage.scale({ x: 1, y: 1 });
+        stage.position({ x: -minX, y: -minY });
+        
+        // Export stage to data URL
+        const stageDataURL = stage.toDataURL({
+          pixelRatio: 2, // Higher quality
+          mimeType: 'image/png',
+          x: 0,
+          y: 0,
+          width: width,
+          height: height
+        });
+        
+        // Restore original position and scale
+        stage.scale({ x: oldScale, y: oldScale });
+        stage.position(oldPosition);
+        
+        // Draw the stage image on top of white background
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          
+          // Get final data URL with white background
+          const finalDataURL = canvas.toDataURL('image/png');
+          
+          // Download the image
+          const link = document.createElement('a');
+          link.download = `collabcanvas-${Date.now()}.png`;
+          link.href = finalDataURL;
+          link.click();
+        };
+        img.src = stageDataURL;
+      } else {
+        // Fallback: restore original position and scale
+        stage.scale({ x: oldScale, y: oldScale });
+        stage.position(oldPosition);
+        throw new Error('Could not get canvas context');
+      }
     } catch (error) {
-      console.error('REDO: Error:', error);
-      setIsUndoRedo(false);
+      console.error('Error exporting canvas:', error);
+      alert('Failed to export canvas. Please try again.');
     }
   }, [objects]);
 
-  // Save canvas state
-  const saveCanvas = useCallback(() => {
-    const canvasData = {
-      objects,
-      timestamp: Date.now(),
-      savedBy: currentUser?.uid || 'unknown'
+  // Get canUndo and canRedo from Firebase
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  
+  useEffect(() => {
+    const checkHistory = async () => {
+      try {
+        const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
+        const snapshot = await get(fbHistoryRef);
+        const historyData = snapshot.val() || [];
+        
+        setCanUndo(historyIndex > 0);
+        setCanRedo(historyIndex < historyData.length - 1);
+      } catch (error) {
+        console.error('Error checking history:', error);
+      }
     };
     
-    // Create a downloadable JSON file
-    const dataStr = JSON.stringify(canvasData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `collabcanvas-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    console.log('💾 SAVE: Canvas saved with', objects.length, 'objects');
-  }, [objects, currentUser]);
+    checkHistory();
+  }, [historyIndex]);
 
   const value = {
     objects,
@@ -352,8 +623,8 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     selectedIds,
     drawingMode,
     tempLineStart,
-    canUndo: historyIndex > 0,
-    canRedo: historyIndex < history.length - 1,
+    canUndo,
+    canRedo,
     addObject,
     updateObject,
     updateObjectLive,
@@ -366,10 +637,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     createGroup,
     undo,
     redo,
-    saveCanvas,
+    exportCanvasAsPNG,
     setObjects,
     setDrawingMode,
-    setTempLineStart
+    setTempLineStart,
+    saveHistoryNow
   };
 
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
