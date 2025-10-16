@@ -117,25 +117,38 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
   };
 
   const handleDuplicate = () => {
-    addObject({
-      type: object.type,
-      x: object.x + 20,
-      y: object.y + 20,
-      width: object.width,
-      height: object.height,
-      fill: object.fill,
-      nickname: object.nickname ? `${object.nickname} Copy` : undefined,
-      cornerRadius: object.cornerRadius,
-      strokeWidth: object.strokeWidth,
-      x2: object.x2 ? object.x2 + 20 : undefined,
-      y2: object.y2 ? object.y2 + 20 : undefined,
-      controlX: object.controlX ? object.controlX + 20 : undefined,
-      controlY: object.controlY ? object.controlY + 20 : undefined,
-      curved: object.curved,
-      shadow: object.shadow,
+    // Create a copy of the object with all properties
+    const duplicatedObject: any = {
+      ...object,
+      // Offset position to the right
+      x: object.x + 50,
+      y: object.y + 50,
+      // Update nickname
+      nickname: object.nickname ? `${object.nickname} Copy` : '',
+      // Increase z-index to place on top
       zIndex: (object.zIndex || 0) + 1,
-      createdBy: object.createdBy,
-    });
+    };
+    
+    // For lines, also offset the end point and control point
+    if (object.type === 'line') {
+      if (object.x2 !== undefined) duplicatedObject.x2 = object.x2 + 50;
+      if (object.y2 !== undefined) duplicatedObject.y2 = object.y2 + 50;
+      if (object.controlX !== undefined) duplicatedObject.controlX = object.controlX + 50;
+      if (object.controlY !== undefined) duplicatedObject.controlY = object.controlY + 50;
+    }
+    
+    // For groups, don't duplicate (groups are complex and would need special handling)
+    if (object.type === 'group') {
+      alert('Cannot duplicate groups directly. Please ungroup first, then duplicate individual objects.');
+      return;
+    }
+    
+    // Remove properties that shouldn't be duplicated
+    delete duplicatedObject.id;
+    delete duplicatedObject.createdAt;
+    delete duplicatedObject.lastModified;
+    
+    addObject(duplicatedObject);
   };
 
   return (
