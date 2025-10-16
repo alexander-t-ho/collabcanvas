@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, set, onDisconnect } from 'firebase/database';
+import { ref, onValue, set, onDisconnect, remove } from 'firebase/database';
 import { rtdb } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { PresenceData } from '../types';
@@ -19,6 +19,8 @@ export const usePresence = () => {
       setOnlineUsers([]);
       return;
     }
+    
+    let isComponentMounted = true;
 
     // console.log('PRESENCE: Setting up for user:', currentUser.displayName);
 
@@ -91,7 +93,9 @@ export const usePresence = () => {
 
       // console.log('PRESENCE: Final count:', users.length, 'users');
       // console.log('PRESENCE: Setting state with users:', users);
-      setOnlineUsers(users);
+      if (isComponentMounted) {
+        setOnlineUsers(users);
+      }
       // console.log('========== PRESENCE UPDATE COMPLETE ==========');
     }, (error) => {
       console.error('PRESENCE LISTENER ERROR:', error);
@@ -99,8 +103,11 @@ export const usePresence = () => {
 
     return () => {
       // console.log('PRESENCE: Cleanup');
+      isComponentMounted = false;
       unsubscribe();
-      set(presenceRef, { ...userData, online: false }).catch(console.error);
+      
+      // Remove user from presence
+      remove(presenceRef).catch(console.error);
     };
   }, [currentUser]);
 

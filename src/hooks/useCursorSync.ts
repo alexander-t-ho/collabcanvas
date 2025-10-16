@@ -21,7 +21,10 @@ export const useCursorSync = () => {
 
   // Listen to cursor updates from other users
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setRemoteCursors([]);
+      return;
+    }
 
     const cursorsRef = collection(db, 'canvases', CANVAS_ID, 'cursors');
     const unsubscribe = onSnapshot(cursorsRef, (snapshot) => {
@@ -33,6 +36,9 @@ export const useCursorSync = () => {
         // Only show cursor if user is online and not self
         if (cursor.userId !== currentUser.uid && onlineUserIds.includes(cursor.userId)) {
           cursors.push(cursor);
+        } else if (!onlineUserIds.includes(cursor.userId)) {
+          // Clean up cursor for offline users
+          deleteDoc(doc.ref).catch(console.error);
         }
       });
 

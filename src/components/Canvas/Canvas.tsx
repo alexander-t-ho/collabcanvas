@@ -28,6 +28,7 @@ const Canvas: React.FC = () => {
     tempLineStart, 
     setTempLineStart,
     addObject,
+    deleteObject,
     undo,
     redo,
     canUndo,
@@ -397,14 +398,91 @@ const Canvas: React.FC = () => {
         }
       }
       
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-        // Delete is now handled by individual editors
+      // Delete selected object(s) with Delete or Backspace
+      // But NOT when editing text in a text box
+      if ((e.key === 'Delete' || e.key === 'Backspace') && (selectedId || selectedIds.length > 0)) {
+        // Check if user is currently editing text
+        const activeElement = document.activeElement;
+        const isEditingText = activeElement && (
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.getAttribute('contenteditable') === 'true'
+        );
+        
+        // If editing text in a text box, don't delete the object
+        if (isEditingText) {
+          return;
+        }
+        
+        // Check if selected object is a text box (to be extra safe)
+        const selectedObject = objects.find(obj => obj.id === selectedId);
+        if (selectedObject && selectedObject.type === 'text') {
+          // For text objects, only delete if explicitly confirmed or not actively editing
+          return;
+        }
+        
+        e.preventDefault();
+        if (selectedIds.length > 1) {
+          // Delete all selected objects
+          if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected objects?`)) {
+            selectedIds.forEach(id => {
+              deleteObject(id);
+            });
+            clearSelection();
+          }
+        } else if (selectedId) {
+          // Delete single object
+          deleteObject(selectedId);
+        }
       }
       
       // Reset view with 'R' key
       if (e.key === 'r' || e.key === 'R') {
         setStageScale(1);
         setStagePosition({ x: 0, y: 0 });
+      }
+
+      // Confirm line placement with Enter
+      if (e.key === 'Enter' && drawingMode === 'line' && tempLineStart && mousePosition) {
+        e.preventDefault();
+        if (!currentUser) return;
+        
+        const stage = stageRef.current;
+        if (!stage) return;
+        
+        const scale = stage.scaleX();
+        const canvasX = (mousePosition.x - stage.x()) / scale;
+        const canvasY = (mousePosition.y - stage.y()) / scale;
+        
+        const lineLength = Math.sqrt(
+          Math.pow(canvasX - tempLineStart.x, 2) + 
+          Math.pow(canvasY - tempLineStart.y, 2)
+        );
+        
+        const controlX = (tempLineStart.x + canvasX) / 2;
+        const controlY = (tempLineStart.y + canvasY) / 2;
+
+        addObject({
+          type: 'line',
+          x: tempLineStart.x,
+          y: tempLineStart.y,
+          x2: canvasX,
+          y2: canvasY,
+          width: lineLength,
+          height: 0,
+          controlX,
+          controlY,
+          curved: false,
+          fill: '#' + Math.floor(Math.random() * 16777215).toString(16),
+          strokeWidth: 3,
+          nickname: '',
+          zIndex: 0,
+          shadow: false,
+          createdBy: currentUser.uid,
+        });
+
+        setTempLineStart(null);
+        setDrawingMode('none');
       }
 
       // Cancel line drawing with Escape
@@ -424,7 +502,7 @@ const Canvas: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('openImageImport', handleImageImportEvent);
     };
-  }, [selectedId, drawingMode, setDrawingMode, setTempLineStart, undo, redo, canUndo, canRedo]);
+  }, [selectedId, selectedIds, objects, drawingMode, setDrawingMode, setTempLineStart, tempLineStart, mousePosition, currentUser, addObject, deleteObject, clearSelection, undo, redo, canUndo, canRedo]);
 
   return (
     <div style={{ 

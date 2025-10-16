@@ -9,9 +9,11 @@ import {
 import { 
   doc, 
   setDoc, 
-  getDoc 
+  getDoc,
+  deleteDoc
 } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { ref as dbRef, remove } from 'firebase/database';
+import { auth, db, rtdb } from '../firebase/config';
 import { AppUser } from '../types';
 import { generateRandomColor } from '../utils/colors';
 
@@ -52,6 +54,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    if (currentUser) {
+      try {
+        // Clean up cursor from Firestore
+        const cursorRef = doc(db, 'canvases', 'default', 'cursors', currentUser.uid);
+        await deleteDoc(cursorRef).catch(console.error);
+        
+        // Clean up presence from Realtime Database
+        const presenceRef = dbRef(rtdb, `presence/default/${currentUser.uid}`);
+        await remove(presenceRef).catch(console.error);
+      } catch (error) {
+        console.error('Error cleaning up user data on logout:', error);
+      }
+    }
+    
     await signOut(auth);
   };
 
