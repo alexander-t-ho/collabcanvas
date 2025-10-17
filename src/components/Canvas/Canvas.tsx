@@ -13,6 +13,7 @@ import GroupEditor from './GroupEditor';
 import MultiSelectEditor from './MultiSelectEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
+import AIChat from './AIChat';
 
 const GRID_SIZE = 25; // Grid cell size in pixels
 
@@ -717,6 +718,9 @@ const Canvas: React.FC = () => {
         {showImageImport && (
           <ImageImport onClose={() => setShowImageImport(false)} />
         )}
+
+        {/* AI Chat Assistant */}
+        <AIChat />
       </div>
     </div>
   );
