@@ -85,15 +85,45 @@ const ChatWindow: React.FC = () => {
             break;
 
           case 'resizeShape':
-            const resizeObj = objects.find(obj =>
-              obj.fill?.includes(action.data.identifier) ||
-              obj.type === action.data.identifier
-            );
+            const resizeObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objType = obj.type?.toLowerCase();
+              const objColor = obj.fill?.toLowerCase();
+              const objText = obj.text?.toLowerCase();
+              
+              // Match by type (circle, rectangle, etc.)
+              if (objType && identifier.includes(objType)) return true;
+              
+              // Match by color name
+              const colorMap: { [key: string]: string } = {
+                'red': '#ff0000', 'blue': '#0000ff', 'green': '#00ff00',
+                'yellow': '#ffff00', 'purple': '#800080', 'orange': '#ffa500',
+                'black': '#000000', 'white': '#ffffff', 'gray': '#808080', 'grey': '#808080',
+                'pink': '#ffc0cb'
+              };
+              for (const [colorName, colorHex] of Object.entries(colorMap)) {
+                if (identifier.includes(colorName) && objColor === colorHex.toLowerCase()) {
+                  // Also check if type matches (e.g., "blue circle")
+                  if (objType && identifier.includes(objType)) return true;
+                  // Or just color match if no type specified
+                  if (!identifier.includes('circle') && !identifier.includes('rectangle') && !identifier.includes('text')) return true;
+                }
+              }
+              
+              // Match by text content
+              if (objText && identifier.includes(objText)) return true;
+              
+              return false;
+            });
+            
             if (resizeObj) {
+              console.log('Resizing object:', resizeObj, 'to', action.data.width, 'x', action.data.height);
               await updateObject(resizeObj.id, {
                 width: action.data.width,
                 height: action.data.height
               });
+            } else {
+              console.log('Could not find object to resize:', action.data.identifier, 'in', objects);
             }
             break;
 
