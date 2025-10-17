@@ -244,6 +244,60 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
         />
       </div>
 
+      {/* Position (Center Point) */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ 
+          display: 'block', 
+          marginBottom: '4px', 
+          fontWeight: '500',
+          color: '#6b7280'
+        }}>
+          📍 Position (Center: X, Y)
+        </label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '2px' }}>X</label>
+            <input
+              type="number"
+              value={Math.round(object.x)}
+              onChange={(e) => updateObject(object.id, { x: Number(e.target.value) })}
+              style={{
+                width: '100%',
+                padding: '6px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                fontSize: '11px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '2px' }}>Y</label>
+            <input
+              type="number"
+              value={Math.round(object.y)}
+              onChange={(e) => updateObject(object.id, { y: Number(e.target.value) })}
+              style={{
+                width: '100%',
+                padding: '6px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                fontSize: '11px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        </div>
+        <p style={{ 
+          margin: '4px 0 0 0', 
+          fontSize: '10px', 
+          color: '#9ca3af',
+          fontStyle: 'italic' 
+        }}>
+          Origin (0,0) is at screen center
+        </p>
+      </div>
+
       {/* Color - conditionally rendered */}
       {!hideColorPicker && (
         <div style={{ marginBottom: '12px', position: 'relative' }}>
