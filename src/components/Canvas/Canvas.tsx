@@ -37,7 +37,7 @@ const Canvas: React.FC = () => {
   } = useCanvas();
   const { currentUser } = useAuth();
   const stageRef = useRef<any>(null);
-  const [stageScale, setStageScale] = useState(1);
+  const [stageScale, setStageScale] = useState(1.3); // Start at 130% (new 100%)
   const [stagePosition, setStagePosition] = useState({ 
     x: window.innerWidth / 2, 
     y: (window.innerHeight - 60) / 2 // Account for toolbar height
@@ -560,7 +560,7 @@ const Canvas: React.FC = () => {
       // Reset view with 'R' key - center the origin (0,0)
       if (e.key === 'r' || e.key === 'R') {
         e.preventDefault();
-        setStageScale(1);
+        setStageScale(1.3); // Reset to 130% (new 100%)
         setStagePosition({ 
           x: window.innerWidth / 2, 
           y: (window.innerHeight - 60) / 2 
@@ -805,8 +805,8 @@ const Canvas: React.FC = () => {
 
           {/* Zoom Display */}
           <span style={{ minWidth: '60px', textAlign: 'center', fontWeight: '500' }}>
-            {Math.round(stageScale * 100)}%
-                </span>
+            {Math.round((stageScale / 1.3) * 100)}%
+          </span>
 
           {/* Zoom In */}
           <button

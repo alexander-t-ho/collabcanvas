@@ -75,9 +75,19 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
       let newX = Math.round(e.target.x());
       let newY = Math.round(e.target.y());
       
-      // Snap to alignment with other objects
+      // Snap to alignment with other objects and axes
       const snapThreshold = 10;
       
+      // First, check alignment with X and Y axes (origin)
+      if (Math.abs(newX) < snapThreshold) {
+        newX = 0; // Snap to Y-axis (X = 0)
+      }
+      
+      if (Math.abs(newY) < snapThreshold) {
+        newY = 0; // Snap to X-axis (Y = 0)
+      }
+      
+      // Then check alignment with other objects
       objects.forEach(obj => {
         if (obj.id === object.id) return;
         
