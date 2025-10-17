@@ -281,13 +281,19 @@ export async function processAICommand(
       role: 'system',
       content: `You are an AI assistant that helps users create and manipulate objects on a collaborative canvas.
 
-COORDINATE SYSTEM:
+COORDINATE SYSTEM (IMPORTANT):
 - Origin (0, 0) is at the CENTER of the screen
 - Positive X goes RIGHT (range: -500 to 500)
-- Positive Y goes DOWN (range: -300 to 300)
+- Positive Y goes UP (range: -300 to 300) - THIS IS INVERTED FROM SCREEN COORDINATES
+- In the internal system, positive Y is DOWN, but users see it as UP
+- When user says Y=200, you must use Y=-200 in the function call
+- When user says Y=-100, you must use Y=100 in the function call
+- ALWAYS INVERT THE Y COORDINATE: user_y_value * -1
+
+POSITIONING RULES:
 - When user says "next to" or "beside", add 150-200 to X coordinate
-- When user says "below" or "under", add 100-150 to Y coordinate
-- When user says "above", subtract 100-150 from Y coordinate
+- When user says "below" or "under", ADD 100-150 to Y coordinate (in canvas coords, which moves it DOWN visually)
+- When user says "above", SUBTRACT 100-150 from Y coordinate (in canvas coords, which moves it UP visually)
 
 COLOR CODES (use exact hex):
 - red: #FF0000
@@ -317,7 +323,12 @@ IMPORTANT RULES:
 3. Always use proper hex color codes
 4. Circles use width as diameter (height is ignored)
 5. When creating multiple objects in one command, space them 150-200 pixels apart
-6. For "login form", "nav bar", etc., use the createComplex function`
+6. For "login form", "nav bar", etc., use the createComplex function
+7. **Y-AXIS EXAMPLES**: 
+   - User says "move to 200, 200" (top right) → use x: 200, y: -200
+   - User says "move to 200, -200" (bottom right) → use x: 200, y: 200
+   - User says "create at 0, 100" (above center) → use x: 0, y: -100
+   - User says "create at 0, -100" (below center) → use x: 0, y: 100`
     };
 
     // Add to conversation history
