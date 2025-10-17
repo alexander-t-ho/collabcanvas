@@ -260,7 +260,19 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
             <input
               type="number"
               value={Math.round(object.x)}
-              onChange={(e) => updateObject(object.id, { x: Number(e.target.value) })}
+              onChange={(e) => {
+                const newX = e.target.value === '' ? 0 : Number(e.target.value);
+                updateObject(object.id, { x: newX });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              onBlur={(e) => {
+                const newX = e.target.value === '' ? 0 : Number(e.target.value);
+                updateObject(object.id, { x: newX });
+              }}
               style={{
                 width: '100%',
                 padding: '6px',
@@ -276,7 +288,19 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
             <input
               type="number"
               value={Math.round(object.y)}
-              onChange={(e) => updateObject(object.id, { y: Number(e.target.value) })}
+              onChange={(e) => {
+                const newY = e.target.value === '' ? 0 : Number(e.target.value);
+                updateObject(object.id, { y: newY });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              onBlur={(e) => {
+                const newY = e.target.value === '' ? 0 : Number(e.target.value);
+                updateObject(object.id, { y: newY });
+              }}
               style={{
                 width: '100%',
                 padding: '6px',
@@ -294,7 +318,7 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
           color: '#9ca3af',
           fontStyle: 'italic' 
         }}>
-          Origin (0,0) is at screen center
+          Origin (0,0) is at screen center. Press Enter to apply.
         </p>
       </div>
 
