@@ -383,9 +383,20 @@ IMPORTANT RULES:
       content: userMessage
     });
 
-    // Keep only last 10 messages to avoid token limits
-    if (conversationHistory.length > 11) {
-      conversationHistory = [conversationHistory[0], ...conversationHistory.slice(-10)];
+    // Keep only last exchanges to avoid token limits
+    // Keep system message + last 4 complete exchanges (user + assistant + tools)
+    if (conversationHistory.length > 20) {
+      // Find the last complete exchange boundary
+      const systemMsg = conversationHistory[0];
+      let recentMessages = conversationHistory.slice(-15);
+      
+      // Make sure we don't break tool message pairs
+      // Remove any orphaned tool messages at the start
+      while (recentMessages.length > 0 && recentMessages[0].role === 'tool') {
+        recentMessages = recentMessages.slice(1);
+      }
+      
+      conversationHistory = [systemMsg, ...recentMessages];
     }
 
     const response = await openai.chat.completions.create({
@@ -442,11 +453,23 @@ IMPORTANT RULES:
     return result;
   } catch (error) {
     console.error('AI Service Error:', error);
+    
+    // If there's an error with the conversation history, reset it
+    if (error instanceof Error && error.message.includes('tool')) {
+      console.log('Resetting conversation history due to tool message error');
+      conversationHistory = [];
+    }
+    
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An error occurred processing your command',
       actions: []
     };
   }
+}
+
+// Export function to reset conversation history manually
+export function resetConversationHistory() {
+  conversationHistory = [];
 }
 
