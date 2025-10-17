@@ -257,33 +257,93 @@ export interface AICommandResult {
   }>;
 }
 
+// Store conversation history for context
+let conversationHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+
 // Process AI command
 export async function processAICommand(
   userMessage: string,
   canvasObjects: CanvasObject[]
 ): Promise<AICommandResult> {
   try {
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: `You are an AI assistant that helps users create and manipulate objects on a collaborative canvas. 
-The canvas has a coordinate system where (0, 0) is at the center of the screen.
-Positive X goes right, positive Y goes down.
-When creating multiple objects, space them appropriately.
-For colors, use standard hex codes like #FF0000 for red, #0000FF for blue, etc.
-Current canvas state: ${JSON.stringify(canvasObjects.length)} objects.`
-      },
-      {
-        role: 'user',
-        content: userMessage
-      }
-    ];
+    // Get info about recently created objects for context
+    const recentObjects = canvasObjects.slice(-5).map(obj => ({
+      type: obj.type,
+      color: obj.fill,
+      x: obj.x,
+      y: obj.y,
+      width: obj.width,
+      height: obj.height
+    }));
+
+    // Build system message with current context
+    const systemMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+      role: 'system',
+      content: `You are an AI assistant that helps users create and manipulate objects on a collaborative canvas.
+
+COORDINATE SYSTEM:
+- Origin (0, 0) is at the CENTER of the screen
+- Positive X goes RIGHT (range: -500 to 500)
+- Positive Y goes DOWN (range: -300 to 300)
+- When user says "next to" or "beside", add 150-200 to X coordinate
+- When user says "below" or "under", add 100-150 to Y coordinate
+- When user says "above", subtract 100-150 from Y coordinate
+
+COLOR CODES (use exact hex):
+- red: #FF0000
+- blue: #0000FF  
+- green: #00FF00
+- yellow: #FFFF00
+- purple: #800080
+- orange: #FFA500
+- black: #000000
+- white: #FFFFFF
+- gray: #808080
+- pink: #FFC0CB
+
+DEFAULT SIZES:
+- Small shapes: 80x80
+- Medium shapes (default): 120x120
+- Large shapes: 200x200
+- Text: fontSize 24, width 200
+
+CURRENT CANVAS STATE:
+- Total objects: ${canvasObjects.length}
+- Recent objects: ${JSON.stringify(recentObjects)}
+
+IMPORTANT RULES:
+1. For basic commands like "make a red circle", create it at origin (0, 0) with default size (120x120)
+2. For relative positioning ("next to it", "beside the last one"), use the LAST object's position and add appropriate offset
+3. Always use proper hex color codes
+4. Circles use width as diameter (height is ignored)
+5. When creating multiple objects in one command, space them 150-200 pixels apart
+6. For "login form", "nav bar", etc., use the createComplex function`
+    };
+
+    // Add to conversation history
+    if (conversationHistory.length === 0 || conversationHistory[0].role !== 'system') {
+      conversationHistory = [systemMessage];
+    } else {
+      conversationHistory[0] = systemMessage; // Update system message with latest state
+    }
+
+    // Add user message
+    conversationHistory.push({
+      role: 'user',
+      content: userMessage
+    });
+
+    // Keep only last 10 messages to avoid token limits
+    if (conversationHistory.length > 11) {
+      conversationHistory = [conversationHistory[0], ...conversationHistory.slice(-10)];
+    }
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',
-      messages,
+      messages: conversationHistory,
       tools,
-      tool_choice: 'auto'
+      tool_choice: 'auto',
+      temperature: 0.7
     });
 
     const result: AICommandResult = {
@@ -293,6 +353,9 @@ Current canvas state: ${JSON.stringify(canvasObjects.length)} objects.`
     };
 
     const choice = response.choices[0];
+    
+    // Add assistant response to conversation history
+    conversationHistory.push(choice.message);
     
     if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
       // Process each tool call
@@ -310,7 +373,9 @@ Current canvas state: ${JSON.stringify(canvasObjects.length)} objects.`
       }
       
       result.success = result.actions.length > 0;
-      result.message = choice.message.content || 'Commands executed successfully';
+      result.message = result.actions.length === 1 
+        ? `Created ${result.actions[0].type.replace('create', '').replace('Shape', ' shape')}`
+        : `Executed ${result.actions.length} actions successfully`;
     } else if (choice.message.content) {
       result.message = choice.message.content;
     } else {

@@ -31,11 +31,13 @@ const ChatWindow: React.FC = () => {
   const executeAIActions = async (result: AICommandResult) => {
     if (!currentUser) return;
 
+    const createdObjects: any[] = []; // Track created objects for relative positioning
+
     for (const action of result.actions) {
       try {
         switch (action.type) {
           case 'createShape':
-            await addObject({
+            const newShape = await addObject({
               type: action.data.type,
               x: action.data.x,
               y: action.data.y,
@@ -43,15 +45,18 @@ const ChatWindow: React.FC = () => {
               height: action.data.height,
               fill: action.data.color,
               nickname: '',
-              cornerRadius: 0,
-              zIndex: 0,
+              cornerRadius: action.data.type === 'rectangle' ? 5 : 0,
+              zIndex: objects.length + createdObjects.length,
               shadow: false,
               createdBy: currentUser.uid
             });
+            if (newShape) {
+              createdObjects.push(newShape);
+            }
             break;
 
           case 'createText':
-            await addObject({
+            const newText = await addObject({
               type: 'text',
               x: action.data.x,
               y: action.data.y,
@@ -64,10 +69,13 @@ const ChatWindow: React.FC = () => {
               fontStyle: 'normal',
               textAlign: 'left',
               nickname: '',
-              zIndex: 0,
+              zIndex: objects.length + createdObjects.length,
               shadow: false,
               createdBy: currentUser.uid
             });
+            if (newText) {
+              createdObjects.push(newText);
+            }
             break;
 
           case 'moveShape':
@@ -109,6 +117,285 @@ const ChatWindow: React.FC = () => {
             }
             break;
 
+          case 'arrangeShapes':
+            // Arrange existing shapes in specified pattern
+            const shapesToArrange = [...objects, ...createdObjects].filter(obj => 
+              obj.type === 'rectangle' || obj.type === 'circle'
+            );
+            
+            const spacing = action.data.spacing || 150;
+            const startX = action.data.startX || -200;
+            const startY = action.data.startY || 0;
+
+            if (action.data.arrangement === 'horizontal') {
+              shapesToArrange.forEach((obj, idx) => {
+                updateObject(obj.id, {
+                  x: startX + (idx * spacing),
+                  y: startY
+                });
+              });
+            } else if (action.data.arrangement === 'vertical') {
+              shapesToArrange.forEach((obj, idx) => {
+                updateObject(obj.id, {
+                  x: startX,
+                  y: startY + (idx * spacing)
+                });
+              });
+            } else if (action.data.arrangement === 'grid') {
+              const gridSize = Math.ceil(Math.sqrt(shapesToArrange.length));
+              shapesToArrange.forEach((obj, idx) => {
+                const row = Math.floor(idx / gridSize);
+                const col = idx % gridSize;
+                updateObject(obj.id, {
+                  x: startX + (col * spacing),
+                  y: startY + (row * spacing)
+                });
+              });
+            }
+            break;
+
+          case 'createComplex':
+            // Create complex UI elements
+            const complexType = action.data.type;
+            const complexX = action.data.x || 0;
+            const complexY = action.data.y || 0;
+
+            if (complexType === 'login-form') {
+              // Create a login form with username, password, and submit button
+              // Title
+              await addObject({
+                type: 'text',
+                x: complexX,
+                y: complexY - 150,
+                width: 200,
+                height: 40,
+                fill: '#1f2937',
+                text: 'Login',
+                fontSize: 32,
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                textAlign: 'center',
+                nickname: 'Login Title',
+                zIndex: objects.length + createdObjects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Username field background
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY - 70,
+                width: 300,
+                height: 50,
+                fill: '#f3f4f6',
+                nickname: 'Username Field',
+                cornerRadius: 8,
+                zIndex: objects.length + createdObjects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Username label
+              await addObject({
+                type: 'text',
+                x: complexX - 100,
+                y: complexY - 70,
+                width: 100,
+                height: 30,
+                fill: '#6b7280',
+                text: 'Username',
+                fontSize: 14,
+                fontFamily: 'Arial',
+                fontStyle: 'normal',
+                textAlign: 'left',
+                nickname: 'Username Label',
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Password field background
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY,
+                width: 300,
+                height: 50,
+                fill: '#f3f4f6',
+                nickname: 'Password Field',
+                cornerRadius: 8,
+                zIndex: objects.length + createdObjects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Password label
+              await addObject({
+                type: 'text',
+                x: complexX - 100,
+                y: complexY,
+                width: 100,
+                height: 30,
+                fill: '#6b7280',
+                text: 'Password',
+                fontSize: 14,
+                fontFamily: 'Arial',
+                fontStyle: 'normal',
+                textAlign: 'left',
+                nickname: 'Password Label',
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Submit button
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY + 80,
+                width: 300,
+                height: 50,
+                fill: '#3b82f6',
+                nickname: 'Submit Button',
+                cornerRadius: 8,
+                zIndex: objects.length + createdObjects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+
+              // Submit button text
+              await addObject({
+                type: 'text',
+                x: complexX,
+                y: complexY + 80,
+                width: 200,
+                height: 30,
+                fill: '#ffffff',
+                text: 'Login',
+                fontSize: 18,
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                textAlign: 'center',
+                nickname: 'Submit Text',
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+            } else if (complexType === 'nav-bar') {
+              // Create a navigation bar
+              const itemCount = action.data.options?.itemCount || 4;
+              const navWidth = 800;
+              const itemWidth = navWidth / itemCount;
+
+              // Nav bar background
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY,
+                width: navWidth,
+                height: 60,
+                fill: '#1f2937',
+                nickname: 'Nav Bar',
+                cornerRadius: 0,
+                zIndex: objects.length + createdObjects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+
+              // Nav items
+              const navItems = ['Home', 'About', 'Services', 'Contact'];
+              for (let i = 0; i < itemCount; i++) {
+                await addObject({
+                  type: 'text',
+                  x: complexX - navWidth / 2 + itemWidth / 2 + (i * itemWidth),
+                  y: complexY,
+                  width: itemWidth - 20,
+                  height: 30,
+                  fill: '#ffffff',
+                  text: navItems[i] || `Item ${i + 1}`,
+                  fontSize: 16,
+                  fontFamily: 'Arial',
+                  fontStyle: 'normal',
+                  textAlign: 'center',
+                  nickname: `Nav Item ${i + 1}`,
+                  zIndex: objects.length + createdObjects.length + 1,
+                  shadow: false,
+                  createdBy: currentUser.uid
+                });
+              }
+            } else if (complexType === 'card') {
+              // Create a card layout
+              // Card background
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY,
+                width: 300,
+                height: 400,
+                fill: '#ffffff',
+                nickname: 'Card',
+                cornerRadius: 12,
+                zIndex: objects.length + createdObjects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+
+              // Card image placeholder
+              await addObject({
+                type: 'rectangle',
+                x: complexX,
+                y: complexY - 100,
+                width: 280,
+                height: 160,
+                fill: '#e5e7eb',
+                nickname: 'Card Image',
+                cornerRadius: 8,
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Card title
+              await addObject({
+                type: 'text',
+                x: complexX,
+                y: complexY + 40,
+                width: 260,
+                height: 40,
+                fill: '#1f2937',
+                text: action.data.options?.title || 'Card Title',
+                fontSize: 24,
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                textAlign: 'center',
+                nickname: 'Card Title',
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
+              // Card description
+              await addObject({
+                type: 'text',
+                x: complexX,
+                y: complexY + 100,
+                width: 260,
+                height: 60,
+                fill: '#6b7280',
+                text: 'This is a card description with some content.',
+                fontSize: 14,
+                fontFamily: 'Arial',
+                fontStyle: 'normal',
+                textAlign: 'center',
+                nickname: 'Card Description',
+                zIndex: objects.length + createdObjects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+            }
+            break;
+
           case 'deleteShape':
             const deleteObj = objects.find(obj =>
               obj.fill?.includes(action.data.identifier) ||
@@ -117,6 +404,10 @@ const ChatWindow: React.FC = () => {
             if (deleteObj) {
               await deleteObject(deleteObj.id);
             }
+            break;
+
+          case 'getCanvasState':
+            // This just returns info, no action needed
             break;
         }
       } catch (error) {

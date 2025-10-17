@@ -806,7 +806,7 @@ const Canvas: React.FC = () => {
           {/* Zoom Display */}
           <span style={{ minWidth: '60px', textAlign: 'center', fontWeight: '500' }}>
             {Math.round((stageScale / 1.3) * 100)}%
-          </span>
+                </span>
 
           {/* Zoom In */}
           <button
