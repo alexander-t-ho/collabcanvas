@@ -358,7 +358,7 @@ IMPORTANT RULES:
     conversationHistory.push(choice.message);
     
     if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-      // Process each tool call
+      // Process each tool call and add tool responses
       for (const toolCall of choice.message.tool_calls) {
         // Type guard to ensure it's a function call
         if (toolCall.type === 'function' && toolCall.function) {
@@ -369,12 +369,19 @@ IMPORTANT RULES:
             type: functionName,
             data: args
           });
+
+          // Add tool response message to conversation history
+          conversationHistory.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: JSON.stringify({ success: true, function: functionName, args })
+          });
         }
       }
       
       result.success = result.actions.length > 0;
       result.message = result.actions.length === 1 
-        ? `Created ${result.actions[0].type.replace('create', '').replace('Shape', ' shape')}`
+        ? `Executed ${result.actions[0].type}`
         : `Executed ${result.actions.length} actions successfully`;
     } else if (choice.message.content) {
       result.message = choice.message.content;
