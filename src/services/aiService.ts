@@ -294,19 +294,22 @@ Current canvas state: ${JSON.stringify(canvasObjects.length)} objects.`
 
     const choice = response.choices[0];
     
-    if (choice.message.tool_calls) {
+    if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
       // Process each tool call
       for (const toolCall of choice.message.tool_calls) {
-        const functionName = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments);
-        
-        result.actions.push({
-          type: functionName,
-          data: args
-        });
+        // Type guard to ensure it's a function call
+        if (toolCall.type === 'function' && toolCall.function) {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          
+          result.actions.push({
+            type: functionName,
+            data: args
+          });
+        }
       }
       
-      result.success = true;
+      result.success = result.actions.length > 0;
       result.message = choice.message.content || 'Commands executed successfully';
     } else if (choice.message.content) {
       result.message = choice.message.content;
