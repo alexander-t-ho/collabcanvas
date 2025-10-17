@@ -13,7 +13,7 @@ interface ToolbarProps {
 
 const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
   const { addObject, drawingMode, setDrawingMode, exportCanvasAsPNG, undo, redo, canUndo, canRedo } = useCanvas();
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const { userProfile } = useUserProfile();
   const { onlineUsers } = usePresence();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -482,33 +482,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
             <UserProfileDropdown onClose={() => setShowProfileDropdown(false)} />
           )}
         </div>
-        
-      <button 
-          onClick={logout}
-          style={{
-            background: '#f3f4f6',
-            border: 'none',
-            borderRadius: '6px',
-            padding: '8px 16px',
-            fontSize: '14px',
-            color: '#6b7280',
-            cursor: 'pointer',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontWeight: '500',
-            transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e5e7eb';
-            e.currentTarget.style.color = '#374151';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f3f4f6';
-            e.currentTarget.style.color = '#6b7280';
-          }}
-        >
-          Logout
-      </button>
       </div>
     </div>
   );

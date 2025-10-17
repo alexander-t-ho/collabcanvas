@@ -8,7 +8,7 @@ interface Props {
 
 const UserProfileDropdown: React.FC<Props> = ({ onClose }) => {
   const { userProfile, updateUserProfile, updateUserPhoto, changePassword, loading } = useUserProfile();
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -282,6 +282,34 @@ const UserProfileDropdown: React.FC<Props> = ({ onClose }) => {
             </div>
           </div>
         )}
+
+        {/* Logout Button */}
+        <button
+          onClick={logout}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '6px',
+            fontSize: '14px',
+            color: '#dc2626',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            marginBottom: '8px',
+            fontWeight: '500'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#fee2e2';
+            e.currentTarget.style.borderColor = '#fca5a5';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#fef2f2';
+            e.currentTarget.style.borderColor = '#fecaca';
+          }}
+        >
+          Logout
+        </button>
 
         {/* Close Button */}
         <button

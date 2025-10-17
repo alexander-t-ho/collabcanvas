@@ -62,3 +62,13 @@ export interface PresenceData {
   online: boolean;
   lastSeen: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  userColor: string;
+  message: string;
+  timestamp: number;
+  isAI?: boolean;
+}
