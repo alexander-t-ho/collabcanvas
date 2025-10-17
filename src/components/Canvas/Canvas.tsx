@@ -15,7 +15,7 @@ import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 import ChatWindow from './ChatWindow';
 
-const GRID_SIZE = 10; // Grid cell size in pixels (10 pixels = 1 unit)
+const GRID_SIZE = 25; // Grid cell size in pixels (25 pixels = 1 unit)
 
 const Canvas: React.FC = () => {
   const { 
