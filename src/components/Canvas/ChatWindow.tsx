@@ -508,8 +508,10 @@ const ChatWindow: React.FC = () => {
         await sendMessage(`🤖 AI: ${messageText}`, false);
         
         const aiResponse = await processAICommand(messageText, objects);
+        console.log('AI Response:', aiResponse);
         
         if (aiResponse.success && aiResponse.actions.length > 0) {
+          console.log('Executing', aiResponse.actions.length, 'actions:', aiResponse.actions);
           // Execute AI actions
           await executeAIActions(aiResponse);
           
