@@ -288,24 +288,15 @@ export async function processAICommand(
   canvasObjects: CanvasObject[]
 ): Promise<AICommandResult> {
   try {
-    // Get info about recently created objects for context
+    // Get info about recently created objects for context (without z-index to avoid AI second-guessing)
     const recentObjects = canvasObjects.slice(-5).map(obj => ({
       type: obj.type,
       color: obj.fill,
       x: obj.x,
       y: obj.y,
       width: obj.width,
-      height: obj.height,
-      zIndex: obj.zIndex
+      height: obj.height
     }));
-
-    // Get all objects with their z-index for layering context
-    const objectsWithLayers = canvasObjects.map(obj => ({
-      type: obj.type,
-      color: obj.fill,
-      text: obj.text,
-      zIndex: obj.zIndex || 0
-    })).sort((a, b) => a.zIndex - b.zIndex);
 
     // Build system message with current context
     const systemMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
@@ -327,13 +318,15 @@ POSITIONING RULES:
 - When user says "above", SUBTRACT 100-150 from Y coordinate (in canvas coords, which moves it UP visually)
 
 LAYERING (Z-INDEX) RULES:
-- "in front of" = bring to front (use changeLayer with action: "front")
-- "behind" = send to back (use changeLayer with action: "back")
-- "bring forward" = move up one layer (use changeLayer with action: "forward")
-- "send backward" = move down one layer (use changeLayer with action: "backward")
+- "in front of" or "on top of" = ALWAYS use changeLayer with action: "front"
+- "behind" or "below" (in layer sense) = ALWAYS use changeLayer with action: "back"
+- "bring forward" = ALWAYS use changeLayer with action: "forward"
+- "send backward" = ALWAYS use changeLayer with action: "backward"
 - DO NOT confuse spatial positioning with layering!
-- IMPORTANT: Users may move objects between commands. ALWAYS execute the changeLayer command even if you think the object might already be in the right position. The system will handle the current state.
-- DO NOT make assumptions about whether an object has moved. Execute the command and let the system determine the current state.
+- CRITICAL: NEVER respond with text like "already in front". ALWAYS execute the changeLayer function.
+- Users cannot see z-index values - they see visual stacking. Trust their command.
+- If user says "put X in front of Y", call changeLayer(X, "front") NO MATTER WHAT.
+- Do NOT check z-index or make any assumptions. Just execute the command.
 
 COLOR CODES (use exact hex):
 - red: #FF0000
@@ -356,9 +349,7 @@ DEFAULT SIZES:
 CURRENT CANVAS STATE (REAL-TIME):
 - Total objects: ${canvasObjects.length}
 - Recent objects: ${JSON.stringify(recentObjects)}
-- Layer order (bottom to top): ${JSON.stringify(objectsWithLayers)}
-- When checking if object is "in front", compare z-index values
-- If object already has highest z-index, acknowledge this in response
+- DO NOT analyze or check layer order - just execute layer commands when requested
 
 IMPORTANT RULES:
 1. For basic commands like "make a red circle", create it at origin (0, 0) with default size (120x120)
