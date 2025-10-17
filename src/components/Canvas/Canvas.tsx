@@ -153,14 +153,89 @@ const Canvas: React.FC = () => {
       height: window.innerHeight / scale
     };
 
+    const draggedCenterX = draggedPos.x;
+    const draggedCenterY = draggedPos.y;
+
+    // Check alignment with X-axis (Y = 0)
+    const distanceToXAxis = Math.abs(draggedCenterY);
+    if (distanceToXAxis < snapThreshold) {
+      guides.push(
+        <Line
+          key="axis-x-guide"
+          points={[
+            viewBox.x,
+            0,
+            viewBox.x + viewBox.width,
+            0
+          ]}
+          stroke="#f59e0b"
+          strokeWidth={3}
+          dash={[10, 5]}
+          opacity={1}
+        />
+      );
+      guides.push(
+        <Circle
+          key="axis-x-marker"
+          x={draggedCenterX}
+          y={0}
+          radius={6}
+          fill="#f59e0b"
+          opacity={0.9}
+        />
+      );
+    }
+
+    // Check alignment with Y-axis (X = 0)
+    const distanceToYAxis = Math.abs(draggedCenterX);
+    if (distanceToYAxis < snapThreshold) {
+      guides.push(
+        <Line
+          key="axis-y-guide"
+          points={[
+            0,
+            viewBox.y,
+            0,
+            viewBox.y + viewBox.height
+          ]}
+          stroke="#f59e0b"
+          strokeWidth={3}
+          dash={[10, 5]}
+          opacity={1}
+        />
+      );
+      guides.push(
+        <Circle
+          key="axis-y-marker"
+          x={0}
+          y={draggedCenterY}
+          radius={6}
+          fill="#f59e0b"
+          opacity={0.9}
+        />
+      );
+    }
+
+    // Check alignment with origin (0, 0)
+    if (distanceToXAxis < snapThreshold && distanceToYAxis < snapThreshold) {
+      guides.push(
+        <Circle
+          key="origin-marker"
+          x={0}
+          y={0}
+          radius={8}
+          fill="#ef4444"
+          opacity={0.9}
+        />
+      );
+    }
+
     objects.forEach((obj, index) => {
       if (obj.id === draggedObject?.id) return;
 
       // Objects with offset store their center in x, y
       const objCenterX = obj.x;
       const objCenterY = obj.y;
-      const draggedCenterX = draggedPos.x;
-      const draggedCenterY = draggedPos.y;
 
       const distanceX = Math.abs(objCenterX - draggedCenterX);
       const distanceY = Math.abs(objCenterY - draggedCenterY);
@@ -584,7 +659,7 @@ const Canvas: React.FC = () => {
         onClick={handleStageClick}
         onMouseDown={handleStageMouseDown}
         onMouseUp={handleStageMouseUp}
-        onMouseMove={handleMouseMove}
+          onMouseMove={handleMouseMove}
         onWheel={handleWheel}
       >
           {/* Grid Layer */}
@@ -731,7 +806,7 @@ const Canvas: React.FC = () => {
           {/* Zoom Display */}
           <span style={{ minWidth: '60px', textAlign: 'center', fontWeight: '500' }}>
             {Math.round(stageScale * 100)}%
-          </span>
+                </span>
 
           {/* Zoom In */}
           <button
