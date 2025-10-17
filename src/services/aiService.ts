@@ -131,21 +131,21 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'resizeShape',
-      description: 'Resize an existing shape',
+      description: 'Resize an existing shape to new dimensions. For "make X bigger/smaller by Y", calculate new size: if current size is 120 and user says "bigger by 50", use 170. For circles, width = diameter.',
       parameters: {
         type: 'object',
         properties: {
           identifier: {
             type: 'string',
-            description: 'Description of the shape to resize'
+            description: 'Description of the shape to resize (e.g., "blue circle", "rectangle")'
           },
           width: {
             type: 'number',
-            description: 'New width in pixels'
+            description: 'New width in pixels (for circles, this is the diameter)'
           },
           height: {
             type: 'number',
-            description: 'New height in pixels'
+            description: 'New height in pixels (for circles, use same as width)'
           }
         },
         required: ['identifier', 'width', 'height']
@@ -362,7 +362,12 @@ IMPORTANT RULES:
    - User says "move to 200, 200" (top right) → use x: 200, y: -200
    - User says "move to 200, -200" (bottom right) → use x: 200, y: 200
    - User says "create at 0, 100" (above center) → use x: 0, y: -100
-   - User says "create at 0, -100" (below center) → use x: 0, y: 100`
+   - User says "create at 0, -100" (below center) → use x: 0, y: 100
+8. **RELATIVE SIZING**: 
+   - "make X bigger by Y" → look at recent objects to find X's current size, add Y
+   - "make X smaller by Y" → look at recent objects to find X's current size, subtract Y
+   - "make X twice as big" → find current size, multiply by 2
+   - For circles: width and height should be the same (diameter)`
     };
 
     // Add to conversation history
