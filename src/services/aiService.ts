@@ -295,8 +295,17 @@ export async function processAICommand(
       x: obj.x,
       y: obj.y,
       width: obj.width,
-      height: obj.height
+      height: obj.height,
+      zIndex: obj.zIndex
     }));
+
+    // Get all objects with their z-index for layering context
+    const objectsWithLayers = canvasObjects.map(obj => ({
+      type: obj.type,
+      color: obj.fill,
+      text: obj.text,
+      zIndex: obj.zIndex || 0
+    })).sort((a, b) => a.zIndex - b.zIndex);
 
     // Build system message with current context
     const systemMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
@@ -323,6 +332,8 @@ LAYERING (Z-INDEX) RULES:
 - "bring forward" = move up one layer (use changeLayer with action: "forward")
 - "send backward" = move down one layer (use changeLayer with action: "backward")
 - DO NOT confuse spatial positioning with layering!
+- IMPORTANT: Users may move objects between commands. ALWAYS execute the changeLayer command even if you think the object might already be in the right position. The system will handle the current state.
+- DO NOT make assumptions about whether an object has moved. Execute the command and let the system determine the current state.
 
 COLOR CODES (use exact hex):
 - red: #FF0000
@@ -342,9 +353,12 @@ DEFAULT SIZES:
 - Large shapes: 200x200
 - Text: fontSize 24, width 200
 
-CURRENT CANVAS STATE:
+CURRENT CANVAS STATE (REAL-TIME):
 - Total objects: ${canvasObjects.length}
 - Recent objects: ${JSON.stringify(recentObjects)}
+- Layer order (bottom to top): ${JSON.stringify(objectsWithLayers)}
+- When checking if object is "in front", compare z-index values
+- If object already has highest z-index, acknowledge this in response
 
 IMPORTANT RULES:
 1. For basic commands like "make a red circle", create it at origin (0, 0) with default size (120x120)

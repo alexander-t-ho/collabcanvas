@@ -110,6 +110,7 @@ const ChatWindow: React.FC = () => {
             break;
 
           case 'changeLayer':
+            // Use fresh objects array to get current state
             const layerObj = objects.find(obj =>
               obj.fill?.includes(action.data.identifier) ||
               obj.type === action.data.identifier ||
@@ -117,18 +118,29 @@ const ChatWindow: React.FC = () => {
             );
             if (layerObj) {
               const currentZIndex = layerObj.zIndex || 0;
+              const maxZIndex = Math.max(...objects.map(obj => obj.zIndex || 0));
+              const minZIndex = Math.min(...objects.map(obj => obj.zIndex || 0));
               let newZIndex = currentZIndex;
+              let shouldUpdate = true;
 
               switch (action.data.action) {
                 case 'front':
-                  // Bring to front - set to highest z-index + 1
-                  const maxZIndex = Math.max(...objects.map(obj => obj.zIndex || 0));
-                  newZIndex = maxZIndex + 1;
+                  // Bring to front - only if not already at front
+                  if (currentZIndex >= maxZIndex && objects.length > 1) {
+                    // Already at front, but still update to ensure it stays on top
+                    newZIndex = maxZIndex + 1;
+                  } else {
+                    newZIndex = maxZIndex + 1;
+                  }
                   break;
                 case 'back':
-                  // Send to back - set to lowest z-index - 1
-                  const minZIndex = Math.min(...objects.map(obj => obj.zIndex || 0));
-                  newZIndex = minZIndex - 1;
+                  // Send to back - only if not already at back
+                  if (currentZIndex <= minZIndex && objects.length > 1) {
+                    // Already at back, but still update
+                    newZIndex = minZIndex - 1;
+                  } else {
+                    newZIndex = minZIndex - 1;
+                  }
                   break;
                 case 'forward':
                   // Move forward one layer
@@ -140,9 +152,11 @@ const ChatWindow: React.FC = () => {
                   break;
               }
 
-              await updateObject(layerObj.id, {
-                zIndex: newZIndex
-              });
+              if (shouldUpdate) {
+                await updateObject(layerObj.id, {
+                  zIndex: newZIndex
+                });
+              }
             }
             break;
 
