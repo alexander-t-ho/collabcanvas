@@ -37,7 +37,11 @@ const Canvas: React.FC = () => {
   const { currentUser } = useAuth();
   const stageRef = useRef<any>(null);
   const [stageScale, setStageScale] = useState(1);
-  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  // Initialize position to center the origin (0,0) on screen
+  const [stagePosition, setStagePosition] = useState({ 
+    x: window.innerWidth / 2, 
+    y: window.innerHeight / 2 
+  });
   const [gridLines, setGridLines] = useState<React.ReactNode[]>([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [alignmentGuides, setAlignmentGuides] = useState<React.ReactNode[]>([]);
@@ -71,24 +75,26 @@ const Canvas: React.FC = () => {
 
     // Vertical lines
     for (let x = startX; x <= endX; x += GRID_SIZE) {
+      const isOrigin = x === 0;
       lines.push(
         <Line
           key={`vertical-${x}`}
           points={[x, startY, x, endY]}
-          stroke="#e5e7eb"
-          strokeWidth={0.5}
+          stroke={isOrigin ? "#3b82f6" : "#e5e7eb"}
+          strokeWidth={isOrigin ? 2 : 0.5}
         />
       );
     }
 
     // Horizontal lines
     for (let y = startY; y <= endY; y += GRID_SIZE) {
+      const isOrigin = y === 0;
       lines.push(
         <Line
           key={`horizontal-${y}`}
           points={[startX, y, endX, y]}
-          stroke="#e5e7eb"
-          strokeWidth={0.5}
+          stroke={isOrigin ? "#3b82f6" : "#e5e7eb"}
+          strokeWidth={isOrigin ? 2 : 0.5}
         />
       );
     }
@@ -436,10 +442,13 @@ const Canvas: React.FC = () => {
         }
       }
       
-      // Reset view with 'R' key
+      // Reset view with 'R' key - center origin (0,0) on screen
       if (e.key === 'r' || e.key === 'R') {
         setStageScale(1);
-        setStagePosition({ x: 0, y: 0 });
+        setStagePosition({ 
+          x: window.innerWidth / 2, 
+          y: window.innerHeight / 2 
+        });
       }
 
       // Confirm line placement with Enter
