@@ -485,7 +485,6 @@ const CanvasObject: React.FC<Props> = ({ object, isSelected, onDrag, onDragEnd }
             opacity={object.opacity ?? 1}
             align={object.textAlign || 'left'}
             rotation={object.rotation || 0}
-            scaleY={-1} // Flip text back upright since stage Y-axis is inverted
             offsetX={object.width / 2}
             offsetY={(object.fontSize || 24) / 2}
             shadowEnabled={object.shadow || false}

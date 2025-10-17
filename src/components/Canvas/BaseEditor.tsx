@@ -290,7 +290,7 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
             <label style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: '2px' }}>Y</label>
             <input
               type="number"
-              value={Math.round(object.y)}
+              value={Math.round(-object.y)} // Display inverted Y (negative Y in canvas = positive Y display)
               onChange={(e) => {
                 const value = e.target.value;
                 if (value === '' || value === '-') {
@@ -298,7 +298,7 @@ const BaseEditor: React.FC<Props> = ({ object, onMoveUp, onMoveDown, children, h
                 } else {
                   const newY = parseInt(value, 10);
                   if (!isNaN(newY)) {
-                    updateObject(object.id, { y: newY });
+                    updateObject(object.id, { y: -newY }); // Store inverted Y (positive display = negative canvas)
                   }
                 }
               }}

@@ -652,7 +652,7 @@ const Canvas: React.FC = () => {
         width={window.innerWidth}
           height={window.innerHeight - 60} // Account for toolbar height
         scaleX={stageScale}
-        scaleY={-stageScale} // Negative to invert Y-axis (positive Y goes up)
+        scaleY={stageScale}
         x={stagePosition.x}
         y={stagePosition.y}
         draggable={!isSelecting}
