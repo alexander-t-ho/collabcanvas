@@ -500,6 +500,14 @@ const Canvas: React.FC = () => {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is currently typing in an input/textarea
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+      );
+
       // Undo with Ctrl+Z (Cmd+Z on Mac)
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
@@ -522,16 +530,8 @@ const Canvas: React.FC = () => {
       // Delete selected object(s) with Delete or Backspace
       // But NOT when editing text in a text box
       if ((e.key === 'Delete' || e.key === 'Backspace') && (selectedId || selectedIds.length > 0)) {
-        // Check if user is currently editing text
-        const activeElement = document.activeElement;
-        const isEditingText = activeElement && (
-          activeElement.tagName === 'INPUT' || 
-          activeElement.tagName === 'TEXTAREA' ||
-          activeElement.getAttribute('contenteditable') === 'true'
-        );
-        
         // If editing text in a text box, don't delete the object
-        if (isEditingText) {
+        if (isTyping) {
           return;
         }
         
@@ -558,7 +558,8 @@ const Canvas: React.FC = () => {
       }
       
       // Reset view with 'R' key - center the origin (0,0)
-      if (e.key === 'r' || e.key === 'R') {
+      // But NOT when user is typing in chat or other inputs
+      if ((e.key === 'r' || e.key === 'R') && !isTyping) {
         e.preventDefault();
         setStageScale(1.3); // Reset to 130% (new 100%)
         setStagePosition({ 
