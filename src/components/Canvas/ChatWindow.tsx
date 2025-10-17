@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMessageSync } from '../../hooks/useMessageSync';
-import { callOpenAI, executeAIAction } from '../../services/aiService';
+import { processAICommand, AICommandResult } from '../../services/aiService';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -28,6 +28,103 @@ const ChatWindow: React.FC = () => {
     }
   }, [isOpen]);
 
+  const executeAIActions = async (result: AICommandResult) => {
+    if (!currentUser) return;
+
+    for (const action of result.actions) {
+      try {
+        switch (action.type) {
+          case 'createShape':
+            await addObject({
+              type: action.data.type,
+              x: action.data.x,
+              y: action.data.y,
+              width: action.data.width,
+              height: action.data.height,
+              fill: action.data.color,
+              nickname: '',
+              cornerRadius: 0,
+              zIndex: 0,
+              shadow: false,
+              createdBy: currentUser.uid
+            });
+            break;
+
+          case 'createText':
+            await addObject({
+              type: 'text',
+              x: action.data.x,
+              y: action.data.y,
+              width: 200,
+              height: 50,
+              fill: action.data.color || '#000000',
+              text: action.data.text,
+              fontSize: action.data.fontSize || 24,
+              fontFamily: 'Arial',
+              fontStyle: 'normal',
+              textAlign: 'left',
+              nickname: '',
+              zIndex: 0,
+              shadow: false,
+              createdBy: currentUser.uid
+            });
+            break;
+
+          case 'moveShape':
+            const moveObj = objects.find(obj => 
+              obj.fill?.includes(action.data.identifier) ||
+              obj.type === action.data.identifier ||
+              obj.text?.toLowerCase().includes(action.data.identifier.toLowerCase())
+            );
+            if (moveObj) {
+              await updateObject(moveObj.id, {
+                x: action.data.x,
+                y: action.data.y
+              });
+            }
+            break;
+
+          case 'resizeShape':
+            const resizeObj = objects.find(obj =>
+              obj.fill?.includes(action.data.identifier) ||
+              obj.type === action.data.identifier
+            );
+            if (resizeObj) {
+              await updateObject(resizeObj.id, {
+                width: action.data.width,
+                height: action.data.height
+              });
+            }
+            break;
+
+          case 'rotateShape':
+            const rotateObj = objects.find(obj =>
+              obj.fill?.includes(action.data.identifier) ||
+              obj.type === action.data.identifier
+            );
+            if (rotateObj) {
+              await updateObject(rotateObj.id, {
+                rotation: action.data.degrees
+              });
+            }
+            break;
+
+          case 'deleteShape':
+            const deleteObj = objects.find(obj =>
+              obj.fill?.includes(action.data.identifier) ||
+              obj.type === action.data.identifier
+            );
+            if (deleteObj) {
+              await deleteObject(deleteObj.id);
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error executing action:', error);
+      }
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !currentUser) return;
 
@@ -41,20 +138,11 @@ const ChatWindow: React.FC = () => {
         // Send user message to chat
         await sendMessage(`🤖 AI: ${messageText}`, false);
         
-        const aiResponse = await callOpenAI(messageText, objects);
+        const aiResponse = await processAICommand(messageText, objects);
         
         if (aiResponse.success && aiResponse.actions.length > 0) {
-          // Execute each AI action
-          for (const action of aiResponse.actions) {
-            await executeAIAction(
-              action.type,
-              action.data,
-              objects,
-              addObject,
-              updateObject,
-              deleteObject
-            );
-          }
+          // Execute AI actions
+          await executeAIActions(aiResponse);
           
           // Send AI response to chat
           await sendMessage(`✅ AI: ${aiResponse.message}`, true);
