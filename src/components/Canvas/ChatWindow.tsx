@@ -31,13 +31,11 @@ const ChatWindow: React.FC = () => {
   const executeAIActions = async (result: AICommandResult) => {
     if (!currentUser) return;
 
-    const createdObjects: any[] = []; // Track created objects for relative positioning
-
     for (const action of result.actions) {
       try {
         switch (action.type) {
           case 'createShape':
-            const newShape = await addObject({
+            await addObject({
               type: action.data.type,
               x: action.data.x,
               y: action.data.y,
@@ -46,17 +44,14 @@ const ChatWindow: React.FC = () => {
               fill: action.data.color,
               nickname: '',
               cornerRadius: action.data.type === 'rectangle' ? 5 : 0,
-              zIndex: objects.length + createdObjects.length,
+              zIndex: objects.length,
               shadow: false,
               createdBy: currentUser.uid
             });
-            if (newShape) {
-              createdObjects.push(newShape);
-            }
             break;
 
           case 'createText':
-            const newText = await addObject({
+            await addObject({
               type: 'text',
               x: action.data.x,
               y: action.data.y,
@@ -69,13 +64,10 @@ const ChatWindow: React.FC = () => {
               fontStyle: 'normal',
               textAlign: 'left',
               nickname: '',
-              zIndex: objects.length + createdObjects.length,
+              zIndex: objects.length,
               shadow: false,
               createdBy: currentUser.uid
             });
-            if (newText) {
-              createdObjects.push(newText);
-            }
             break;
 
           case 'moveShape':
@@ -119,7 +111,7 @@ const ChatWindow: React.FC = () => {
 
           case 'arrangeShapes':
             // Arrange existing shapes in specified pattern
-            const shapesToArrange = [...objects, ...createdObjects].filter(obj => 
+            const shapesToArrange = objects.filter(obj => 
               obj.type === 'rectangle' || obj.type === 'circle'
             );
             
@@ -176,7 +168,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'bold',
                 textAlign: 'center',
                 nickname: 'Login Title',
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -191,7 +183,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#f3f4f6',
                 nickname: 'Username Field',
                 cornerRadius: 8,
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -210,7 +202,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'normal',
                 textAlign: 'left',
                 nickname: 'Username Label',
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -225,7 +217,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#f3f4f6',
                 nickname: 'Password Field',
                 cornerRadius: 8,
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -244,7 +236,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'normal',
                 textAlign: 'left',
                 nickname: 'Password Label',
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -259,7 +251,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#3b82f6',
                 nickname: 'Submit Button',
                 cornerRadius: 8,
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: true,
                 createdBy: currentUser.uid
               });
@@ -278,7 +270,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'bold',
                 textAlign: 'center',
                 nickname: 'Submit Text',
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -298,7 +290,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#1f2937',
                 nickname: 'Nav Bar',
                 cornerRadius: 0,
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: true,
                 createdBy: currentUser.uid
               });
@@ -319,7 +311,7 @@ const ChatWindow: React.FC = () => {
                   fontStyle: 'normal',
                   textAlign: 'center',
                   nickname: `Nav Item ${i + 1}`,
-                  zIndex: objects.length + createdObjects.length + 1,
+                  zIndex: objects.length + 1,
                   shadow: false,
                   createdBy: currentUser.uid
                 });
@@ -336,7 +328,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#ffffff',
                 nickname: 'Card',
                 cornerRadius: 12,
-                zIndex: objects.length + createdObjects.length,
+                zIndex: objects.length,
                 shadow: true,
                 createdBy: currentUser.uid
               });
@@ -351,7 +343,7 @@ const ChatWindow: React.FC = () => {
                 fill: '#e5e7eb',
                 nickname: 'Card Image',
                 cornerRadius: 8,
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -370,7 +362,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'bold',
                 textAlign: 'center',
                 nickname: 'Card Title',
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
@@ -389,7 +381,7 @@ const ChatWindow: React.FC = () => {
                 fontStyle: 'normal',
                 textAlign: 'center',
                 nickname: 'Card Description',
-                zIndex: objects.length + createdObjects.length + 1,
+                zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
               });
