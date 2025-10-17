@@ -177,7 +177,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'arrangeShapes',
-      description: 'Arrange multiple shapes in a pattern (horizontal, vertical, or grid)',
+      description: 'Arrange multiple shapes in a pattern (horizontal, vertical, or grid). Spacing is center-to-center distance.',
       parameters: {
         type: 'object',
         properties: {
@@ -188,7 +188,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           },
           spacing: {
             type: 'number',
-            description: 'Space between shapes in pixels (default: 20)'
+            description: 'Center-to-center space between shapes in pixels (default: 200 for visibility)'
           },
           startX: {
             type: 'number',

@@ -196,7 +196,7 @@ const ChatWindow: React.FC = () => {
               obj.type === 'rectangle' || obj.type === 'circle'
             );
             
-            const spacing = action.data.spacing || 150;
+            const spacing = action.data.spacing || 200; // Default 200px center-to-center spacing
             const startX = action.data.startX || -200;
             const startY = action.data.startY || 0;
 
