@@ -8,7 +8,7 @@ interface Props {
 
 const UserProfileDropdown: React.FC<Props> = ({ onClose }) => {
   const { userProfile, updateUserProfile, updateUserPhoto, changePassword, loading } = useUserProfile();
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -295,7 +295,8 @@ const UserProfileDropdown: React.FC<Props> = ({ onClose }) => {
             fontSize: '14px',
             color: '#6b7280',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            marginBottom: '8px'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#f3f4f6';
@@ -305,6 +306,34 @@ const UserProfileDropdown: React.FC<Props> = ({ onClose }) => {
           }}
         >
           Close
+        </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={async () => {
+            await logout();
+            onClose();
+          }}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: '#ef4444',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '14px',
+            color: 'white',
+            cursor: 'pointer',
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#dc2626';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#ef4444';
+          }}
+        >
+          Logout
         </button>
       </div>
     </>

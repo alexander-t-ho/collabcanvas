@@ -14,7 +14,7 @@ import MultiSelectEditor from './MultiSelectEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 
-const GRID_SIZE = 25; // Grid cell size in pixels
+const GRID_SIZE = 10; // Grid cell size in pixels (10 pixels = 1 unit)
 
 const Canvas: React.FC = () => {
   const { 
@@ -49,6 +49,7 @@ const Canvas: React.FC = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
+  const [showAxes, setShowAxes] = useState(true); // Toggle for axis visibility
 
   // Generate grid lines based on current view
   const generateGridLines = useCallback((): React.ReactNode[] => {
@@ -76,6 +77,9 @@ const Canvas: React.FC = () => {
     // Vertical lines
     for (let x = startX; x <= endX; x += GRID_SIZE) {
       const isOrigin = x === 0;
+      // Only show origin line if showAxes is true, always show regular grid lines
+      if (isOrigin && !showAxes) continue;
+      
       lines.push(
         <Line
           key={`vertical-${x}`}
@@ -89,6 +93,9 @@ const Canvas: React.FC = () => {
     // Horizontal lines
     for (let y = startY; y <= endY; y += GRID_SIZE) {
       const isOrigin = y === 0;
+      // Only show origin line if showAxes is true, always show regular grid lines
+      if (isOrigin && !showAxes) continue;
+      
       lines.push(
         <Line
           key={`horizontal-${y}`}
@@ -100,7 +107,7 @@ const Canvas: React.FC = () => {
     }
 
     return lines;
-  }, [stagePosition.x, stagePosition.y]);
+  }, [stagePosition.x, stagePosition.y, showAxes]);
 
   // Update grid when position or scale changes
   useEffect(() => {
@@ -631,6 +638,34 @@ const Canvas: React.FC = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => setShowAxes(!showAxes)}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  background: showAxes ? '#10b981' : '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  transition: 'background 0.2s ease',
+                  marginRight: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = showAxes ? '#059669' : '#4b5563';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = showAxes ? '#10b981' : '#6b7280';
+                }}
+                title={showAxes ? "Hide X/Y Axes" : "Show X/Y Axes"}
+              >
+                XY
+              </button>
               <button
                 onClick={() => {
                   const newScale = Math.max(0.1, stageScale - 0.1);
