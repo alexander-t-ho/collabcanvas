@@ -15,7 +15,7 @@ import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
 import ChatWindow from './ChatWindow';
 
-const GRID_SIZE = 25; // Grid cell size in pixels
+const GRID_SIZE = 10; // Grid cell size in pixels (10 pixels = 1 unit)
 
 const Canvas: React.FC = () => {
   const { 
@@ -38,7 +38,10 @@ const Canvas: React.FC = () => {
   const { currentUser } = useAuth();
   const stageRef = useRef<any>(null);
   const [stageScale, setStageScale] = useState(1);
-  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const [stagePosition, setStagePosition] = useState({ 
+    x: window.innerWidth / 2, 
+    y: (window.innerHeight - 60) / 2 // Account for toolbar height
+  });
   const [gridLines, setGridLines] = useState<React.ReactNode[]>([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [alignmentGuides, setAlignmentGuides] = useState<React.ReactNode[]>([]);
@@ -46,6 +49,7 @@ const Canvas: React.FC = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
+  const [showAxes, setShowAxes] = useState(true);
 
   // Generate grid lines based on current view
   const generateGridLines = useCallback((): React.ReactNode[] => {
@@ -60,7 +64,7 @@ const Canvas: React.FC = () => {
       x: -stagePosition.x / scale,
       y: -stagePosition.y / scale,
       width: window.innerWidth / scale,
-      height: window.innerHeight / scale
+      height: (window.innerHeight - 60) / scale
     };
 
     // Add some padding to draw grid lines outside visible area
@@ -72,6 +76,9 @@ const Canvas: React.FC = () => {
 
     // Vertical lines
     for (let x = startX; x <= endX; x += GRID_SIZE) {
+      // Skip the Y-axis line (x=0) as we'll draw it separately
+      if (x === 0 && showAxes) continue;
+      
       lines.push(
         <Line
           key={`vertical-${x}`}
@@ -84,6 +91,9 @@ const Canvas: React.FC = () => {
 
     // Horizontal lines
     for (let y = startY; y <= endY; y += GRID_SIZE) {
+      // Skip the X-axis line (y=0) as we'll draw it separately
+      if (y === 0 && showAxes) continue;
+      
       lines.push(
         <Line
           key={`horizontal-${y}`}
@@ -94,8 +104,33 @@ const Canvas: React.FC = () => {
       );
     }
 
+    // Draw origin axes if enabled (0,0)
+    if (showAxes) {
+      // Y-axis (vertical line at x=0)
+      lines.push(
+        <Line
+          key="axis-y"
+          points={[0, startY, 0, endY]}
+          stroke="#3b82f6"
+          strokeWidth={2}
+          opacity={0.6}
+        />
+      );
+      
+      // X-axis (horizontal line at y=0)
+      lines.push(
+        <Line
+          key="axis-x"
+          points={[startX, 0, endX, 0]}
+          stroke="#3b82f6"
+          strokeWidth={2}
+          opacity={0.6}
+        />
+      );
+    }
+
     return lines;
-  }, [stagePosition.x, stagePosition.y]);
+  }, [stagePosition.x, stagePosition.y, showAxes]);
 
   // Update grid when position or scale changes
   useEffect(() => {
@@ -437,10 +472,14 @@ const Canvas: React.FC = () => {
         }
       }
       
-      // Reset view with 'R' key
+      // Reset view with 'R' key - center the origin (0,0)
       if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
         setStageScale(1);
-        setStagePosition({ x: 0, y: 0 });
+        setStagePosition({ 
+          x: window.innerWidth / 2, 
+          y: (window.innerHeight - 60) / 2 
+        });
       }
 
       // Confirm line placement with Enter
@@ -596,99 +635,133 @@ const Canvas: React.FC = () => {
         </Layer>
       </Stage>
         
-        {/* Mini controls in bottom right */}
+        {/* Zoom controls on left side */}
         <div style={{
           position: 'absolute',
           bottom: 20,
-          right: 20,
+          left: 20,
           background: 'white',
           padding: '8px 12px',
           borderRadius: '6px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           fontSize: '12px',
           color: '#6b7280',
-          fontFamily: 'system-ui, -apple-system, sans-serif'
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          {drawingMode === 'line' ? (
-            <div>
-              {!tempLineStart ? (
-                <span style={{ color: '#f59e0b', fontWeight: '500' }}>
-                  Click to start drawing line
-                </span>
-              ) : (
-                <span style={{ color: '#dc2626', fontWeight: '500' }}>
-                  Click to finish line | ESC to cancel
-                </span>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => {
-                  const newScale = Math.max(0.1, stageScale - 0.1);
-                  setStageScale(newScale);
-                }}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  transition: 'background 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#3b82f6';
-                }}
-                title="Zoom Out"
-              >
-                −
-              </button>
-              <span style={{ minWidth: '60px', textAlign: 'center' }}>
-                Zoom: {Math.round(stageScale * 100)}%
-              </span>
-              <button
-                onClick={() => {
-                  const newScale = Math.min(5, stageScale + 0.1);
-                  setStageScale(newScale);
-                }}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  transition: 'background 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#3b82f6';
-                }}
-                title="Zoom In"
-              >
-                +
-              </button>
-              <span style={{ marginLeft: '8px', color: '#9ca3af' }}>Press R to reset</span>
-            </div>
-          )}
+          {/* Axis Toggle */}
+          <button
+            onClick={() => setShowAxes(!showAxes)}
+            style={{
+              width: '32px',
+              height: '32px',
+              background: showAxes ? '#3b82f6' : '#e5e7eb',
+              color: showAxes ? 'white' : '#6b7280',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            title={showAxes ? 'Hide X/Y Axes' : 'Show X/Y Axes'}
+          >
+            XY
+          </button>
+
+          <div style={{
+            width: '1px',
+            height: '24px',
+            background: '#e5e7eb'
+          }} />
+
+          {/* Zoom Out */}
+          <button
+            onClick={() => {
+              const newScale = Math.max(0.1, stageScale - 0.1);
+              setStageScale(newScale);
+            }}
+            style={{
+              width: '32px',
+              height: '32px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              transition: 'background 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#2563eb';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#3b82f6';
+            }}
+            title="Zoom Out"
+          >
+            −
+          </button>
+
+          {/* Zoom Display */}
+          <span style={{ minWidth: '60px', textAlign: 'center', fontWeight: '500' }}>
+            {Math.round(stageScale * 100)}%
+          </span>
+
+          {/* Zoom In */}
+          <button
+            onClick={() => {
+              const newScale = Math.min(5, stageScale + 0.1);
+              setStageScale(newScale);
+            }}
+            style={{
+              width: '32px',
+              height: '32px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              transition: 'background 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#2563eb';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#3b82f6';
+            }}
+            title="Zoom In"
+          >
+            +
+          </button>
+          
+          <div style={{
+            width: '1px',
+            height: '24px',
+            background: '#e5e7eb'
+          }} />
+          
+          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Press R to reset</span>
         </div>
 
         {/* Shape Editors - Fixed position on left */}

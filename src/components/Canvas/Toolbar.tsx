@@ -44,8 +44,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
     
     addObject({
       type: 'rectangle',
-      x: Math.random() * 500 + 100,
-      y: Math.random() * 500 + 100,
+      x: 0,
+      y: 0,
       width: 100,
       height: 100,
       fill: '#' + Math.floor(Math.random()*16777215).toString(16),
@@ -62,8 +62,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
     
     addObject({
       type: 'circle',
-      x: Math.random() * 500 + 150, // Center position for circle
-      y: Math.random() * 500 + 150,
+      x: 0,
+      y: 0,
       width: 100, // We'll use width as diameter for circles
       height: 100,
       fill: '#' + Math.floor(Math.random()*16777215).toString(16),
@@ -83,8 +83,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
     
     addObject({
       type: 'text',
-      x: Math.random() * 500 + 100,
-      y: Math.random() * 500 + 100,
+      x: 0,
+      y: 0,
       width: 200,
       height: 50,
       fill: '#000000',
