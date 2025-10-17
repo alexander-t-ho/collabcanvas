@@ -394,22 +394,32 @@ const Canvas: React.FC = () => {
   const handleWheel = (e: any) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
-    const oldScale = stage.scaleX();
+    if (!stage) return;
     
+    const oldScale = stageScale;
     const pointer = stage.getPointerPosition();
+    
+    if (!pointer) return;
+    
     const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale,
+      x: (pointer.x - stagePosition.x) / oldScale,
+      y: (pointer.y - stagePosition.y) / oldScale,
     };
 
-    const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-    const clampedScale = Math.max(0.1, Math.min(5, newScale)); // Allow more zoom range
+    // Zoom in/out based on wheel direction
+    const scaleBy = 1.1;
+    const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const clampedScale = Math.max(0.1, Math.min(5, newScale));
 
     setStageScale(clampedScale);
-    setStagePosition({
+    
+    // Adjust position to zoom towards cursor
+    const newPos = {
       x: pointer.x - mousePointTo.x * clampedScale,
       y: pointer.y - mousePointTo.y * clampedScale,
-    });
+    };
+    
+    setStagePosition(newPos);
   };
 
   // Handle keyboard shortcuts
