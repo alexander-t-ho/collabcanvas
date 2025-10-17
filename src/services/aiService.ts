@@ -84,7 +84,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'moveShape',
-      description: 'Move an existing shape to a new position',
+      description: 'Move an existing shape to a new position on the X/Y plane',
       parameters: {
         type: 'object',
         properties: {
@@ -102,6 +102,28 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           }
         },
         required: ['identifier', 'x', 'y']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'changeLayer',
+      description: 'Change the z-index/layer of a shape (bring to front, send to back, move forward, move backward)',
+      parameters: {
+        type: 'object',
+        properties: {
+          identifier: {
+            type: 'string',
+            description: 'Description of the shape to layer (e.g., "blue circle", "rectangle")'
+          },
+          action: {
+            type: 'string',
+            enum: ['front', 'back', 'forward', 'backward'],
+            description: 'Layer action: "front" (bring to front), "back" (send to back), "forward" (move up one layer), "backward" (move down one layer)'
+          }
+        },
+        required: ['identifier', 'action']
       }
     }
   },
@@ -294,6 +316,13 @@ POSITIONING RULES:
 - When user says "next to" or "beside", add 150-200 to X coordinate
 - When user says "below" or "under", ADD 100-150 to Y coordinate (in canvas coords, which moves it DOWN visually)
 - When user says "above", SUBTRACT 100-150 from Y coordinate (in canvas coords, which moves it UP visually)
+
+LAYERING (Z-INDEX) RULES:
+- "in front of" = bring to front (use changeLayer with action: "front")
+- "behind" = send to back (use changeLayer with action: "back")
+- "bring forward" = move up one layer (use changeLayer with action: "forward")
+- "send backward" = move down one layer (use changeLayer with action: "backward")
+- DO NOT confuse spatial positioning with layering!
 
 COLOR CODES (use exact hex):
 - red: #FF0000

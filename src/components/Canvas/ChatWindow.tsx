@@ -109,6 +109,43 @@ const ChatWindow: React.FC = () => {
             }
             break;
 
+          case 'changeLayer':
+            const layerObj = objects.find(obj =>
+              obj.fill?.includes(action.data.identifier) ||
+              obj.type === action.data.identifier ||
+              obj.text?.toLowerCase().includes(action.data.identifier.toLowerCase())
+            );
+            if (layerObj) {
+              const currentZIndex = layerObj.zIndex || 0;
+              let newZIndex = currentZIndex;
+
+              switch (action.data.action) {
+                case 'front':
+                  // Bring to front - set to highest z-index + 1
+                  const maxZIndex = Math.max(...objects.map(obj => obj.zIndex || 0));
+                  newZIndex = maxZIndex + 1;
+                  break;
+                case 'back':
+                  // Send to back - set to lowest z-index - 1
+                  const minZIndex = Math.min(...objects.map(obj => obj.zIndex || 0));
+                  newZIndex = minZIndex - 1;
+                  break;
+                case 'forward':
+                  // Move forward one layer
+                  newZIndex = currentZIndex + 1;
+                  break;
+                case 'backward':
+                  // Move backward one layer
+                  newZIndex = currentZIndex - 1;
+                  break;
+              }
+
+              await updateObject(layerObj.id, {
+                zIndex: newZIndex
+              });
+            }
+            break;
+
           case 'arrangeShapes':
             // Arrange existing shapes in specified pattern
             const shapesToArrange = objects.filter(obj => 
