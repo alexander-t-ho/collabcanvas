@@ -126,9 +126,13 @@ const ChatWindow: React.FC = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !currentUser) return;
+    if (!inputValue.trim() || !currentUser) {
+      console.log('Cannot send message:', { hasInput: !!inputValue.trim(), hasUser: !!currentUser });
+      return;
+    }
 
     const messageText = inputValue.trim();
+    console.log('Sending message:', messageText, 'AI Mode:', isAIMode);
     setInputValue('');
 
     if (isAIMode) {
@@ -136,6 +140,7 @@ const ChatWindow: React.FC = () => {
       setIsLoading(true);
       try {
         // Send user message to chat
+        console.log('Sending AI query to chat...');
         await sendMessage(`🤖 AI: ${messageText}`, false);
         
         const aiResponse = await processAICommand(messageText, objects);
@@ -159,7 +164,9 @@ const ChatWindow: React.FC = () => {
     } else {
       // Normal chat mode
       try {
+        console.log('Sending regular message to Firestore...');
         await sendMessage(messageText, false);
+        console.log('Message sent successfully!');
       } catch (error) {
         console.error('Error sending message:', error);
       }
