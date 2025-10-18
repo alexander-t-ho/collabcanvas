@@ -241,6 +241,28 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'createGroup',
+      description: 'Group multiple objects together so they can be moved/rotated as one unit',
+      parameters: {
+        type: 'object',
+        properties: {
+          objectIdentifiers: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array of object identifiers to group (e.g., ["nav item 1", "nav item 2", "nav bar background"])'
+          },
+          groupName: {
+            type: 'string',
+            description: 'Name for the group (e.g., "navigation bar")'
+          }
+        },
+        required: ['objectIdentifiers']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'deleteShape',
       description: 'Delete a shape from the canvas',
       parameters: {
@@ -365,9 +387,14 @@ IMPORTANT RULES:
    - User says "create at 0, -100" (below center) → use x: 0, y: 100
 8. **RELATIVE SIZING**: 
    - "make X bigger by Y" → look at recent objects to find X's current size, add Y
-   - "make X smaller by Y" → look at recent objects to find X's current size, subtract Y
+   - "make X smaller by Y" → find at current size, subtract Y
    - "make X twice as big" → find current size, multiply by 2
-   - For circles: width and height should be the same (diameter)`
+   - For circles: width and height should be the same (diameter)
+9. **GROUPING**:
+   - "group [objects]" or "group the navigation items" → use createGroup
+   - Identify objects by their nicknames if they have them (e.g., "Nav Item 1", "Nav Item 2", "Nav Bar")
+   - For createComplex nav-bar, objects are named: "Nav Bar" (background), "Nav Item 1", "Nav Item 2", etc.
+   - groupName should be descriptive (e.g., "navigation bar", "login form group")`
     };
 
     // Add to conversation history

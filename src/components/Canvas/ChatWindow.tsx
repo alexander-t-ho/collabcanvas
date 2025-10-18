@@ -13,7 +13,7 @@ const ChatWindow: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   
   const { messages, loading, sendMessage } = useMessageSync();
-  const { objects, addObject, updateObject, deleteObject } = useCanvas();
+  const { objects, addObject, updateObject, deleteObject, selectMultiple } = useCanvas();
   const { currentUser } = useAuth();
 
   // Auto-scroll to bottom when new messages arrive
@@ -545,11 +545,89 @@ const ChatWindow: React.FC = () => {
             }
             break;
 
+          case 'createGroup':
+            // Find all objects matching the identifiers
+            const objectsToGroup: string[] = [];
+            
+            for (const identifier of action.data.objectIdentifiers) {
+              const obj = objects.find(o => {
+                const id = identifier.toLowerCase();
+                const objNickname = o.nickname?.toLowerCase();
+                const objType = o.type?.toLowerCase();
+                const objText = o.text?.toLowerCase();
+                
+                // Match by nickname (best for specific objects)
+                if (objNickname && id.includes(objNickname)) return true;
+                // Match by text
+                if (objText && id.includes(objText)) return true;
+                // Match by type
+                if (objType && id.includes(objType)) return true;
+                
+                return false;
+              });
+              
+              if (obj) {
+                objectsToGroup.push(obj.id);
+              }
+            }
+            
+            console.log('Grouping objects:', objectsToGroup);
+            
+            if (objectsToGroup.length >= 2) {
+              // Select the objects and create group
+              selectMultiple(objectsToGroup);
+              
+              // Wait a bit for selection to register
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Create the group using the context method
+              const selectedObjects = objects.filter(obj => objectsToGroup.includes(obj.id));
+              
+              if (selectedObjects.length >= 2) {
+                // Calculate bounds of all objects
+                const minX = Math.min(...selectedObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                const maxX = Math.max(...selectedObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                const minY = Math.min(...selectedObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                const maxY = Math.max(...selectedObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                
+                const padding = 20;
+                const groupWidth = (maxX - minX) + padding * 2;
+                const groupHeight = (maxY - minY) + padding * 2;
+                const groupCenterX = (minX + maxX) / 2;
+                const groupCenterY = (minY + maxY) / 2;
+                
+                await addObject({
+                  type: 'group',
+                  x: groupCenterX,
+                  y: groupCenterY,
+                  width: groupWidth,
+                  height: groupHeight,
+                  fill: 'transparent',
+                  groupedObjects: objectsToGroup,
+                  nickname: action.data.groupName || 'Group',
+                  zIndex: Math.max(...selectedObjects.map(obj => obj.zIndex || 0)) + 1,
+                  shadow: false,
+                  createdBy: currentUser.uid
+                });
+              }
+            } else {
+              console.log('Not enough objects found to group. Found:', objectsToGroup.length);
+            }
+            break;
+
           case 'deleteShape':
-            const deleteObj = objects.find(obj =>
-              obj.fill?.includes(action.data.identifier) ||
-              obj.type === action.data.identifier
-            );
+            const deleteObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
+              const objType = obj.type?.toLowerCase();
+              
+              // Match by nickname
+              if (objNickname && identifier.includes(objNickname)) return true;
+              // Match by type
+              if (objType && identifier.includes(objType)) return true;
+              
+              return false;
+            });
             if (deleteObj) {
               await deleteObject(deleteObj.id);
             }
