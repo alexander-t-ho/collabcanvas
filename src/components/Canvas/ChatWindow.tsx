@@ -19,6 +19,7 @@ const ChatWindow: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [activeSuggestions, setActiveSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -872,11 +873,9 @@ const ChatWindow: React.FC = () => {
             // Send success message
             await sendMessage(`✅ AI: ${aiResponse.message}`, true);
             
-            // Send suggestions if available
+            // Set active suggestions for clickable buttons
             if (aiResponse.suggestions && aiResponse.suggestions.length > 0) {
-              const suggestionsText = '💡 Suggestions:\n' + 
-                aiResponse.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
-              await sendMessage(suggestionsText, true);
+              setActiveSuggestions(aiResponse.suggestions);
             }
           }
         } else {
@@ -1306,11 +1305,9 @@ const ChatWindow: React.FC = () => {
                   await executeAIActions(pendingActions);
                   await sendMessage(`✅ AI: Created ${pendingActions.actions.length} objects successfully!`, true);
                   
-                  // Send suggestions if available
+                  // Set active suggestions for clickable buttons
                   if (pendingActions.suggestions && pendingActions.suggestions.length > 0) {
-                    const suggestionsText = '💡 Suggestions:\n' + 
-                      pendingActions.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
-                    await sendMessage(suggestionsText, true);
+                    setActiveSuggestions(pendingActions.suggestions);
                   }
                   
                   setPendingActions(null);
@@ -1360,6 +1357,79 @@ const ChatWindow: React.FC = () => {
             >
               × Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Suggestions (clickable) */}
+      {isAIMode && activeSuggestions.length > 0 && (
+        <div
+          style={{
+            padding: '12px 16px',
+            borderTop: '1px solid #e5e7eb',
+            background: '#f0fdf4',
+            borderLeft: '4px solid #10b981'
+          }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#059669' }}>
+              💡 Try these next:
+            </span>
+            <button
+              onClick={() => setActiveSuggestions([])}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '0',
+                width: '20px',
+                height: '20px'
+              }}
+              title="Dismiss suggestions"
+            >
+              ×
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {activeSuggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setInputValue(suggestion);
+                  setActiveSuggestions([]);
+                  inputRef.current?.focus();
+                }}
+                style={{
+                  padding: '8px 12px',
+                  background: 'white',
+                  border: '1px solid #d1fae5',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#065f46',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  fontWeight: '500'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#d1fae5';
+                  e.currentTarget.style.borderColor = '#10b981';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                  e.currentTarget.style.borderColor = '#d1fae5';
+                }}
+              >
+                {idx + 1}. {suggestion}
+              </button>
+            ))}
           </div>
         </div>
       )}
