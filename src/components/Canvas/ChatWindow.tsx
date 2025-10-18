@@ -272,13 +272,32 @@ const ChatWindow: React.FC = () => {
                 rotation: action.data.degrees
               });
               
-              // If it's a group, also rotate all grouped objects
+              // If it's a group, rotate all objects around the group center
               if (rotateObj.type === 'group' && rotateObj.groupedObjects) {
-                console.log('Rotating grouped objects:', rotateObj.groupedObjects);
+                console.log('Rotating grouped objects around center:', rotateObj.groupedObjects);
+                
+                const groupCenterX = rotateObj.x;
+                const groupCenterY = rotateObj.y;
+                const rotationRadians = (action.data.degrees * Math.PI) / 180;
+                
                 for (const groupedId of rotateObj.groupedObjects) {
-                  await updateObject(groupedId, {
-                    rotation: action.data.degrees
-                  });
+                  const groupedObj = objects.find(o => o.id === groupedId);
+                  if (groupedObj) {
+                    // Calculate position relative to group center
+                    const relativeX = groupedObj.x - groupCenterX;
+                    const relativeY = groupedObj.y - groupCenterY;
+                    
+                    // Apply rotation transformation
+                    const rotatedX = relativeX * Math.cos(rotationRadians) - relativeY * Math.sin(rotationRadians);
+                    const rotatedY = relativeX * Math.sin(rotationRadians) + relativeY * Math.cos(rotationRadians);
+                    
+                    // Update position and rotation
+                    await updateObject(groupedId, {
+                      x: groupCenterX + rotatedX,
+                      y: groupCenterY + rotatedY,
+                      rotation: action.data.degrees
+                    });
+                  }
                 }
               }
             } else {
