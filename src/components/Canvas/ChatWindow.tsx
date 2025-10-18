@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMessageSync } from '../../hooks/useMessageSync';
-import { processAICommand, AICommandResult } from '../../services/aiService';
+import { processAICommand, processAICommandWithImage, AICommandResult } from '../../services/aiService';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,8 +9,10 @@ const ChatWindow: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isAIMode, setIsAIMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { messages, loading, sendMessage } = useMessageSync();
   const { objects, addObject, updateObject, deleteObject, selectMultiple } = useCanvas();
@@ -27,6 +29,33 @@ const ChatWindow: React.FC = () => {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 4MB for OpenAI)
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Image must be smaller than 4MB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setUploadedImage(base64);
+      setInputValue('Recreate this design on the canvas');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const executeAIActions = async (result: AICommandResult) => {
     if (!currentUser) return;
@@ -661,8 +690,16 @@ const ChatWindow: React.FC = () => {
         console.log('Sending AI query to chat...');
         await sendMessage(`🤖 AI: ${messageText}`, false);
         
-        const aiResponse = await processAICommand(messageText, objects);
+        // Use image-based processing if image is uploaded
+        const aiResponse = uploadedImage 
+          ? await processAICommandWithImage(messageText, uploadedImage, objects)
+          : await processAICommand(messageText, objects);
         console.log('AI Response:', aiResponse);
+        
+        // Clear uploaded image after processing
+        if (uploadedImage) {
+          setUploadedImage(null);
+        }
         
         if (aiResponse.success && aiResponse.actions.length > 0) {
           console.log('Executing', aiResponse.actions.length, 'actions:', aiResponse.actions);
@@ -985,6 +1022,47 @@ const ChatWindow: React.FC = () => {
           borderBottomRightRadius: '16px'
         }}
       >
+        {/* Image Preview */}
+        {uploadedImage && (
+          <div style={{
+            marginBottom: '12px',
+            position: 'relative',
+            display: 'inline-block'
+          }}>
+            <img 
+              src={uploadedImage} 
+              alt="Uploaded" 
+              style={{
+                maxWidth: '200px',
+                maxHeight: '150px',
+                borderRadius: '8px',
+                border: '2px solid #8b5cf6'
+              }}
+            />
+            <button
+              onClick={() => setUploadedImage(null)}
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
@@ -992,13 +1070,46 @@ const ChatWindow: React.FC = () => {
             alignItems: 'center'
           }}
         >
+          {/* Image Upload Button (only in AI mode) */}
+          {isAIMode && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                style={{
+                  padding: '12px',
+                  background: uploadedImage ? '#8b5cf6' : '#f3f4f6',
+                  color: uploadedImage ? 'white' : '#6b7280',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Upload image to recreate design"
+              >
+                🖼️
+              </button>
+            </>
+          )}
+
           <input
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isAIMode ? "Ask AI to create shapes..." : "Type a message..."}
+            placeholder={isAIMode ? (uploadedImage ? "Describe what to recreate..." : "Ask AI to create shapes...") : "Type a message..."}
             disabled={isLoading}
             style={{
               flex: 1,
@@ -1050,7 +1161,7 @@ const ChatWindow: React.FC = () => {
           </button>
         </div>
         
-        {isAIMode && (
+        {isAIMode && !uploadedImage && (
           <p
             style={{
               margin: '8px 0 0 0',
@@ -1059,7 +1170,21 @@ const ChatWindow: React.FC = () => {
               textAlign: 'center'
             }}
           >
-            💡 Try: "Create a blue rectangle" or "Add a text that says Hello"
+            💡 Try: "Create a blue rectangle" or click 🖼️ to upload a design
+          </p>
+        )}
+        
+        {isAIMode && uploadedImage && (
+          <p
+            style={{
+              margin: '8px 0 0 0',
+              fontSize: '11px',
+              color: '#8b5cf6',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}
+          >
+            🎨 Image uploaded! AI will analyze and recreate the design
           </p>
         )}
       </div>

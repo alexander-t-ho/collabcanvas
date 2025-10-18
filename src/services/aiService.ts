@@ -500,3 +500,108 @@ export function resetConversationHistory() {
   conversationHistory = [];
 }
 
+// Process AI command with image
+export async function processAICommandWithImage(
+  userMessage: string,
+  imageBase64: string,
+  canvasObjects: CanvasObject[]
+): Promise<AICommandResult> {
+  try {
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `You are an AI assistant that analyzes UI designs and recreates them on a canvas using shapes.
+
+TASK: Analyze the provided image and recreate its design using canvas shapes (rectangles, circles, text).
+
+COORDINATE SYSTEM:
+- Origin (0, 0) is at the CENTER of the screen
+- Positive X goes RIGHT, negative X goes LEFT
+- Positive Y goes DOWN (but display shows inverted for user)
+- For images, estimate positions relative to center
+
+ANALYSIS INSTRUCTIONS:
+1. Identify all UI elements in the image (buttons, text, shapes, containers)
+2. For each element, determine:
+   - Type (rectangle for boxes/buttons, circle for round elements, text for labels)
+   - Approximate position (estimate X, Y coordinates)
+   - Approximate size (width, height in pixels)
+   - Color (use hex codes or closest match)
+3. Create elements in order from back to front (background first)
+4. Use createComplex for common patterns (login forms, nav bars, cards)
+5. Group related elements together after creation
+
+IMPORTANT:
+- Be precise with positioning to match the layout
+- Use appropriate colors that match the image
+- Create text elements for all readable text in the image
+- Maintain relative spacing and alignment
+- Create multiple shapes to represent complex elements`
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: userMessage
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageBase64,
+              detail: 'high'
+            }
+          }
+        ]
+      }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-turbo', // Use gpt-4-turbo for vision
+      messages,
+      tools,
+      tool_choice: 'auto',
+      max_tokens: 4096
+    });
+
+    const result: AICommandResult = {
+      success: false,
+      message: '',
+      actions: []
+    };
+
+    const choice = response.choices[0];
+    
+    if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+      // Process each tool call
+      for (const toolCall of choice.message.tool_calls) {
+        if (toolCall.type === 'function' && toolCall.function) {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          
+          result.actions.push({
+            type: functionName,
+            data: args
+          });
+        }
+      }
+      
+      result.success = result.actions.length > 0;
+      result.message = `Analyzed image and created ${result.actions.length} elements`;
+    } else if (choice.message.content) {
+      result.message = choice.message.content;
+    } else {
+      result.message = 'I couldn\'t analyze that image. Try a clearer screenshot.';
+    }
+
+    return result;
+  } catch (error) {
+    console.error('AI Vision Error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'An error occurred analyzing the image',
+      actions: []
+    };
+  }
+}
+
