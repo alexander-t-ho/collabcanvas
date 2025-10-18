@@ -345,10 +345,11 @@ const ChatWindow: React.FC = () => {
             break;
 
           case 'createComplex':
-            // Create complex UI elements
+            // Create complex UI elements and auto-group them
             const complexType = action.data.type;
             const complexX = action.data.x || 0;
             const complexY = action.data.y || 0;
+            const createdNicknames: string[] = []; // Track nicknames for grouping
 
             if (complexType === 'login-form') {
               // Create a login form with username, password, and submit button
@@ -472,6 +473,10 @@ const ChatWindow: React.FC = () => {
                 shadow: false,
                 createdBy: currentUser.uid
               });
+              
+              // Track nicknames for grouping
+              createdNicknames.push('Login Title', 'Username Field', 'Username Label', 
+                                    'Password Field', 'Password Label', 'Submit Button', 'Submit Text');
             } else if (complexType === 'nav-bar') {
               // Create a navigation bar
               const itemCount = action.data.options?.itemCount || 4;
@@ -495,6 +500,8 @@ const ChatWindow: React.FC = () => {
 
               // Nav items
               const navItems = ['Home', 'About', 'Services', 'Contact'];
+              createdNicknames.push('Nav Bar'); // Add background
+              
               for (let i = 0; i < itemCount; i++) {
                 await addObject({
                   type: 'text',
@@ -513,6 +520,7 @@ const ChatWindow: React.FC = () => {
                   shadow: false,
                   createdBy: currentUser.uid
                 });
+                createdNicknames.push(`Nav Item ${i + 1}`);
               }
             } else if (complexType === 'card') {
               // Create a card layout
@@ -583,6 +591,62 @@ const ChatWindow: React.FC = () => {
                 shadow: false,
                 createdBy: currentUser.uid
               });
+              
+              // Track nicknames for grouping
+              createdNicknames.push('Card', 'Card Image', 'Card Title', 'Card Description');
+            }
+            
+            // Auto-group complex UI elements
+            if (createdNicknames.length > 0 && action.data.autoGroup !== false) {
+              // Wait for all objects to be created and synced
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const groupName = complexType === 'login-form' ? 'Login Form'
+                : complexType === 'nav-bar' ? 'Navigation Bar'
+                : complexType === 'card' ? 'Card'
+                : 'Complex UI';
+              
+              // Wait a bit more for Firestore sync
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Find objects by nicknames (they should be in objects array by now from Firestore sync)
+              const foundObjects = objects.filter(obj => 
+                createdNicknames.includes(obj.nickname || '')
+              );
+              
+              console.log('Auto-grouping:', createdNicknames, 'Found:', foundObjects.length);
+              
+              if (foundObjects.length >= 2) {
+                const objectIds = foundObjects.map(o => o.id);
+                const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                
+                const padding = 20;
+                const groupWidth = (maxX - minX) + padding * 2;
+                const groupHeight = (maxY - minY) + padding * 2;
+                const groupCenterX = (minX + maxX) / 2;
+                const groupCenterY = (minY + maxY) / 2;
+                
+                await addObject({
+                  type: 'group',
+                  x: groupCenterX,
+                  y: groupCenterY,
+                  width: groupWidth,
+                  height: groupHeight,
+                  fill: 'transparent',
+                  groupedObjects: objectIds,
+                  nickname: groupName,
+                  zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                  shadow: false,
+                  createdBy: currentUser.uid
+                });
+                
+                console.log('✅ Created group:', groupName, 'with', foundObjects.length, 'objects');
+              } else {
+                console.log('⚠️ Not enough objects found for grouping. Expected:', createdNicknames.length, 'Found:', foundObjects.length);
+              }
             }
             break;
 

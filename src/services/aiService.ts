@@ -207,7 +207,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'createComplex',
-      description: 'Create complex UI elements like forms, navigation bars, or card layouts',
+      description: 'Create complex UI elements like forms, navigation bars, or card layouts. NOTE: Objects are automatically grouped after creation.',
       parameters: {
         type: 'object',
         properties: {
@@ -232,6 +232,10 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
               title: { type: 'string' },
               buttonLabels: { type: 'array', items: { type: 'string' } }
             }
+          },
+          autoGroup: {
+            type: 'boolean',
+            description: 'Automatically group all created elements (default: true)'
           }
         },
         required: ['type']
