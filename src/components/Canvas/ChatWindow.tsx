@@ -11,6 +11,8 @@ const ChatWindow: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [pendingActions, setPendingActions] = useState<AICommandResult | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
+  const [progress, setProgress] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,16 @@ const ChatWindow: React.FC = () => {
   const executeAIActions = async (result: AICommandResult) => {
     if (!currentUser) return;
 
-    for (const action of result.actions) {
+    const totalActions = result.actions.length;
+    
+    for (let i = 0; i < result.actions.length; i++) {
+      const action = result.actions[i];
+      
+      // Update progress
+      const progressPercent = Math.round(((i + 1) / totalActions) * 100);
+      setProgress(progressPercent);
+      setLoadingStatus(`Creating object ${i + 1} of ${totalActions}...`);
+      
       try {
         switch (action.type) {
           case 'createShape':
@@ -686,10 +697,15 @@ const ChatWindow: React.FC = () => {
     if (isAIMode) {
       // AI Mode: Send to AI and execute commands
       setIsLoading(true);
+      setProgress(0);
+      setLoadingStatus(uploadedImage ? 'Analyzing image...' : 'Processing your request...');
+      
       try {
         // Send user message to chat
         console.log('Sending AI query to chat...');
         await sendMessage(`🤖 AI: ${messageText}`, false);
+        
+        setLoadingStatus(uploadedImage ? 'AI is analyzing the image...' : 'AI is planning the actions...');
         
         // Use image-based processing if image is uploaded
         const aiResponse = uploadedImage 
@@ -724,6 +740,8 @@ const ChatWindow: React.FC = () => {
         await sendMessage('❌ AI: Sorry, I encountered an error processing that request.', true);
       } finally {
         setIsLoading(false);
+        setProgress(0);
+        setLoadingStatus('');
       }
     } else {
       // Normal chat mode
@@ -953,25 +971,68 @@ const ChatWindow: React.FC = () => {
         {isLoading && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#6b7280',
-              fontSize: '14px',
-              padding: '8px'
+              padding: '12px',
+              background: '#f3f4f6',
+              borderRadius: '8px',
+              margin: '8px 0'
             }}
           >
             <div
               style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e5e7eb',
-                borderTopColor: '#8b5cf6',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '8px'
               }}
-            />
-            AI is thinking...
+            >
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid #e5e7eb',
+                  borderTopColor: '#8b5cf6',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }}
+              />
+              <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
+                {loadingStatus || 'AI is thinking...'}
+              </span>
+            </div>
+            
+            {/* Progress bar */}
+            {progress > 0 && (
+              <div
+                style={{
+                  width: '100%',
+                  height: '6px',
+                  background: '#e5e7eb',
+                  borderRadius: '3px',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    width: `${progress}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)',
+                    transition: 'width 0.3s ease',
+                    borderRadius: '3px'
+                  }}
+                />
+              </div>
+            )}
+            
+            {progress > 0 && (
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#9ca3af', 
+                textAlign: 'center',
+                marginTop: '4px'
+              }}>
+                {progress}% complete
+              </div>
+            )}
           </div>
         )}
         
@@ -1018,6 +1079,8 @@ const ChatWindow: React.FC = () => {
             <button
               onClick={async () => {
                 setIsLoading(true);
+                setProgress(0);
+                setLoadingStatus('Starting creation...');
                 try {
                   await executeAIActions(pendingActions);
                   await sendMessage(`✅ AI: Created ${pendingActions.actions.length} objects successfully!`, true);
@@ -1027,6 +1090,8 @@ const ChatWindow: React.FC = () => {
                   await sendMessage('❌ AI: Error creating objects', true);
                 } finally {
                   setIsLoading(false);
+                  setProgress(0);
+                  setLoadingStatus('');
                 }
               }}
               disabled={isLoading}
