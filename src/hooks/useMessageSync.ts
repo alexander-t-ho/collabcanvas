@@ -5,7 +5,7 @@ import { ChatMessage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 
-const CANVAS_ID = 'default-canvas';
+const CANVAS_ID = 'default'; // Match other components
 const MESSAGE_LIMIT = 100;
 
 export const useMessageSync = () => {
