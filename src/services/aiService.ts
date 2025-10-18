@@ -303,10 +303,63 @@ export interface AICommandResult {
     type: string;
     data: any;
   }>;
+  suggestions?: string[];
 }
 
 // Store conversation history for context
 let conversationHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+
+// Generate smart suggestions based on what was just created
+function generateSuggestions(actions: any[], canvasObjects: CanvasObject[]): string[] {
+  const suggestions: string[] = [];
+  
+  // Analyze what was created
+  const hasShapes = actions.some(a => a.type === 'createShape');
+  const hasText = actions.some(a => a.type === 'createText');
+  const hasComplex = actions.some(a => a.type === 'createComplex');
+  const actionCount = actions.length;
+  
+  // Generate contextual suggestions
+  if (hasComplex) {
+    const complexType = actions.find(a => a.type === 'createComplex')?.data.type;
+    if (complexType === 'card') {
+      suggestions.push('Try rotating the card 15 degrees for a dynamic look');
+      suggestions.push('Add a button below the description');
+      suggestions.push('Create 3 cards in a row for a gallery layout');
+    } else if (complexType === 'nav-bar') {
+      suggestions.push('Add a logo circle to the left of the navigation');
+      suggestions.push('Create a button on the right side');
+      suggestions.push('Change the navigation bar color to match your brand');
+    } else if (complexType === 'login-form') {
+      suggestions.push('Add a "Forgot Password" text below the button');
+      suggestions.push('Create a registration form next to it');
+      suggestions.push('Add a logo or icon above the title');
+    }
+  } else if (hasShapes && actionCount === 1) {
+    suggestions.push('Add another shape next to it');
+    suggestions.push('Create text to label this shape');
+    suggestions.push('Make it twice as big');
+    suggestions.push('Add a few more shapes to create a pattern');
+  } else if (hasShapes && actionCount > 1) {
+    suggestions.push('Arrange these shapes in a grid');
+    suggestions.push('Group them together');
+    suggestions.push('Add text labels for each shape');
+  } else if (hasText) {
+    suggestions.push('Add a rectangle background behind the text');
+    suggestions.push('Create a matching text element below');
+    suggestions.push('Change the font size to 32 for emphasis');
+  }
+  
+  // General suggestions if nothing specific
+  if (suggestions.length === 0) {
+    suggestions.push('Create more shapes to build your design');
+    suggestions.push('Try adding text to label your elements');
+    suggestions.push('Arrange your objects in a layout');
+  }
+  
+  // Limit to 4 suggestions max
+  return suggestions.slice(0, 4);
+}
 
 // Process AI command
 export async function processAICommand(
@@ -487,6 +540,11 @@ IMPORTANT RULES:
         result.message = result.actions.length === 1 
           ? `Executed ${result.actions[0].type}`
           : `Executed ${result.actions.length} actions successfully`;
+        
+        // Generate suggestions if actions were successful
+        if (result.success) {
+          result.suggestions = generateSuggestions(result.actions, canvasObjects);
+        }
       }
     } else if (choice.message.content) {
       result.message = choice.message.content;

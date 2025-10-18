@@ -868,7 +868,16 @@ const ChatWindow: React.FC = () => {
             // Execute immediately for simple commands (1-2 actions)
             console.log('Executing', aiResponse.actions.length, 'actions immediately');
             await executeAIActions(aiResponse);
+            
+            // Send success message
             await sendMessage(`✅ AI: ${aiResponse.message}`, true);
+            
+            // Send suggestions if available
+            if (aiResponse.suggestions && aiResponse.suggestions.length > 0) {
+              const suggestionsText = '💡 Suggestions:\n' + 
+                aiResponse.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+              await sendMessage(suggestionsText, true);
+            }
           }
         } else {
           // Send AI response (no actions)
@@ -1296,6 +1305,14 @@ const ChatWindow: React.FC = () => {
                 try {
                   await executeAIActions(pendingActions);
                   await sendMessage(`✅ AI: Created ${pendingActions.actions.length} objects successfully!`, true);
+                  
+                  // Send suggestions if available
+                  if (pendingActions.suggestions && pendingActions.suggestions.length > 0) {
+                    const suggestionsText = '💡 Suggestions:\n' + 
+                      pendingActions.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+                    await sendMessage(suggestionsText, true);
+                  }
+                  
                   setPendingActions(null);
                 } catch (error) {
                   console.error('Error executing actions:', error);
