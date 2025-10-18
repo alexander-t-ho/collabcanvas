@@ -396,9 +396,9 @@ IMPORTANT RULES:
    - For createComplex nav-bar, objects are named: "Nav Bar" (background), "Nav Item 1", "Nav Item 2", etc.
    - groupName should be descriptive (e.g., "navigation bar", "login form group")
 10. **SCALING**:
-   - You can create up to 200 objects at once
-   - For grids, use loops: "create a 10x10 grid of circles" → 100 createShape calls
-   - For patterns, space them appropriately
+   - MAXIMUM 100 objects per query (hard limit)
+   - For large grids: "create a 10x10 grid" → max 100 objects
+   - If user asks for more than 100, respond with message suggesting smaller batch
    - User will see a preview for operations creating 3+ objects`
     };
 
@@ -437,7 +437,7 @@ IMPORTANT RULES:
       tools,
       tool_choice: 'auto',
       temperature: 0.7,
-      max_tokens: 4096 // Allow for complex operations with many objects
+      max_tokens: 2048 // Limit to 100 objects max (enough for most operations)
     });
 
     const result: AICommandResult = {
@@ -473,10 +473,17 @@ IMPORTANT RULES:
         }
       }
       
-      result.success = result.actions.length > 0;
-      result.message = result.actions.length === 1 
-        ? `Executed ${result.actions[0].type}`
-        : `Executed ${result.actions.length} actions successfully`;
+      // Enforce 100 object limit
+      if (result.actions.length > 100) {
+        result.success = false;
+        result.message = `Too many objects requested (${result.actions.length}). Maximum is 100 objects per command. Try splitting into smaller batches.`;
+        result.actions = [];
+      } else {
+        result.success = result.actions.length > 0;
+        result.message = result.actions.length === 1 
+          ? `Executed ${result.actions[0].type}`
+          : `Executed ${result.actions.length} actions successfully`;
+      }
     } else if (choice.message.content) {
       result.message = choice.message.content;
     } else {
@@ -567,7 +574,7 @@ IMPORTANT:
       messages,
       tools,
       tool_choice: 'auto',
-      max_tokens: 4096
+      max_tokens: 2048 // Limit to 100 objects max
     });
 
     const result: AICommandResult = {
@@ -592,8 +599,15 @@ IMPORTANT:
         }
       }
       
-      result.success = result.actions.length > 0;
-      result.message = `Analyzed image and created ${result.actions.length} elements`;
+      // Enforce 100 object limit
+      if (result.actions.length > 100) {
+        result.success = false;
+        result.message = `Too many objects requested (${result.actions.length}). Maximum is 100 objects per command. Try a simpler design or split into batches.`;
+        result.actions = [];
+      } else {
+        result.success = result.actions.length > 0;
+        result.message = `Analyzed image and created ${result.actions.length} elements`;
+      }
     } else if (choice.message.content) {
       result.message = choice.message.content;
     } else {
