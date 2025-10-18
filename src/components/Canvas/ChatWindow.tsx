@@ -71,16 +71,49 @@ const ChatWindow: React.FC = () => {
             break;
 
           case 'moveShape':
-            const moveObj = objects.find(obj => 
-              obj.fill?.includes(action.data.identifier) ||
-              obj.type === action.data.identifier ||
-              obj.text?.toLowerCase().includes(action.data.identifier.toLowerCase())
-            );
+            const moveObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objType = obj.type?.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
+              const objText = obj.text?.toLowerCase();
+              
+              // Match by nickname (highest priority for groups)
+              if (objNickname && identifier.includes(objNickname)) return true;
+              
+              // Match by type
+              if (objType && identifier.includes(objType)) return true;
+              
+              // Match by text content
+              if (objText && identifier.includes(objText)) return true;
+              
+              return false;
+            });
+            
             if (moveObj) {
+              console.log('Moving object:', moveObj.nickname || moveObj.type, 'to', action.data.x, action.data.y);
               await updateObject(moveObj.id, {
                 x: action.data.x,
                 y: action.data.y
               });
+              
+              // If it's a group, also move all grouped objects
+              if (moveObj.type === 'group' && moveObj.groupedObjects) {
+                const deltaX = action.data.x - moveObj.x;
+                const deltaY = action.data.y - moveObj.y;
+                console.log('Moving grouped objects by delta:', deltaX, deltaY);
+                
+                for (const groupedId of moveObj.groupedObjects) {
+                  const groupedObj = objects.find(o => o.id === groupedId);
+                  if (groupedObj) {
+                    await updateObject(groupedId, {
+                      x: groupedObj.x + deltaX,
+                      y: groupedObj.y + deltaY
+                    });
+                  }
+                }
+              }
+            } else {
+              console.log('Could not find object to move:', action.data.identifier);
             }
             break;
 
@@ -88,8 +121,12 @@ const ChatWindow: React.FC = () => {
             const resizeObj = objects.find(obj => {
               const identifier = action.data.identifier.toLowerCase();
               const objType = obj.type?.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
               const objColor = obj.fill?.toLowerCase();
               const objText = obj.text?.toLowerCase();
+              
+              // Match by nickname (highest priority)
+              if (objNickname && identifier.includes(objNickname)) return true;
               
               // Match by type (circle, rectangle, etc.)
               if (objType && identifier.includes(objType)) return true;
@@ -128,24 +165,63 @@ const ChatWindow: React.FC = () => {
             break;
 
           case 'rotateShape':
-            const rotateObj = objects.find(obj =>
-              obj.fill?.includes(action.data.identifier) ||
-              obj.type === action.data.identifier
-            );
+            const rotateObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objType = obj.type?.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
+              const objText = obj.text?.toLowerCase();
+              
+              // Match by nickname (highest priority for groups)
+              if (objNickname && identifier.includes(objNickname)) return true;
+              
+              // Match by type
+              if (objType && identifier.includes(objType)) return true;
+              
+              // Match by text content
+              if (objText && identifier.includes(objText)) return true;
+              
+              return false;
+            });
+            
             if (rotateObj) {
+              console.log('Rotating object:', rotateObj.nickname || rotateObj.type, 'to', action.data.degrees, 'degrees');
               await updateObject(rotateObj.id, {
                 rotation: action.data.degrees
               });
+              
+              // If it's a group, also rotate all grouped objects
+              if (rotateObj.type === 'group' && rotateObj.groupedObjects) {
+                console.log('Rotating grouped objects:', rotateObj.groupedObjects);
+                for (const groupedId of rotateObj.groupedObjects) {
+                  await updateObject(groupedId, {
+                    rotation: action.data.degrees
+                  });
+                }
+              }
+            } else {
+              console.log('Could not find object to rotate:', action.data.identifier);
             }
             break;
 
           case 'changeLayer':
             // Use fresh objects array to get current state
-            const layerObj = objects.find(obj =>
-              obj.fill?.includes(action.data.identifier) ||
-              obj.type === action.data.identifier ||
-              obj.text?.toLowerCase().includes(action.data.identifier.toLowerCase())
-            );
+            const layerObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objType = obj.type?.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
+              const objText = obj.text?.toLowerCase();
+              
+              // Match by nickname (highest priority)
+              if (objNickname && identifier.includes(objNickname)) return true;
+              
+              // Match by type
+              if (objType && identifier.includes(objType)) return true;
+              
+              // Match by text content
+              if (objText && identifier.includes(objText)) return true;
+              
+              return false;
+            });
             if (layerObj) {
               const currentZIndex = layerObj.zIndex || 0;
               const maxZIndex = Math.max(...objects.map(obj => obj.zIndex || 0));
