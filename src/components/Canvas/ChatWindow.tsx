@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useMessageSync } from '../../hooks/useMessageSync';
 import { processAICommand, processAICommandWithImage, AICommandResult } from '../../services/aiService';
@@ -18,7 +18,9 @@ const ChatWindow: React.FC = () => {
   const [pendingActions, setPendingActions] = useState<AICommandResult | null>(null);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [progress, setProgress] = useState(0);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -37,6 +39,41 @@ const ChatWindow: React.FC = () => {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Detect scroll position to show/hide scroll button
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    }
+  };
+
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Clear chat function
+  const handleClearChat = async () => {
+    if (!window.confirm('Are you sure you want to clear the chat history? This cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const messagesRef = collection(db, 'canvases', CANVAS_ID, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      
+      // Delete all messages
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      console.log('Chat cleared successfully');
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      alert('Failed to clear chat. Please try again.');
+    }
+  };
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -933,35 +970,70 @@ const ChatWindow: React.FC = () => {
             {isAIMode ? 'AI is ready to help' : `${messages.length} messages`}
           </p>
         </div>
-        <button
-          onClick={() => setIsOpen(false)}
-          style={{
-            background: 'rgba(255, 255, 255, 0.2)',
-            border: 'none',
-            color: 'white',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            fontSize: '18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-          }}
-        >
-          ✕
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Clear Chat Button */}
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              title="Clear all messages"
+            >
+              🗑️
+            </button>
+          )}
+          
+          {/* Close Button */}
+          <button
+            onClick={() => setIsOpen(false)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              fontSize: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
       <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -969,7 +1041,8 @@ const ChatWindow: React.FC = () => {
           background: '#f9fafb',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          gap: '12px',
+          position: 'relative'
         }}
       >
         {loading ? (
@@ -1117,6 +1190,43 @@ const ChatWindow: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+        
+        {/* Scroll to Bottom Button */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              right: '16px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+              transition: 'all 0.2s ease',
+              zIndex: 10
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+            }}
+            title="Scroll to bottom"
+          >
+            ↓
+          </button>
         )}
         
         <div ref={messagesEndRef} />
