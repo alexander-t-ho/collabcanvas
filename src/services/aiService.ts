@@ -433,15 +433,19 @@ TEXT MODIFICATION RULES:
 - ONLY use createText for NEW text, use modifyText for EXISTING text
 - When user says "the text" or references recently created text, use modifyText
 
-LAYERING (Z-INDEX) RULES:
-- "in front of" or "on top of" = ALWAYS use changeLayer with action: "front"
-- "behind" or "below" (in layer sense) = ALWAYS use changeLayer with action: "back"
+LAYERING (Z-INDEX) RULES - CRITICAL:
+- "in front of" or "on top of" = ALWAYS use changeLayer with action: "front" (NOT moveShape)
+- "behind" (without "to the" or position words) = ALWAYS use changeLayer with action: "back" (NOT moveShape)
 - "bring forward" = ALWAYS use changeLayer with action: "forward"
 - "send backward" = ALWAYS use changeLayer with action: "backward"
-- DO NOT confuse spatial positioning with layering!
-- CRITICAL: NEVER respond with text like "already in front". ALWAYS execute the changeLayer function.
+- SPATIAL vs LAYERING:
+  * "behind the circle" = changeLayer (layering) ✅
+  * "to the left of the circle" = moveShape (spatial) ✅
+  * "under the circle" (visually overlapped) = changeLayer (layering) ✅
+  * "below the circle" (positioned lower) = moveShape (spatial) ✅
+- CRITICAL: When user says "put X behind Y" or "put X in front of Y", this is ALWAYS about layering, NOT position!
+- NEVER respond with text like "already in front". ALWAYS execute the changeLayer function.
 - Users cannot see z-index values - they see visual stacking. Trust their command.
-- If user says "put X in front of Y", call changeLayer(X, "front") NO MATTER WHAT.
 - Do NOT check z-index or make any assumptions. Just execute the command.
 
 COLOR CODES (use exact hex):
@@ -479,6 +483,11 @@ IMPORTANT RULES:
    - User says "move to 200, -200" (bottom right) → use x: 200, y: 200
    - User says "create at 0, 100" (above center) → use x: 0, y: -100
    - User says "create at 0, -100" (below center) → use x: 0, y: 100
+7b. **LAYERING EXAMPLES**:
+   - "create a square behind the circle" → createShape, then changeLayer(square, "back")
+   - "put the circle in front of the square" → changeLayer(circle, "front")
+   - "move the square behind the circle" → changeLayer(square, "back") NOT moveShape
+   - "put the square on top" → changeLayer(square, "front")
 8. **RELATIVE SIZING**: 
    - "make X bigger by Y" → look at recent objects to find X's current size, add Y
    - "make X smaller by Y" → find at current size, subtract Y
