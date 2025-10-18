@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import { useMessageSync } from '../../hooks/useMessageSync';
 import { processAICommand, processAICommandWithImage, AICommandResult } from '../../services/aiService';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { CanvasObject } from '../../types';
+
+const CANVAS_ID = 'default';
 
 const ChatWindow: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -598,54 +603,68 @@ const ChatWindow: React.FC = () => {
             
             // Auto-group complex UI elements
             if (createdNicknames.length > 0 && action.data.autoGroup !== false) {
-              // Wait for all objects to be created and synced
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Wait for all objects to be created in Firestore
+              await new Promise(resolve => setTimeout(resolve, 1500));
               
               const groupName = complexType === 'login-form' ? 'Login Form'
                 : complexType === 'nav-bar' ? 'Navigation Bar'
                 : complexType === 'card' ? 'Card'
                 : 'Complex UI';
               
-              // Wait a bit more for Firestore sync
-              await new Promise(resolve => setTimeout(resolve, 500));
+              console.log('Auto-grouping complex UI. Looking for nicknames:', createdNicknames);
               
-              // Find objects by nicknames (they should be in objects array by now from Firestore sync)
-              const foundObjects = objects.filter(obj => 
-                createdNicknames.includes(obj.nickname || '')
-              );
-              
-              console.log('Auto-grouping:', createdNicknames, 'Found:', foundObjects.length);
-              
-              if (foundObjects.length >= 2) {
-                const objectIds = foundObjects.map(o => o.id);
-                const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
-                const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
-                const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
-                const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+              // Query Firestore directly for fresh data
+              try {
+                const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
+                const snapshot = await getDocs(objectsRef);
+                const allObjects: CanvasObject[] = [];
                 
-                const padding = 20;
-                const groupWidth = (maxX - minX) + padding * 2;
-                const groupHeight = (maxY - minY) + padding * 2;
-                const groupCenterX = (minX + maxX) / 2;
-                const groupCenterY = (minY + maxY) / 2;
-                
-                await addObject({
-                  type: 'group',
-                  x: groupCenterX,
-                  y: groupCenterY,
-                  width: groupWidth,
-                  height: groupHeight,
-                  fill: 'transparent',
-                  groupedObjects: objectIds,
-                  nickname: groupName,
-                  zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
-                  shadow: false,
-                  createdBy: currentUser.uid
+                snapshot.forEach((doc) => {
+                  const data = doc.data();
+                  allObjects.push({ id: doc.id, ...data } as CanvasObject);
                 });
                 
-                console.log('✅ Created group:', groupName, 'with', foundObjects.length, 'objects');
-              } else {
-                console.log('⚠️ Not enough objects found for grouping. Expected:', createdNicknames.length, 'Found:', foundObjects.length);
+                // Find objects by nicknames
+                const foundObjects = allObjects.filter(obj => 
+                  createdNicknames.includes(obj.nickname || '')
+                );
+                
+                console.log('Found', foundObjects.length, 'objects out of', createdNicknames.length, 'expected');
+                
+                if (foundObjects.length >= 2) {
+                  const objectIds = foundObjects.map(o => o.id);
+                  const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                  const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                  const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                  const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                  
+                  const padding = 20;
+                  const groupWidth = (maxX - minX) + padding * 2;
+                  const groupHeight = (maxY - minY) + padding * 2;
+                  const groupCenterX = (minX + maxX) / 2;
+                  const groupCenterY = (minY + maxY) / 2;
+                  
+                  await addObject({
+                    type: 'group',
+                    x: groupCenterX,
+                    y: groupCenterY,
+                    width: groupWidth,
+                    height: groupHeight,
+                    fill: 'transparent',
+                    groupedObjects: objectIds,
+                    nickname: groupName,
+                    zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                    shadow: false,
+                    createdBy: currentUser.uid
+                  });
+                  
+                  console.log('✅ Created group:', groupName, 'with', foundObjects.length, 'objects');
+                } else {
+                  console.log('⚠️ Not enough objects found for grouping. Expected:', createdNicknames.length, 'Found:', foundObjects.length);
+                  console.log('Available objects:', allObjects.map(o => o.nickname));
+                }
+              } catch (error) {
+                console.error('Error querying Firestore for grouping:', error);
               }
             }
             break;
