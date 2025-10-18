@@ -5,6 +5,7 @@ import { useUserProfile } from '../../contexts/UserProfileContext';
 import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
 import UserInfoDropdown from './UserInfoDropdown';
+import ExportCode from './ExportCode';
 import { PresenceData } from '../../types';
 
 interface ToolbarProps {
@@ -18,6 +19,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
   const { onlineUsers } = usePresence();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showUserInfo, setShowUserInfo] = useState<PresenceData | null>(null);
+  const [showExportCode, setShowExportCode] = useState(false);
   const [, forceUpdate] = useState({});
 
   // Force component to re-render when onlineUsers changes
@@ -346,6 +348,30 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
         </button>
 
         <button
+          onClick={() => setShowExportCode(true)}
+          style={{
+            padding: '8px 16px',
+            background: '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '14px',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#7c3aed';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#8b5cf6';
+          }}
+          title="Export as React or CSS code"
+        >
+          {'</>'} Export Code
+        </button>
+
+        <button
           onClick={() => {
             // console.log('UNDO BUTTON CLICKED! canUndo:', canUndo);
             undo();
@@ -483,6 +509,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
           )}
         </div>
       </div>
+
+      {/* Export Code Modal */}
+      {showExportCode && <ExportCode onClose={() => setShowExportCode(false)} />}
     </div>
   );
 };
