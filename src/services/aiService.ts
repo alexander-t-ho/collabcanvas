@@ -438,6 +438,10 @@ LAYERING (Z-INDEX) RULES - CRITICAL:
 - "behind" (without "to the" or position words) = ALWAYS use changeLayer with action: "back" (NOT moveShape)
 - "bring forward" = ALWAYS use changeLayer with action: "forward"
 - "send backward" = ALWAYS use changeLayer with action: "backward"
+- CREATION + LAYERING:
+  * "make a circle in front of X" = createShape(circle) + changeLayer(circle, "front") - TWO calls!
+  * "create a square behind Y" = createShape(square) + changeLayer(square, "back") - TWO calls!
+  * Don't skip the creation step! User said "make" or "create" = they want a NEW object
 - SPATIAL vs LAYERING:
   * "behind the circle" = changeLayer (layering) ✅
   * "to the left of the circle" = moveShape (spatial) ✅
@@ -484,10 +488,12 @@ IMPORTANT RULES:
    - User says "create at 0, 100" (above center) → use x: 0, y: -100
    - User says "create at 0, -100" (below center) → use x: 0, y: 100
 7b. **LAYERING EXAMPLES**:
-   - "create a square behind the circle" → createShape, then changeLayer(square, "back")
-   - "put the circle in front of the square" → changeLayer(circle, "front")
+   - "create a square behind the circle" → createShape(square), then changeLayer(square, "back")
+   - "make a circle in front of the square" → createShape(circle), then changeLayer(circle, "front")
+   - "put the circle in front of the square" → changeLayer(circle, "front") if circle exists
    - "move the square behind the circle" → changeLayer(square, "back") NOT moveShape
    - "put the square on top" → changeLayer(square, "front")
+   - IMPORTANT: "make X in front/behind Y" = CREATE X, then LAYER it. Use TWO function calls.
 8. **RELATIVE SIZING**: 
    - "make X bigger by Y" → look at recent objects to find X's current size, add Y
    - "make X smaller by Y" → find at current size, subtract Y
