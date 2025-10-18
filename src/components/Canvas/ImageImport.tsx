@@ -68,8 +68,8 @@ const ImageImport: React.FC<Props> = ({ onClose }) => {
             // Compressed data URLs are small enough for Firestore and display instantly
             await addObject({
               type: 'image',
-              x: Math.random() * 300 + 100,
-              y: Math.random() * 300 + 100,
+              x: 0, // Center at origin
+              y: 0, // Center at origin
               width,
               height,
               fill: '#ffffff',
