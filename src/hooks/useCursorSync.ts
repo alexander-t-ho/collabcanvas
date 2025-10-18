@@ -31,18 +31,29 @@ export const useCursorSync = () => {
       const cursors: CursorPosition[] = [];
       const onlineUserIds = onlineUsers.map(u => u.userId);
       
-      snapshot.forEach((doc) => {
-        const cursor = doc.data() as CursorPosition;
+      snapshot.forEach((docSnapshot) => {
+        const cursor = docSnapshot.data() as CursorPosition;
         // Only show cursor if user is online and not self
         if (cursor.userId !== currentUser.uid && onlineUserIds.includes(cursor.userId)) {
           cursors.push(cursor);
-        } else if (!onlineUserIds.includes(cursor.userId)) {
-          // Clean up cursor for offline users
-          deleteDoc(doc.ref).catch(console.error);
+        } else if (!onlineUserIds.includes(cursor.userId) && cursor.userId !== currentUser.uid) {
+          // Clean up stale cursors (but not during the snapshot listener to avoid errors)
+          // Schedule deletion after snapshot processing
+          setTimeout(() => {
+            deleteDoc(docSnapshot.ref).catch((err) => {
+              // Ignore errors for already-deleted cursors
+              if (!err.message?.includes('NOT_FOUND')) {
+                console.error('Error cleaning up cursor:', err);
+              }
+            });
+          }, 100);
         }
       });
 
       setRemoteCursors(cursors);
+    }, (error) => {
+      // Handle snapshot errors gracefully
+      console.error('Cursor sync error:', error);
     });
 
     return () => unsubscribe();
