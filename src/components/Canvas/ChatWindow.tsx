@@ -10,6 +10,7 @@ const ChatWindow: React.FC = () => {
   const [isAIMode, setIsAIMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [pendingActions, setPendingActions] = useState<AICommandResult | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -702,12 +703,18 @@ const ChatWindow: React.FC = () => {
         }
         
         if (aiResponse.success && aiResponse.actions.length > 0) {
-          console.log('Executing', aiResponse.actions.length, 'actions:', aiResponse.actions);
-          // Execute AI actions
-          await executeAIActions(aiResponse);
+          console.log('AI wants to execute', aiResponse.actions.length, 'actions:', aiResponse.actions);
           
-          // Send AI response to chat
-          await sendMessage(`✅ AI: ${aiResponse.message}`, true);
+          // Show preview if creating/modifying multiple objects (3+)
+          if (aiResponse.actions.length >= 3) {
+            setPendingActions(aiResponse);
+            await sendMessage(`🔍 AI: I want to create ${aiResponse.actions.length} objects. Please review and confirm.`, true);
+          } else {
+            // Execute immediately for simple commands (1-2 actions)
+            console.log('Executing', aiResponse.actions.length, 'actions immediately');
+            await executeAIActions(aiResponse);
+            await sendMessage(`✅ AI: ${aiResponse.message}`, true);
+          }
         } else {
           // Send AI response (no actions)
           await sendMessage(`🤖 AI: ${aiResponse.message}`, true);
@@ -970,6 +977,98 @@ const ChatWindow: React.FC = () => {
         
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Preview Panel (shows when pending actions) */}
+      {pendingActions && (
+        <div
+          style={{
+            padding: '16px',
+            borderTop: '1px solid #e5e7eb',
+            background: '#fef3c7',
+            borderLeft: '4px solid #f59e0b'
+          }}
+        >
+          <div style={{ marginBottom: '12px' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
+              🔍 Preview: AI will create {pendingActions.actions.length} objects
+            </h4>
+            <div style={{ 
+              maxHeight: '150px', 
+              overflowY: 'auto',
+              fontSize: '12px',
+              color: '#78350f',
+              background: 'white',
+              padding: '8px',
+              borderRadius: '6px'
+            }}>
+              {pendingActions.actions.map((action, idx) => (
+                <div key={idx} style={{ marginBottom: '4px' }}>
+                  • {action.type === 'createShape' 
+                      ? `${action.data.type} (${action.data.color})`
+                      : action.type === 'createText'
+                      ? `Text: "${action.data.text}"`
+                      : action.type === 'createComplex'
+                      ? `Complex: ${action.data.type}`
+                      : action.type}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await executeAIActions(pendingActions);
+                  await sendMessage(`✅ AI: Created ${pendingActions.actions.length} objects successfully!`, true);
+                  setPendingActions(null);
+                } catch (error) {
+                  console.error('Error executing actions:', error);
+                  await sendMessage('❌ AI: Error creating objects', true);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '10px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                opacity: isLoading ? 0.6 : 1
+              }}
+            >
+              ✓ Confirm & Create
+            </button>
+            <button
+              onClick={() => {
+                setPendingActions(null);
+                sendMessage('🚫 AI: Creation cancelled', true);
+              }}
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '10px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                opacity: isLoading ? 0.6 : 1
+              }}
+            >
+              × Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* AI Mode Toggle */}
       <div

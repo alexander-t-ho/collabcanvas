@@ -394,7 +394,12 @@ IMPORTANT RULES:
    - "group [objects]" or "group the navigation items" → use createGroup
    - Identify objects by their nicknames if they have them (e.g., "Nav Item 1", "Nav Item 2", "Nav Bar")
    - For createComplex nav-bar, objects are named: "Nav Bar" (background), "Nav Item 1", "Nav Item 2", etc.
-   - groupName should be descriptive (e.g., "navigation bar", "login form group")`
+   - groupName should be descriptive (e.g., "navigation bar", "login form group")
+10. **SCALING**:
+   - You can create up to 200 objects at once
+   - For grids, use loops: "create a 10x10 grid of circles" → 100 createShape calls
+   - For patterns, space them appropriately
+   - User will see a preview for operations creating 3+ objects`
     };
 
     // Add to conversation history
@@ -431,7 +436,8 @@ IMPORTANT RULES:
       messages: conversationHistory,
       tools,
       tool_choice: 'auto',
-      temperature: 0.7
+      temperature: 0.7,
+      max_tokens: 4096 // Allow for complex operations with many objects
     });
 
     const result: AICommandResult = {
