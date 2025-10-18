@@ -50,6 +50,47 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'createButton',
+      description: 'Create a button (rectangle background + text label). Use this when user says "add a button".',
+      parameters: {
+        type: 'object',
+        properties: {
+          text: {
+            type: 'string',
+            description: 'Button label text (e.g., "Sign Up", "Submit", "Cancel")'
+          },
+          x: {
+            type: 'number',
+            description: 'X coordinate position (0 is center)'
+          },
+          y: {
+            type: 'number',
+            description: 'Y coordinate position (0 is center)'
+          },
+          width: {
+            type: 'number',
+            description: 'Button width in pixels (default: 200)'
+          },
+          height: {
+            type: 'number',
+            description: 'Button height in pixels (default: 50)'
+          },
+          color: {
+            type: 'string',
+            description: 'Button background color as hex (default: #3b82f6)'
+          },
+          textColor: {
+            type: 'string',
+            description: 'Text color as hex (default: #ffffff)'
+          }
+        },
+        required: ['text', 'x', 'y']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'createText',
       description: 'Create a text element on the canvas',
       parameters: {
@@ -422,8 +463,15 @@ COORDINATE SYSTEM (IMPORTANT):
 
 POSITIONING RULES:
 - When user says "next to" or "beside", add 150-200 to X coordinate
-- When user says "below" or "under", ADD 100-150 to Y coordinate (in canvas coords, which moves it DOWN visually)
-- When user says "above", SUBTRACT 100-150 from Y coordinate (in canvas coords, which moves it UP visually)
+- When user says "below" or "under" (for positioning), ADD 60-80 to Y coordinate (in canvas coords, which moves it DOWN visually)
+- When user says "above", SUBTRACT 60-80 from Y coordinate (in canvas coords, which moves it UP visually)
+- "directly under X" = same X coordinate, Y + 60-80
+- When user says "under the login button", find "Login Button" position and add 70 to Y
+
+BUTTON CREATION:
+- "add a button" or "create a button" → use createButton (NOT createShape + createText separately)
+- "add a sign up button" → createButton with text: "Sign Up"
+- Buttons automatically get shadow, rounded corners, and proper text styling
 
 TEXT MODIFICATION RULES:
 - "change the font size" → use modifyText (NOT createText)

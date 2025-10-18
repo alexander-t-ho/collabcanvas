@@ -134,6 +134,42 @@ const ChatWindow: React.FC = () => {
             });
             break;
 
+          case 'createButton':
+            // Create button background
+            await addObject({
+              type: 'rectangle',
+              x: action.data.x,
+              y: action.data.y,
+              width: action.data.width || 200,
+              height: action.data.height || 50,
+              fill: action.data.color || '#3b82f6',
+              nickname: `${action.data.text} Button`,
+              cornerRadius: 8,
+              zIndex: objects.length,
+              shadow: true,
+              createdBy: currentUser.uid
+            });
+            
+            // Create button text
+            await addObject({
+              type: 'text',
+              x: action.data.x,
+              y: action.data.y,
+              width: (action.data.width || 200) - 20,
+              height: 30,
+              fill: action.data.textColor || '#ffffff',
+              text: action.data.text,
+              fontSize: 16,
+              fontFamily: 'Arial',
+              fontStyle: 'bold',
+              textAlign: 'center',
+              nickname: `${action.data.text} Button Text`,
+              zIndex: objects.length + 1,
+              shadow: false,
+              createdBy: currentUser.uid
+            });
+            break;
+
           case 'createText':
             await addObject({
               type: 'text',
@@ -547,6 +583,25 @@ const ChatWindow: React.FC = () => {
                 createdBy: currentUser.uid
               });
 
+              // Forgot Password link (between password and submit button)
+              await addObject({
+                type: 'text',
+                x: complexX + 70,
+                y: complexY + 35,
+                width: 140,
+                height: 20,
+                fill: '#3b82f6',
+                text: 'Forgot Password?',
+                fontSize: 12,
+                fontFamily: 'Arial',
+                fontStyle: 'normal',
+                textAlign: 'right',
+                nickname: 'Forgot Password',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+
               // Submit button
               await addObject({
                 type: 'rectangle',
@@ -555,7 +610,7 @@ const ChatWindow: React.FC = () => {
                 width: 300,
                 height: 50,
                 fill: '#3b82f6',
-                nickname: 'Submit Button',
+                nickname: 'Login Button',
                 cornerRadius: 8,
                 zIndex: objects.length,
                 shadow: true,
@@ -575,26 +630,7 @@ const ChatWindow: React.FC = () => {
                 fontFamily: 'Arial',
                 fontStyle: 'bold',
                 textAlign: 'center',
-                nickname: 'Submit Text',
-                zIndex: objects.length + 1,
-                shadow: false,
-                createdBy: currentUser.uid
-              });
-
-              // Forgot Password link
-              await addObject({
-                type: 'text',
-                x: complexX,
-                y: complexY + 140,
-                width: 200,
-                height: 30,
-                fill: '#3b82f6',
-                text: 'Forgot Password?',
-                fontSize: 14,
-                fontFamily: 'Arial',
-                fontStyle: 'normal',
-                textAlign: 'center',
-                nickname: 'Forgot Password',
+                nickname: 'Login Button Text',
                 zIndex: objects.length + 1,
                 shadow: false,
                 createdBy: currentUser.uid
@@ -602,8 +638,8 @@ const ChatWindow: React.FC = () => {
               
               // Track nicknames for grouping
               createdNicknames.push('Login Title', 'Username Field', 'Username Label', 
-                                    'Password Field', 'Password Label', 'Submit Button', 'Submit Text', 
-                                    'Forgot Password');
+                                    'Password Field', 'Password Label', 'Forgot Password',
+                                    'Login Button', 'Login Button Text');
             } else if (complexType === 'nav-bar') {
               // Create a navigation bar
               const itemCount = action.data.options?.itemCount || 4;
