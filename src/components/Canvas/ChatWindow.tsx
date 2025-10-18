@@ -394,6 +394,7 @@ const ChatWindow: React.FC = () => {
               const objType = obj.type?.toLowerCase();
               const objNickname = obj.nickname?.toLowerCase();
               const objText = obj.text?.toLowerCase();
+              const objColor = obj.fill?.toLowerCase();
               
               // Match by nickname (highest priority)
               if (objNickname && identifier.includes(objNickname)) return true;
@@ -404,49 +405,64 @@ const ChatWindow: React.FC = () => {
               // Match by text content
               if (objText && identifier.includes(objText)) return true;
               
+              // Match by color
+              const colorMap: { [key: string]: string } = {
+                'red': '#ff0000', 'blue': '#0000ff', 'green': '#00ff00',
+                'yellow': '#ffff00', 'purple': '#800080', 'orange': '#ffa500',
+                'black': '#000000', 'white': '#ffffff', 'gray': '#808080', 
+                'grey': '#808080', 'pink': '#ffc0cb'
+              };
+              for (const [colorName, colorHex] of Object.entries(colorMap)) {
+                if (identifier.includes(colorName) && objColor === colorHex.toLowerCase()) {
+                  if (objType && identifier.includes(objType)) return true;
+                  // Match just by color if specific enough
+                  if (!identifier.includes('circle') && !identifier.includes('rectangle') && !identifier.includes('text')) {
+                    return true;
+                  }
+                }
+              }
+              
               return false;
             });
+            
             if (layerObj) {
               const currentZIndex = layerObj.zIndex || 0;
               const maxZIndex = Math.max(...objects.map(obj => obj.zIndex || 0));
               const minZIndex = Math.min(...objects.map(obj => obj.zIndex || 0));
               let newZIndex = currentZIndex;
-              let shouldUpdate = true;
+
+              console.log(`Layering ${layerObj.type} (${layerObj.fill || layerObj.nickname}) - Current Z: ${currentZIndex}, Max: ${maxZIndex}, Min: ${minZIndex}`);
 
               switch (action.data.action) {
                 case 'front':
-                  // Bring to front - only if not already at front
-                  if (currentZIndex >= maxZIndex && objects.length > 1) {
-                    // Already at front, but still update to ensure it stays on top
-                    newZIndex = maxZIndex + 1;
-                  } else {
-                    newZIndex = maxZIndex + 1;
-                  }
+                  // Bring to front - set to highest z-index + 1
+                  newZIndex = maxZIndex + 1;
+                  console.log(`Bringing to front: ${currentZIndex} → ${newZIndex}`);
                   break;
                 case 'back':
-                  // Send to back - only if not already at back
-                  if (currentZIndex <= minZIndex && objects.length > 1) {
-                    // Already at back, but still update
-                    newZIndex = minZIndex - 1;
-                  } else {
-                    newZIndex = minZIndex - 1;
-                  }
+                  // Send to back - set to lowest z-index - 1
+                  newZIndex = minZIndex - 1;
+                  console.log(`Sending to back: ${currentZIndex} → ${newZIndex}`);
                   break;
                 case 'forward':
                   // Move forward one layer
                   newZIndex = currentZIndex + 1;
+                  console.log(`Moving forward: ${currentZIndex} → ${newZIndex}`);
                   break;
                 case 'backward':
                   // Move backward one layer
                   newZIndex = currentZIndex - 1;
+                  console.log(`Moving backward: ${currentZIndex} → ${newZIndex}`);
                   break;
               }
 
-              if (shouldUpdate) {
-                await updateObject(layerObj.id, {
-                  zIndex: newZIndex
-                });
-              }
+              await updateObject(layerObj.id, {
+                zIndex: newZIndex
+              });
+              console.log(`✅ Layer updated for ${layerObj.type}`);
+            } else {
+              console.log('❌ Could not find object to layer:', action.data.identifier);
+              console.log('Available objects:', objects.map(o => ({ type: o.type, nickname: o.nickname, color: o.fill })));
             }
             break;
 
