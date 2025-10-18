@@ -130,6 +130,35 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'modifyText',
+      description: 'Modify properties of existing text (font size, color, content). Use this instead of creating new text when user says "change the font size", "make it bigger", "change the text", etc.',
+      parameters: {
+        type: 'object',
+        properties: {
+          identifier: {
+            type: 'string',
+            description: 'Description of the text to modify (e.g., "forgot password", "title", "the text")'
+          },
+          fontSize: {
+            type: 'number',
+            description: 'New font size in pixels (optional)'
+          },
+          color: {
+            type: 'string',
+            description: 'New text color as hex code (optional)'
+          },
+          text: {
+            type: 'string',
+            description: 'New text content (optional)'
+          }
+        },
+        required: ['identifier']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'resizeShape',
       description: 'Resize an existing shape to new dimensions. For "make X bigger/smaller by Y", calculate new size: if current size is 120 and user says "bigger by 50", use 170. For circles, width = diameter.',
       parameters: {
@@ -395,6 +424,14 @@ POSITIONING RULES:
 - When user says "next to" or "beside", add 150-200 to X coordinate
 - When user says "below" or "under", ADD 100-150 to Y coordinate (in canvas coords, which moves it DOWN visually)
 - When user says "above", SUBTRACT 100-150 from Y coordinate (in canvas coords, which moves it UP visually)
+
+TEXT MODIFICATION RULES:
+- "change the font size" → use modifyText (NOT createText)
+- "make the text bigger" → use modifyText with fontSize
+- "change it to red" (for text) → use modifyText with color
+- "change the text to X" → use modifyText with text property
+- ONLY use createText for NEW text, use modifyText for EXISTING text
+- When user says "the text" or references recently created text, use modifyText
 
 LAYERING (Z-INDEX) RULES:
 - "in front of" or "on top of" = ALWAYS use changeLayer with action: "front"

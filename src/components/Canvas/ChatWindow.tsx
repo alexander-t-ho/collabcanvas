@@ -201,6 +201,51 @@ const ChatWindow: React.FC = () => {
             }
             break;
 
+          case 'modifyText':
+            const textObj = objects.find(obj => {
+              const identifier = action.data.identifier.toLowerCase();
+              const objNickname = obj.nickname?.toLowerCase();
+              const objText = obj.text?.toLowerCase();
+              
+              // Only match text objects
+              if (obj.type !== 'text') return false;
+              
+              // Match by nickname
+              if (objNickname && identifier.includes(objNickname)) return true;
+              
+              // Match by text content
+              if (objText && identifier.includes(objText)) return true;
+              
+              // Match by "the text" if only one text object was recently created
+              if (identifier.includes('the text') || identifier === 'it') {
+                // Check if this is one of the most recent text objects
+                const recentTexts = objects.filter(o => o.type === 'text').slice(-3);
+                return recentTexts.some(t => t.id === obj.id);
+              }
+              
+              return false;
+            });
+            
+            if (textObj) {
+              const updates: any = {};
+              
+              if (action.data.fontSize !== undefined) {
+                updates.fontSize = action.data.fontSize;
+              }
+              if (action.data.color !== undefined) {
+                updates.fill = action.data.color;
+              }
+              if (action.data.text !== undefined) {
+                updates.text = action.data.text;
+              }
+              
+              console.log('Modifying text:', textObj.nickname || textObj.text, 'with', updates);
+              await updateObject(textObj.id, updates);
+            } else {
+              console.log('Could not find text to modify:', action.data.identifier);
+            }
+            break;
+
           case 'resizeShape':
             const resizeObj = objects.find(obj => {
               const identifier = action.data.identifier.toLowerCase();
@@ -414,7 +459,7 @@ const ChatWindow: React.FC = () => {
             const createdNicknames: string[] = []; // Track nicknames for grouping
 
             if (complexType === 'login-form') {
-              // Create a login form with username, password, and submit button
+              // Create a login form with username, password, submit button, and forgot password
               // Title
               await addObject({
                 type: 'text',
@@ -535,10 +580,30 @@ const ChatWindow: React.FC = () => {
                 shadow: false,
                 createdBy: currentUser.uid
               });
+
+              // Forgot Password link
+              await addObject({
+                type: 'text',
+                x: complexX,
+                y: complexY + 140,
+                width: 200,
+                height: 30,
+                fill: '#3b82f6',
+                text: 'Forgot Password?',
+                fontSize: 14,
+                fontFamily: 'Arial',
+                fontStyle: 'normal',
+                textAlign: 'center',
+                nickname: 'Forgot Password',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
               
               // Track nicknames for grouping
               createdNicknames.push('Login Title', 'Username Field', 'Username Label', 
-                                    'Password Field', 'Password Label', 'Submit Button', 'Submit Text');
+                                    'Password Field', 'Password Label', 'Submit Button', 'Submit Text', 
+                                    'Forgot Password');
             } else if (complexType === 'nav-bar') {
               // Create a navigation bar
               const itemCount = action.data.options?.itemCount || 4;
