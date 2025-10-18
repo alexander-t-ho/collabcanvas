@@ -1,30 +1,31 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
     "presence": {
-      ".read": "auth != null",
-      ".write": "auth != null",
       "$canvasId": {
         ".read": "auth != null",
-        ".write": "auth != null",
         "$userId": {
           ".read": "auth != null",
-          ".write": "auth == $userId || auth != null"
+          ".write": "auth != null && auth.uid == $userId"
         }
       }
     },
     "users": {
-      ".read": "auth != null",
-      ".write": "auth != null",
       "$userId": {
         ".read": "auth != null",
-        ".write": "auth == $userId"
+        ".write": "auth != null && auth.uid == $userId"
       }
     },
     "canvases": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$canvasId": {
+        "history": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "historyIndex": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
     }
   }
 }
