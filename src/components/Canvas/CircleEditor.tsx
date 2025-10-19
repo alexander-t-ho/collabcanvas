@@ -30,6 +30,17 @@ const CircleEditor: React.FC<Props> = ({ object }) => {
     updateObject(object.id, { zIndex: minZ - 1 });
   };
 
+  const handleConvertToEllipse = () => {
+    const radius = object.width / 2;
+    updateObject(object.id, {
+      type: 'ellipse',
+      radiusX: radius,
+      radiusY: radius,
+      focus1: { x: -radius * 0.5, y: 0 },
+      focus2: { x: radius * 0.5, y: 0 }
+    });
+  };
+
   return (
     <BaseEditor 
       object={object} 
@@ -72,6 +83,35 @@ const CircleEditor: React.FC<Props> = ({ object }) => {
           <span style={{ color: '#9ca3af', fontSize: '10px' }}>px</span>
         </div>
       </div>
+
+      {/* Convert to Ellipse */}
+      <button
+        onClick={handleConvertToEllipse}
+        style={{
+          width: '100%',
+          padding: '10px',
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          marginBottom: '12px',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          boxShadow: '0 2px 4px rgba(139, 92, 246, 0.3)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 4px 8px rgba(139, 92, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.3)';
+        }}
+      >
+        ⭕ → ⬭ Convert to Ellipse
+      </button>
     </BaseEditor>
   );
 };
