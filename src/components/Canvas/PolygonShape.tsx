@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Line, Circle, Group } from 'react-konva';
+import React, { useRef, useEffect } from 'react';
+import { Line, Circle, Group, Transformer } from 'react-konva';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { CanvasObject } from '../../types';
 
@@ -11,6 +11,16 @@ interface PolygonShapeProps {
 const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   const { updateObject, saveHistoryNow, selectObject } = useCanvas();
   const groupRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const [isDraggingVertex, setIsDraggingVertex] = React.useState(false);
+
+  // Attach transformer when selected
+  useEffect(() => {
+    if (isSelected && transformerRef.current && groupRef.current && !isDraggingVertex) {
+      transformerRef.current.nodes([groupRef.current]);
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected, isDraggingVertex]);
 
   const sides = object.sides || 3;
   const baseSideLength = object.sideLength || 100;
@@ -85,14 +95,26 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
 
   const handleVertexDragStart = (e: any) => {
     e.cancelBubble = true;
+    setIsDraggingVertex(true);
+    
     // Disable polygon dragging when dragging a vertex
     if (groupRef.current) {
       groupRef.current.draggable(false);
+    }
+    
+    // Detach transformer during vertex drag
+    if (transformerRef.current) {
+      transformerRef.current.nodes([]);
     }
   };
 
   const handleVertexDrag = (index: number, e: any) => {
     e.cancelBubble = true;
+    
+    // Stop all event propagation to prevent group movement
+    e.evt?.stopPropagation();
+    e.evt?.preventDefault();
+    
     const newX = e.target.x();
     const newY = e.target.y();
     
@@ -110,11 +132,17 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
     });
   };
 
-  const handleVertexDragEnd = () => {
+  const handleVertexDragEnd = (e: any) => {
+    e.cancelBubble = true;
+    e.evt?.stopPropagation();
+    
+    setIsDraggingVertex(false);
+    
     // Re-enable polygon dragging
     if (groupRef.current) {
       groupRef.current.draggable(true);
     }
+    
     saveHistoryNow();
   };
 
@@ -135,22 +163,57 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
     selectObject(object.id);
   };
 
+  const handleTransform = (e: any) => {
+    const node = groupRef.current;
+    if (!node) return;
+
+    // Get rotation
+    const rotation = node.rotation();
+    
+    // Snap to 45° if shift is pressed
+    if (e.evt?.shiftKey) {
+      const snappedRotation = Math.round(rotation / 45) * 45;
+      node.rotation(snappedRotation);
+    }
+  };
+
+  const handleTransformEnd = (e: any) => {
+    const node = groupRef.current;
+    if (!node) return;
+
+    let rotation = node.rotation();
+
+    // Apply shift-snap for final rotation
+    if (e.evt?.shiftKey) {
+      rotation = Math.round(rotation / 45) * 45;
+    }
+
+    updateObject(object.id, {
+      rotation: Math.round(rotation)
+    });
+
+    setTimeout(() => saveHistoryNow(), 300);
+  };
+
   return (
-    <Group
-      ref={groupRef}
-      x={object.x}
-      y={object.y}
-      rotation={object.rotation || 0}
-      draggable
-      onClick={handleClick}
-      onDragEnd={(e) => {
-        updateObject(object.id, {
-          x: Math.round(e.target.x()),
-          y: Math.round(e.target.y())
-        });
-        setTimeout(() => saveHistoryNow(), 300);
-      }}
-    >
+    <>
+      <Group
+        ref={groupRef}
+        x={object.x}
+        y={object.y}
+        rotation={object.rotation || 0}
+        draggable
+        onClick={handleClick}
+        onDragEnd={(e) => {
+          updateObject(object.id, {
+            x: Math.round(e.target.x()),
+            y: Math.round(e.target.y())
+          });
+          setTimeout(() => saveHistoryNow(), 300);
+        }}
+        onTransform={handleTransform}
+        onTransformEnd={handleTransformEnd}
+      >
       {/* Polygon shape */}
       <Line
         points={points}
@@ -205,7 +268,20 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
           />
         </React.Fragment>
       ))}
-    </Group>
+      </Group>
+      
+      {/* Transformer for rotation handles */}
+      {isSelected && !isDraggingVertex && (
+        <Transformer
+          ref={transformerRef}
+          rotateEnabled={true}
+          resizeEnabled={false}
+          borderEnabled={false}
+          anchorSize={8}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        />
+      )}
+    </>
   );
 };
 
