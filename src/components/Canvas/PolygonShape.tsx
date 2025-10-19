@@ -9,7 +9,7 @@ interface PolygonShapeProps {
 }
 
 const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
-  const { updateObject, saveHistoryNow } = useCanvas();
+  const { updateObject, saveHistoryNow, selectObject } = useCanvas();
   const groupRef = useRef<any>(null);
 
   const sides = object.sides || 3;
@@ -94,6 +94,11 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
     });
   };
 
+  const handleClick = (e: any) => {
+    e.cancelBubble = true;
+    selectObject(object.id);
+  };
+
   return (
     <Group
       ref={groupRef}
@@ -101,9 +106,7 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
       y={object.y}
       rotation={object.rotation || 0}
       draggable
-      onClick={(e) => {
-        e.cancelBubble = true;
-      }}
+      onClick={handleClick}
       onDragEnd={(e) => {
         updateObject(object.id, {
           x: Math.round(e.target.x()),
