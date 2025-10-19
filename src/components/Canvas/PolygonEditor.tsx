@@ -282,13 +282,33 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
           </button>
         )}
 
+        {object.customVertices && object.customVertices.length > 0 && (
+          <button
+            onClick={() => updateObject(object.id, { customVertices: [] })}
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              marginTop: '8px'
+            }}
+          >
+            Reset to Regular Polygon
+          </button>
+        )}
+
         <p style={{ 
           margin: '12px 0 0 0', 
           fontSize: '10px', 
           color: '#9ca3af',
           fontStyle: 'italic'
         }}>
-          💡 Tip: Click vertices on the canvas to select sides for editing
+          💡 Tip: Drag vertices on the canvas to create custom shapes
         </p>
       </div>
     </BaseEditor>

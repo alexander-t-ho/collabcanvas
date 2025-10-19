@@ -49,6 +49,7 @@ export interface CanvasObject {
   sideLength?: number; // Base side length (default for all sides)
   customSideLengths?: number[]; // Custom length for each side (overrides sideLength)
   selectedSide?: number; // Index of currently selected side for editing (0-based)
+  customVertices?: Array<{ x: number; y: number }>; // Custom vertex positions for free-form shapes
 }
 
 export interface CursorPosition {

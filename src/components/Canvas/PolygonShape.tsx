@@ -15,14 +15,24 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   const sides = object.sides || 3;
   const baseSideLength = object.sideLength || 100;
   const customLengths = object.customSideLengths || [];
+  const customVertices = object.customVertices || [];
   const selectedSide = object.selectedSide;
 
   // Calculate polygon points
   const calculatePolygonPoints = (): number[] => {
     const points: number[] = [];
-    const angleStep = (2 * Math.PI) / sides;
     
-    // For regular polygon, calculate radius from side length
+    // If custom vertices exist, use them
+    if (customVertices.length === sides) {
+      for (let i = 0; i <= sides; i++) {
+        const vertex = customVertices[i % sides];
+        points.push(vertex.x, vertex.y);
+      }
+      return points;
+    }
+    
+    // Otherwise use regular polygon calculation
+    const angleStep = (2 * Math.PI) / sides;
     const radius = baseSideLength / (2 * Math.sin(Math.PI / sides));
     
     for (let i = 0; i <= sides; i++) {
@@ -44,6 +54,12 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
 
   // Calculate vertex positions for control points
   const calculateVertices = (): Array<{ x: number; y: number; index: number }> => {
+    // If custom vertices exist, use them
+    if (customVertices.length === sides) {
+      return customVertices.map((v, i) => ({ ...v, index: i }));
+    }
+    
+    // Otherwise use regular polygon calculation
     const vertices: Array<{ x: number; y: number; index: number }> = [];
     const angleStep = (2 * Math.PI) / sides;
     const radius = baseSideLength / (2 * Math.sin(Math.PI / sides));
@@ -66,6 +82,41 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
 
   const points = calculatePolygonPoints();
   const vertices = calculateVertices();
+
+  const handleVertexDragStart = (e: any) => {
+    e.cancelBubble = true;
+    // Disable polygon dragging when dragging a vertex
+    if (groupRef.current) {
+      groupRef.current.draggable(false);
+    }
+  };
+
+  const handleVertexDrag = (index: number, e: any) => {
+    e.cancelBubble = true;
+    const newX = e.target.x();
+    const newY = e.target.y();
+    
+    // Initialize custom vertices if not already set
+    const currentVertices = customVertices.length === sides 
+      ? [...customVertices]
+      : vertices.map(v => ({ x: v.x, y: v.y }));
+    
+    // Update the dragged vertex position
+    currentVertices[index] = { x: newX, y: newY };
+    
+    updateObject(object.id, {
+      customVertices: currentVertices,
+      selectedSide: index // Also select this side
+    });
+  };
+
+  const handleVertexDragEnd = () => {
+    // Re-enable polygon dragging
+    if (groupRef.current) {
+      groupRef.current.draggable(true);
+    }
+    saveHistoryNow();
+  };
 
   const handleVertexClick = (index: number, e: any) => {
     e.cancelBubble = true;
@@ -138,6 +189,10 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
             fill={selectedSide === idx ? '#f59e0b' : '#3b82f6'}
             stroke="#ffffff"
             strokeWidth={2}
+            draggable
+            onDragStart={handleVertexDragStart}
+            onDragMove={(e) => handleVertexDrag(idx, e)}
+            onDragEnd={handleVertexDragEnd}
             onClick={(e) => handleVertexClick(idx, e)}
             onMouseEnter={(e) => {
               e.target.setAttr('radius', 10);
