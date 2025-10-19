@@ -524,12 +524,17 @@ CURRENT CANVAS STATE (REAL-TIME):
 - DO NOT analyze or check layer order - just execute layer commands when requested
 
 IMPORTANT RULES:
-1. For basic commands like "make a red circle", create it at origin (0, 0) with default size (120x120)
+1. For basic commands like "make a red circle" or "draw a circle", create it at origin (0, 0) with default size (120x120)
 2. For relative positioning ("next to it", "beside the last one"), use the LAST object's position and add appropriate offset
 3. Always use proper hex color codes
 4. Circles use width as diameter (height is ignored)
 5. When creating multiple objects in one command, space them 150-200 pixels apart
 6. For "login form", "nav bar", etc., use the createComplex function
+6b. **MULTIPLE OBJECTS WITH SPACING**:
+   - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
+   - "create X objects" where X > 1 → create multiple createShape calls, then use arrangeShapes
+   - "approximately equal distances apart" → use arrangeShapes with spacing: 200
+   - ALWAYS call arrangeShapes after creating multiple objects to space them
 7. **Y-AXIS EXAMPLES**: 
    - User says "move to 200, 200" (top right) → use x: 200, y: -200
    - User says "move to 200, -200" (bottom right) → use x: 200, y: 200

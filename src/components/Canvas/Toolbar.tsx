@@ -6,6 +6,7 @@ import { usePresence } from '../../hooks/usePresence';
 import UserProfileDropdown from './UserProfileDropdown';
 import UserInfoDropdown from './UserInfoDropdown';
 import ExportCode from './ExportCode';
+import PolygonDialog from './PolygonDialog';
 import { PresenceData } from '../../types';
 
 interface ToolbarProps {
@@ -20,6 +21,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showUserInfo, setShowUserInfo] = useState<PresenceData | null>(null);
   const [showExportCode, setShowExportCode] = useState(false);
+  const [showPolygonDialog, setShowPolygonDialog] = useState(false);
   const [, forceUpdate] = useState({});
 
   // Force component to re-render when onlineUsers changes
@@ -103,22 +105,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
   };
 
   const handleCreatePolygon = () => {
-    if (!currentUser) return;
-    
-    addObject({
-      type: 'polygon',
-      x: 0,
-      y: 0,
-      width: 100, // Used for bounding box
-      height: 100,
-      fill: '#' + Math.floor(Math.random()*16777215).toString(16),
-      sides: 6, // Default to hexagon
-      sideLength: 80,
-      nickname: '',
-      zIndex: 0,
-      shadow: false,
-      createdBy: currentUser.uid,
-    });
+    setShowPolygonDialog(true);
   };
 
   const handleImport = () => {
@@ -557,6 +544,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
 
       {/* Export Code Modal */}
       {showExportCode && <ExportCode onClose={() => setShowExportCode(false)} />}
+      
+      {/* Polygon Dialog */}
+      {showPolygonDialog && <PolygonDialog onClose={() => setShowPolygonDialog(false)} />}
     </div>
   );
 };
