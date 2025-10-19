@@ -276,15 +276,48 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'createCustomShape',
+      description: 'Create custom complex shapes like clouds, stars, hearts, trees, houses, etc. using multiple circles and rectangles. Use this for non-UI shapes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          shapeName: {
+            type: 'string',
+            description: 'Name of the shape to create (e.g., "cloud", "star", "heart", "tree", "house", "sun", "flower")'
+          },
+          x: {
+            type: 'number',
+            description: 'Center X coordinate (default: 0)'
+          },
+          y: {
+            type: 'number',
+            description: 'Center Y coordinate (default: 0)'
+          },
+          scale: {
+            type: 'number',
+            description: 'Size scale factor (default: 1.0, larger = bigger shape)'
+          },
+          color: {
+            type: 'string',
+            description: 'Primary color for the shape (hex code)'
+          }
+        },
+        required: ['shapeName']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'createComplex',
-      description: 'Create complex UI elements like forms, navigation bars, or card layouts. NOTE: Objects are automatically grouped after creation.',
+      description: 'Create complex UI elements like forms, navigation bars, or card layouts. NOTE: Objects are automatically grouped after creation. Use createCustomShape for non-UI shapes.',
       parameters: {
         type: 'object',
         properties: {
           type: {
             type: 'string',
             enum: ['login-form', 'nav-bar', 'card', 'button-group'],
-            description: 'Type of complex element to create'
+            description: 'Type of UI element to create'
           },
           x: {
             type: 'number',
@@ -529,7 +562,13 @@ IMPORTANT RULES:
 3. Always use proper hex color codes
 4. Circles use width as diameter (height is ignored)
 5. When creating multiple objects in one command, space them 150-200 pixels apart
-6. For "login form", "nav bar", etc., use the createComplex function
+6. For UI elements (login forms, nav bars, cards), use createComplex
+6c. **CUSTOM SHAPES**:
+   - For non-UI shapes (clouds, stars, hearts, trees, houses, suns, flowers), use createCustomShape
+   - "make a cloud" → createCustomShape with shapeName: "cloud"
+   - "draw a sun" → createCustomShape with shapeName: "sun"
+   - "create a tree" → createCustomShape with shapeName: "tree"
+   - DO NOT use createComplex for natural/decorative shapes
 6b. **MULTIPLE OBJECTS WITH SPACING**:
    - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
    - "create X objects" where X > 1 → create multiple createShape calls, then use arrangeShapes

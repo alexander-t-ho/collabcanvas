@@ -503,6 +503,163 @@ const ChatWindow: React.FC = () => {
             }
             break;
 
+          case 'createCustomShape':
+            // Create custom complex shapes
+            const shapeName = action.data.shapeName.toLowerCase();
+            const shapeX = action.data.x || 0;
+            const shapeY = action.data.y || 0;
+            const shapeScale = action.data.scale || 1;
+            const shapeColor = action.data.color || '#3b82f6';
+            
+            console.log('Creating custom shape:', shapeName, 'at', shapeX, shapeY);
+            
+            if (shapeName.includes('cloud')) {
+              // Create a cloud using multiple circles
+              const cloudNicknames: string[] = [];
+              const baseSize = 60 * shapeScale;
+              
+              // Main body circles
+              await addObject({
+                type: 'circle',
+                x: shapeX - baseSize * 0.8,
+                y: shapeY,
+                width: baseSize * 1.2,
+                height: baseSize * 1.2,
+                fill: shapeColor,
+                nickname: 'Cloud Left',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              cloudNicknames.push('Cloud Left');
+              
+              await addObject({
+                type: 'circle',
+                x: shapeX,
+                y: shapeY - baseSize * 0.3,
+                width: baseSize * 1.5,
+                height: baseSize * 1.5,
+                fill: shapeColor,
+                nickname: 'Cloud Center',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              cloudNicknames.push('Cloud Center');
+              
+              await addObject({
+                type: 'circle',
+                x: shapeX + baseSize * 0.8,
+                y: shapeY,
+                width: baseSize * 1.2,
+                height: baseSize * 1.2,
+                fill: shapeColor,
+                nickname: 'Cloud Right',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              cloudNicknames.push('Cloud Right');
+              
+              // Auto-group the cloud
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              try {
+                const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
+                const snapshot = await getDocs(objectsRef);
+                const allObjects: CanvasObject[] = [];
+                
+                snapshot.forEach((doc) => {
+                  const data = doc.data();
+                  allObjects.push({ id: doc.id, ...data } as CanvasObject);
+                });
+                
+                const foundObjects = allObjects.filter(obj => cloudNicknames.includes(obj.nickname || ''));
+                
+                if (foundObjects.length >= 2) {
+                  const objectIds = foundObjects.map(o => o.id);
+                  const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                  const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                  const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                  const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                  
+                  const padding = 10;
+                  const groupWidth = (maxX - minX) + padding * 2;
+                  const groupHeight = (maxY - minY) + padding * 2;
+                  const groupCenterX = (minX + maxX) / 2;
+                  const groupCenterY = (minY + maxY) / 2;
+                  
+                  await addObject({
+                    type: 'group',
+                    x: groupCenterX,
+                    y: groupCenterY,
+                    width: groupWidth,
+                    height: groupHeight,
+                    fill: 'transparent',
+                    groupedObjects: objectIds,
+                    nickname: 'Cloud',
+                    zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                    shadow: false,
+                    createdBy: currentUser.uid
+                  });
+                }
+              } catch (error) {
+                console.error('Error grouping cloud:', error);
+              }
+            } else if (shapeName.includes('sun')) {
+              // Create a sun using a circle and small rectangles for rays
+              await addObject({
+                type: 'circle',
+                x: shapeX,
+                y: shapeY,
+                width: 80 * shapeScale,
+                height: 80 * shapeScale,
+                fill: action.data.color || '#FFD700',
+                nickname: 'Sun Center',
+                zIndex: objects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+              
+              // Add 8 rays around the sun
+              const rayCount = 8;
+              const rayDistance = 60 * shapeScale;
+              for (let i = 0; i < rayCount; i++) {
+                const angle = (i * 2 * Math.PI) / rayCount;
+                const rayX = shapeX + Math.cos(angle) * rayDistance;
+                const rayY = shapeY + Math.sin(angle) * rayDistance;
+                
+                await addObject({
+                  type: 'rectangle',
+                  x: rayX,
+                  y: rayY,
+                  width: 30 * shapeScale,
+                  height: 10 * shapeScale,
+                  fill: action.data.color || '#FFD700',
+                  rotation: (angle * 180 / Math.PI),
+                  nickname: `Sun Ray ${i + 1}`,
+                  zIndex: objects.length,
+                  shadow: false,
+                  createdBy: currentUser.uid
+                });
+              }
+            } else {
+              // Default: create a simple representation
+              await addObject({
+                type: 'circle',
+                x: shapeX,
+                y: shapeY,
+                width: 100 * shapeScale,
+                height: 100 * shapeScale,
+                fill: shapeColor,
+                nickname: shapeName,
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+            }
+            break;
+
           case 'createComplex':
             // Create complex UI elements and auto-group them
             const complexType = action.data.type;
