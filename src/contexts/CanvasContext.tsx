@@ -90,10 +90,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Save state to history in Firebase - debounced for performance
   const saveToHistory = useCallback((newObjects: CanvasObject[], immediate = false) => {
-    if (isUndoRedo) return;
+    if (isUndoRedo) {
+      console.log('⏸️ SAVE_HISTORY: Skipped (undo/redo in progress)');
+      return;
+    }
     
     const doSave = async () => {
-    const currentIndex = historyIndexRef.current;
+      const currentIndex = historyIndexRef.current;
+      
+      console.log('💾 SAVE_HISTORY: Saving', newObjects.length, 'objects at index', currentIndex);
     
       try {
         // Get current history from Firebase
@@ -101,10 +106,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const snapshot = await get(fbHistoryRef);
         const currentHistory = snapshot.val() || [];
         
+        console.log('📚 SAVE_HISTORY: Current history length:', currentHistory.length);
+        
         // Don't save if it's the same as current state
         if (currentIndex >= 0 && currentIndex < currentHistory.length) {
           const currentState = currentHistory[currentIndex];
           if (JSON.stringify(currentState) === JSON.stringify(newObjects)) {
+            console.log('⏭️ SAVE_HISTORY: Skipped (no changes)');
             return;
           }
         }
@@ -112,9 +120,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Remove any history after current index (for redo)
         const newHistory = currentHistory.slice(0, currentIndex + 1);
         // Add new state
-      newHistory.push(JSON.parse(JSON.stringify(newObjects)));
+        newHistory.push(JSON.parse(JSON.stringify(newObjects)));
         // Keep only last 50 states
-      const trimmedHistory = newHistory.slice(-50);
+        const trimmedHistory = newHistory.slice(-50);
+        
+        console.log('📝 SAVE_HISTORY: New history length:', trimmedHistory.length);
         
         // Save to Firebase
         await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/history`), trimmedHistory);
@@ -123,10 +133,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const newIndex = trimmedHistory.length - 1;
         await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
         
+        console.log('✅ SAVE_HISTORY: Saved successfully. New index:', newIndex);
+        
         historyIndexRef.current = newIndex;
         setHistoryIndex(newIndex);
       } catch (error) {
-        console.error('Error saving history:', error);
+        console.error('❌ SAVE_HISTORY Error:', error);
       }
     };
     
@@ -352,14 +364,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Undo function - collaborative version
   const undo = useCallback(async () => {
-    // console.log('UNDO CALLED');
+    console.log('🔄 UNDO CALLED');
     
     const currentIndex = historyIndexRef.current;
     
-    // console.log('UNDO: Current Index:', currentIndex);
+    console.log('📊 UNDO: Current Index:', currentIndex);
     
     if (currentIndex <= 0) {
-      // console.log('UNDO: No history available');
+      console.log('⚠️ UNDO: No history available (at index 0)');
       return;
     }
     
@@ -369,24 +381,28 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const snapshot = await get(fbHistoryRef);
       const historyData = snapshot.val() || [];
       
+      console.log('📚 UNDO: History length:', historyData.length, 'Current index:', currentIndex);
+      
       if (!historyData || historyData.length === 0 || currentIndex >= historyData.length) {
-        // console.log('UNDO: Invalid history');
+        console.log('❌ UNDO: Invalid history data');
         return;
       }
       
       const previousState = historyData[currentIndex - 1];
-    if (!previousState) {
-        // console.error('UNDO: Previous state is undefined');
-      return;
-    }
+      if (!previousState) {
+        console.error('❌ UNDO: Previous state is undefined at index', currentIndex - 1);
+        return;
+      }
     
-      // console.log('UNDO: Restoring', previousState.length, 'objects');
+      console.log('✅ UNDO: Found previous state with', previousState.length, 'objects');
+      console.log('📦 UNDO: Previous state:', previousState);
     
       // Set flag to prevent history saves during undo
-    setIsUndoRedo(true);
+      setIsUndoRedo(true);
     
       // Update index in Firebase
       const newIndex = currentIndex - 1;
+      console.log('📝 UNDO: Updating index:', currentIndex, '→', newIndex);
       await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
       historyIndexRef.current = newIndex;
       setHistoryIndex(newIndex);
@@ -607,10 +623,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const snapshot = await get(fbHistoryRef);
         const historyData = snapshot.val() || [];
         
-        setCanUndo(historyIndex > 0);
-        setCanRedo(historyIndex < historyData.length - 1);
+        const undoAvailable = historyIndex > 0;
+        const redoAvailable = historyIndex < historyData.length - 1;
+        
+        console.log('🔍 CHECK_HISTORY: Index:', historyIndex, 'History length:', historyData.length);
+        console.log('🔍 CHECK_HISTORY: canUndo:', undoAvailable, 'canRedo:', redoAvailable);
+        
+        setCanUndo(undoAvailable);
+        setCanRedo(redoAvailable);
       } catch (error) {
-        console.error('Error checking history:', error);
+        console.error('❌ CHECK_HISTORY Error:', error);
       }
     };
     
