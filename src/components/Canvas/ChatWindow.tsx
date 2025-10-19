@@ -640,6 +640,160 @@ const ChatWindow: React.FC = () => {
               } catch (error) {
                 console.error('Error grouping cloud:', error);
               }
+            } else if (shapeName.includes('castle')) {
+              // Create a castle using rectangles
+              const castleColor = shapeColor || '#A0826D';
+              const castleNicknames: string[] = [];
+              
+              // Main castle body (wide rectangle)
+              await addObject({
+                type: 'rectangle',
+                x: shapeX,
+                y: shapeY,
+                width: 200 * shapeScale,
+                height: 150 * shapeScale,
+                fill: castleColor,
+                cornerRadius: 0,
+                nickname: 'Castle Main Body',
+                zIndex: objects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+              castleNicknames.push('Castle Main Body');
+              
+              // Left tower
+              await addObject({
+                type: 'rectangle',
+                x: shapeX - 110 * shapeScale,
+                y: shapeY - 30 * shapeScale,
+                width: 60 * shapeScale,
+                height: 180 * shapeScale,
+                fill: castleColor,
+                cornerRadius: 0,
+                nickname: 'Castle Left Tower',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              castleNicknames.push('Castle Left Tower');
+              
+              // Right tower
+              await addObject({
+                type: 'rectangle',
+                x: shapeX + 110 * shapeScale,
+                y: shapeY - 30 * shapeScale,
+                width: 60 * shapeScale,
+                height: 180 * shapeScale,
+                fill: castleColor,
+                cornerRadius: 0,
+                nickname: 'Castle Right Tower',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              castleNicknames.push('Castle Right Tower');
+              
+              // Center tower (tallest)
+              await addObject({
+                type: 'rectangle',
+                x: shapeX,
+                y: shapeY - 70 * shapeScale,
+                width: 70 * shapeScale,
+                height: 220 * shapeScale,
+                fill: castleColor,
+                cornerRadius: 0,
+                nickname: 'Castle Center Tower',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              castleNicknames.push('Castle Center Tower');
+              
+              // Door
+              await addObject({
+                type: 'rectangle',
+                x: shapeX,
+                y: shapeY + 50 * shapeScale,
+                width: 40 * shapeScale,
+                height: 60 * shapeScale,
+                fill: '#4A3728',
+                cornerRadius: 5,
+                nickname: 'Castle Door',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              castleNicknames.push('Castle Door');
+              
+              // Windows on towers
+              const windowPositions = [
+                { x: shapeX - 110 * shapeScale, y: shapeY - 50 * shapeScale, name: 'Left Tower Window' },
+                { x: shapeX + 110 * shapeScale, y: shapeY - 50 * shapeScale, name: 'Right Tower Window' },
+                { x: shapeX, y: shapeY - 100 * shapeScale, name: 'Center Tower Window' }
+              ];
+              
+              for (const win of windowPositions) {
+                await addObject({
+                  type: 'rectangle',
+                  x: win.x,
+                  y: win.y,
+                  width: 20 * shapeScale,
+                  height: 25 * shapeScale,
+                  fill: '#87CEEB',
+                  cornerRadius: 3,
+                  nickname: win.name,
+                  zIndex: objects.length + 1,
+                  shadow: false,
+                  createdBy: currentUser.uid
+                });
+                castleNicknames.push(win.name);
+              }
+              
+              // Auto-group the castle
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              try {
+                const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
+                const snapshot = await getDocs(objectsRef);
+                const allObjects: CanvasObject[] = [];
+                
+                snapshot.forEach((doc) => {
+                  const data = doc.data();
+                  allObjects.push({ id: doc.id, ...data } as CanvasObject);
+                });
+                
+                const foundObjects = allObjects.filter(obj => castleNicknames.includes(obj.nickname || ''));
+                
+                if (foundObjects.length >= 2) {
+                  const objectIds = foundObjects.map(o => o.id);
+                  const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                  const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                  const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                  const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                  
+                  const padding = 10;
+                  const groupWidth = (maxX - minX) + padding * 2;
+                  const groupHeight = (maxY - minY) + padding * 2;
+                  const groupCenterX = (minX + maxX) / 2;
+                  const groupCenterY = (minY + maxY) / 2;
+                  
+                  await addObject({
+                    type: 'group',
+                    x: groupCenterX,
+                    y: groupCenterY,
+                    width: groupWidth,
+                    height: groupHeight,
+                    fill: 'transparent',
+                    groupedObjects: objectIds,
+                    nickname: 'Castle',
+                    zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                    shadow: false,
+                    createdBy: currentUser.uid
+                  });
+                }
+              } catch (error) {
+                console.error('Error grouping castle:', error);
+              }
             } else if (shapeName.includes('sun')) {
               // Create a sun using a circle and small rectangles for rays
               await addObject({

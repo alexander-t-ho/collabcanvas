@@ -568,13 +568,16 @@ IMPORTANT RULES:
 5. When creating multiple objects in one command, space them 150-200 pixels apart
 6. For UI elements (login forms, nav bars, cards), use createComplex
 6c. **CUSTOM SHAPES**:
-   - For non-UI shapes (clouds, stars, hearts, trees, houses, suns, flowers), use createCustomShape
+   - For non-UI shapes (clouds, stars, hearts, trees, houses, castles, suns, flowers), use createCustomShape
    - "make a cloud" → createCustomShape with shapeName: "cloud"
    - "draw a sun" → createCustomShape with shapeName: "sun"
    - "create a star" → createCustomShape with shapeName: "star" (default: 5 points)
    - "make a 6-point star" → createCustomShape with shapeName: "star", points: 6
    - "draw an 8-pointed star" → createCustomShape with shapeName: "star", points: 8
+   - "build a castle" → createCustomShape with shapeName: "castle" (creates towers, door, windows)
+   - "make a house" → createCustomShape with shapeName: "house"
    - DO NOT use createComplex for natural/decorative shapes
+   - These complex shapes are made of multiple basic shapes and auto-grouped
 6b. **MULTIPLE OBJECTS WITH SPACING**:
    - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
    - "create X objects" where X > 1 → create multiple createShape calls, then use arrangeShapes
