@@ -226,22 +226,31 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteObject = useCallback(async (id: string) => {
     if (!currentUser) return;
     
-    // console.log('Deleting object from Firestore:', id); // DEBUG
+    console.log('🗑️ DELETE: Deleting object:', id);
     
     try {
+      // IMPORTANT: Save history BEFORE deleting
+      console.log('💾 DELETE: Saving history before delete...');
+      await saveHistoryNow();
+      
+      // Small delay to ensure history is saved
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      console.log('🗑️ DELETE: Now deleting from Firestore...');
+      
       // Delete from Firestore
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', id);
       await deleteDoc(objectRef);
-      // console.log('Object deleted successfully from Firestore'); // DEBUG
+      
+      console.log('✅ DELETE: Object deleted successfully');
       
       if (selectedId === id) setSelectedId(null);
       
       // Let realtime sync update the local state
-      // History will be saved by the debounced function
     } catch (error) {
-      console.error('Error deleting object from Firestore:', error);
+      console.error('❌ DELETE Error:', error);
     }
-  }, [currentUser, selectedId]);
+  }, [currentUser, selectedId, saveHistoryNow]);
 
   const selectObject = useCallback((id: string | null) => {
     setSelectedId(id);
