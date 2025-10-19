@@ -7,6 +7,7 @@ import UserProfileDropdown from './UserProfileDropdown';
 import UserInfoDropdown from './UserInfoDropdown';
 import ExportCode from './ExportCode';
 import PolygonDialog from './PolygonDialog';
+import ShapeDropdown from './ShapeDropdown';
 import { PresenceData } from '../../types';
 
 interface ToolbarProps {
@@ -220,113 +221,14 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
           backgroundColor: '#e5e7eb'
         }} />
 
-        <button
-          onClick={handleCreateRectangle}
-          style={{
-            padding: '8px 16px',
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            whiteSpace: 'nowrap'
-          }}
-          title="Add Rectangle"
-        >
-          Add Rectangle
-        </button>
-
-        <button
-          onClick={handleCreateCircle}
-          style={{
-            padding: '8px 16px',
-            background: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            whiteSpace: 'nowrap'
-          }}
-          title="Add Circle"
-        >
-          Add Circle
-        </button>
-
-        <button
-          onClick={handleCreateLine}
-          style={{
-            padding: '8px 16px',
-            background: drawingMode === 'line' ? '#dc2626' : '#f59e0b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            whiteSpace: 'nowrap'
-          }}
-          title={drawingMode === 'line' ? 'Drawing Line...' : 'Draw Line'}
-        >
-          {drawingMode === 'line' ? 'Drawing...' : 'Draw Line'}
-        </button>
-
-        <button
-          onClick={handleCreateText}
-          style={{
-            padding: '8px 16px',
-            background: '#06b6d4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#0891b2';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#06b6d4';
-          }}
-        >
-          Add Text
-        </button>
-
-        <button
-          onClick={handleCreatePolygon}
-          style={{
-            padding: '8px 16px',
-            background: '#ec4899',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#db2777';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#ec4899';
-          }}
-          title="Add Polygon (customizable sides)"
-        >
-          ⬡ Polygon
-        </button>
+        <ShapeDropdown
+          onCreateRectangle={handleCreateRectangle}
+          onCreateCircle={handleCreateCircle}
+          onCreateLine={handleCreateLine}
+          onCreateText={handleCreateText}
+          onCreatePolygon={handleCreatePolygon}
+          drawingMode={drawingMode}
+        />
 
         <button
           onClick={handleImport}
