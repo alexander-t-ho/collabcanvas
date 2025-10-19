@@ -134,6 +134,56 @@ const ChatWindow: React.FC = () => {
             });
             break;
 
+          case 'createLine':
+            // Create a line (straight or curved)
+            const x1 = action.data.x1;
+            const y1 = action.data.y1;
+            const x2 = action.data.x2;
+            const y2 = action.data.y2;
+            const curved = action.data.curved || false;
+            const curvature = action.data.curvature || 0;
+            
+            // Calculate line length
+            const lineLength = Math.sqrt(
+              Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)
+            );
+            
+            // Calculate control point based on curvature
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            
+            // Perpendicular offset for curvature
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const perpX = -dy;
+            const perpY = dx;
+            const perpLength = Math.sqrt(perpX * perpX + perpY * perpY);
+            const normalizedPerpX = perpX / perpLength;
+            const normalizedPerpY = perpY / perpLength;
+            
+            const controlX = midX + normalizedPerpX * curvature;
+            const controlY = midY + normalizedPerpY * curvature;
+            
+            await addObject({
+              type: 'line',
+              x: x1,
+              y: y1,
+              x2: x2,
+              y2: y2,
+              width: lineLength,
+              height: 0,
+              controlX: curved ? controlX : midX,
+              controlY: curved ? controlY : midY,
+              curved: curved,
+              fill: action.data.color || '#' + Math.floor(Math.random() * 16777215).toString(16),
+              strokeWidth: action.data.strokeWidth || 3,
+              nickname: '',
+              zIndex: objects.length,
+              shadow: false,
+              createdBy: currentUser.uid
+            });
+            break;
+
           case 'createButton':
             // Create button background
             await addObject({
@@ -830,6 +880,129 @@ const ChatWindow: React.FC = () => {
                   shadow: false,
                   createdBy: currentUser.uid
                 });
+              }
+            } else if (shapeName.includes('smiley') || shapeName.includes('smile') || shapeName.includes('happy face')) {
+              // Create a smiley face using circle and curved lines
+              const faceColor = action.data.color || '#FFD700';
+              const faceSize = 120 * shapeScale;
+              const smileyNicknames: string[] = [];
+              
+              // Face (yellow circle)
+              await addObject({
+                type: 'circle',
+                x: shapeX,
+                y: shapeY,
+                width: faceSize,
+                height: faceSize,
+                fill: faceColor,
+                nickname: 'Smiley Face',
+                zIndex: objects.length,
+                shadow: true,
+                createdBy: currentUser.uid
+              });
+              smileyNicknames.push('Smiley Face');
+              
+              // Left eye (small black circle)
+              await addObject({
+                type: 'circle',
+                x: shapeX - faceSize * 0.2,
+                y: shapeY - faceSize * 0.15,
+                width: faceSize * 0.15,
+                height: faceSize * 0.15,
+                fill: '#000000',
+                nickname: 'Smiley Left Eye',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              smileyNicknames.push('Smiley Left Eye');
+              
+              // Right eye (small black circle)
+              await addObject({
+                type: 'circle',
+                x: shapeX + faceSize * 0.2,
+                y: shapeY - faceSize * 0.15,
+                width: faceSize * 0.15,
+                height: faceSize * 0.15,
+                fill: '#000000',
+                nickname: 'Smiley Right Eye',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              smileyNicknames.push('Smiley Right Eye');
+              
+              // Smile (curved line)
+              const smileY = shapeY + faceSize * 0.1;
+              const smileWidth = faceSize * 0.5;
+              const smileLeft = shapeX - smileWidth / 2;
+              const smileRight = shapeX + smileWidth / 2;
+              const smileLength = Math.sqrt(Math.pow(smileWidth, 2));
+              
+              await addObject({
+                type: 'line',
+                x: smileLeft,
+                y: smileY,
+                x2: smileRight,
+                y2: smileY,
+                width: smileLength,
+                height: 0,
+                controlX: shapeX,
+                controlY: smileY + faceSize * 0.2, // Curve down for smile
+                curved: true,
+                fill: '#000000',
+                strokeWidth: Math.round(4 * shapeScale),
+                nickname: 'Smiley Mouth',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              smileyNicknames.push('Smiley Mouth');
+              
+              // Auto-group the smiley
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              try {
+                const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
+                const snapshot = await getDocs(objectsRef);
+                const allObjects: CanvasObject[] = [];
+                
+                snapshot.forEach((doc) => {
+                  const data = doc.data();
+                  allObjects.push({ id: doc.id, ...data } as CanvasObject);
+                });
+                
+                const foundObjects = allObjects.filter(obj => smileyNicknames.includes(obj.nickname || ''));
+                
+                if (foundObjects.length >= 2) {
+                  const objectIds = foundObjects.map(o => o.id);
+                  const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                  const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                  const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                  const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                  
+                  const padding = 10;
+                  const groupWidth = (maxX - minX) + padding * 2;
+                  const groupHeight = (maxY - minY) + padding * 2;
+                  const groupCenterX = (minX + maxX) / 2;
+                  const groupCenterY = (minY + maxY) / 2;
+                  
+                  await addObject({
+                    type: 'group',
+                    x: groupCenterX,
+                    y: groupCenterY,
+                    width: groupWidth,
+                    height: groupHeight,
+                    fill: 'transparent',
+                    groupedObjects: objectIds,
+                    nickname: 'Smiley Face',
+                    zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                    shadow: false,
+                    createdBy: currentUser.uid
+                  });
+                }
+              } catch (error) {
+                console.error('Error grouping smiley:', error);
               }
             } else {
               // Default: create a simple representation

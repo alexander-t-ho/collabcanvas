@@ -91,6 +91,51 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'createLine',
+      description: 'Create a line or curve on the canvas. Can be straight or curved with control point.',
+      parameters: {
+        type: 'object',
+        properties: {
+          x1: {
+            type: 'number',
+            description: 'Start X coordinate'
+          },
+          y1: {
+            type: 'number',
+            description: 'Start Y coordinate'
+          },
+          x2: {
+            type: 'number',
+            description: 'End X coordinate'
+          },
+          y2: {
+            type: 'number',
+            description: 'End Y coordinate'
+          },
+          curved: {
+            type: 'boolean',
+            description: 'Whether the line is curved (true) or straight (false). Default: false'
+          },
+          curvature: {
+            type: 'number',
+            description: 'For curved lines: how much to curve. Positive = curve up, negative = curve down. Range: -100 to 100. Default: 0'
+          },
+          color: {
+            type: 'string',
+            description: 'Line color as hex code (default: random)'
+          },
+          strokeWidth: {
+            type: 'number',
+            description: 'Line thickness in pixels (default: 3)'
+          }
+        },
+        required: ['x1', 'y1', 'x2', 'y2']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'createText',
       description: 'Create a text element on the canvas',
       parameters: {
@@ -568,16 +613,20 @@ IMPORTANT RULES:
 5. When creating multiple objects in one command, space them 150-200 pixels apart
 6. For UI elements (login forms, nav bars, cards), use createComplex
 6c. **CUSTOM SHAPES**:
-   - For non-UI shapes (clouds, stars, hearts, trees, houses, castles, suns, flowers), use createCustomShape
+   - For non-UI shapes (clouds, stars, castles, smiley faces, suns, flowers), use createCustomShape
    - "make a cloud" → createCustomShape with shapeName: "cloud"
    - "draw a sun" → createCustomShape with shapeName: "sun"
    - "create a star" → createCustomShape with shapeName: "star" (default: 5 points)
    - "make a 6-point star" → createCustomShape with shapeName: "star", points: 6
-   - "draw an 8-pointed star" → createCustomShape with shapeName: "star", points: 8
-   - "build a castle" → createCustomShape with shapeName: "castle" (creates towers, door, windows)
-   - "make a house" → createCustomShape with shapeName: "house"
+   - "build a castle" → createCustomShape with shapeName: "castle"
+   - "draw a smiley face" → createCustomShape with shapeName: "smiley" (uses curved lines for smile!)
+   - "create a happy face" → createCustomShape with shapeName: "smile"
    - DO NOT use createComplex for natural/decorative shapes
    - These complex shapes are made of multiple basic shapes and auto-grouped
+6d. **CURVED LINES**:
+   - Use createLine with curved: true for smiles, arcs, waves
+   - curvature parameter controls bend: positive = up, negative = down
+   - Smiley face smile uses curved line with curvature
 6b. **MULTIPLE OBJECTS WITH SPACING**:
    - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
    - "create X objects" where X > 1 → create multiple createShape calls, then use arrangeShapes
