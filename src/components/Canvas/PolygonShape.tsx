@@ -67,6 +67,13 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   const points = calculatePolygonPoints();
   const vertices = calculateVertices();
 
+  const handleVertexDragStart = (e: any) => {
+    // Disable polygon dragging when dragging a vertex
+    if (groupRef.current) {
+      groupRef.current.draggable(false);
+    }
+  };
+
   const handleVertexDrag = (index: number, e: any) => {
     const newX = e.target.x();
     const newY = e.target.y();
@@ -85,6 +92,10 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   };
 
   const handleVertexDragEnd = () => {
+    // Re-enable polygon dragging
+    if (groupRef.current) {
+      groupRef.current.draggable(true);
+    }
     saveHistoryNow();
   };
 
@@ -154,6 +165,7 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
             stroke="#ffffff"
             strokeWidth={2}
             draggable
+            onDragStart={handleVertexDragStart}
             onDragMove={(e) => handleVertexDrag(idx, e)}
             onDragEnd={handleVertexDragEnd}
             onClick={(e) => {
