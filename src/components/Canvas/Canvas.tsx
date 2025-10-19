@@ -5,8 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import Toolbar from './Toolbar';
 import CanvasObject from './CanvasObject';
 import PolygonShape from './PolygonShape';
+import EllipseShape from './EllipseShape';
 import RectangleEditor from './RectangleEditor';
 import CircleEditor from './CircleEditor';
+import EllipseEditor from './EllipseEditor';
 import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
 import TextEditor from './TextEditor';
@@ -708,6 +710,17 @@ const Canvas: React.FC = () => {
                   );
                 }
                 
+                // Render ellipses with special component
+                if (obj.type === 'ellipse') {
+                  return (
+                    <EllipseShape
+                      key={obj.id}
+                      object={obj}
+                      isSelected={selectedIds.includes(obj.id)}
+                    />
+                  );
+                }
+                
                 // Render other shapes with CanvasObject
                 return (
                 <CanvasObject 
@@ -877,6 +890,8 @@ const Canvas: React.FC = () => {
               return <RectangleEditor object={selectedObject} />;
             } else if (selectedObject.type === 'circle') {
               return <CircleEditor object={selectedObject} />;
+            } else if (selectedObject.type === 'ellipse') {
+              return <EllipseEditor object={selectedObject} />;
             } else if (selectedObject.type === 'line') {
               return <LineEditor object={selectedObject} />;
             } else if (selectedObject.type === 'image') {
