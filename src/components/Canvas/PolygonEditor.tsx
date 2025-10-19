@@ -288,7 +288,7 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
           color: '#9ca3af',
           fontStyle: 'italic'
         }}>
-          💡 Tip: Drag vertices on the canvas to adjust individual side lengths
+          💡 Tip: Click vertices on the canvas to select sides for editing
         </p>
       </div>
     </BaseEditor>

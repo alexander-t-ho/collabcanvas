@@ -67,36 +67,10 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   const points = calculatePolygonPoints();
   const vertices = calculateVertices();
 
-  const handleVertexDragStart = (e: any) => {
-    // Disable polygon dragging when dragging a vertex
-    if (groupRef.current) {
-      groupRef.current.draggable(false);
-    }
-  };
-
-  const handleVertexDrag = (index: number, e: any) => {
-    const newX = e.target.x();
-    const newY = e.target.y();
-    
-    // Calculate new side length based on vertex position
-    const distance = Math.sqrt(newX * newX + newY * newY);
-    const newSideLength = distance * 2 * Math.sin(Math.PI / sides);
-    
-    // Update custom side length
-    const newCustomLengths = [...(customLengths.length > 0 ? customLengths : Array(sides).fill(baseSideLength))];
-    newCustomLengths[index] = Math.round(newSideLength);
-    
-    updateObject(object.id, {
-      customSideLengths: newCustomLengths
-    });
-  };
-
-  const handleVertexDragEnd = () => {
-    // Re-enable polygon dragging
-    if (groupRef.current) {
-      groupRef.current.draggable(true);
-    }
-    saveHistoryNow();
+  const handleVertexClick = (index: number, e: any) => {
+    e.cancelBubble = true;
+    // Select this side for editing in the panel
+    handleSideClick(index);
   };
 
   const handleSideClick = (index: number) => {
@@ -160,17 +134,18 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
           <Circle
             x={vertex.x}
             y={vertex.y}
-            radius={6}
+            radius={8}
             fill={selectedSide === idx ? '#f59e0b' : '#3b82f6'}
             stroke="#ffffff"
             strokeWidth={2}
-            draggable
-            onDragStart={handleVertexDragStart}
-            onDragMove={(e) => handleVertexDrag(idx, e)}
-            onDragEnd={handleVertexDragEnd}
-            onClick={(e) => {
-              e.cancelBubble = true;
-              handleSideClick(idx);
+            onClick={(e) => handleVertexClick(idx, e)}
+            onMouseEnter={(e) => {
+              e.target.setAttr('radius', 10);
+              e.target.getLayer()?.batchDraw();
+            }}
+            onMouseLeave={(e) => {
+              e.target.setAttr('radius', 8);
+              e.target.getLayer()?.batchDraw();
             }}
           />
         </React.Fragment>
