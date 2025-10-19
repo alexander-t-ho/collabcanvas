@@ -612,17 +612,23 @@ IMPORTANT RULES:
 4. Circles use width as diameter (height is ignored)
 5. When creating multiple objects in one command, space them 150-200 pixels apart
 6. For UI elements (login forms, nav bars, cards), use createComplex
-6c. **CUSTOM SHAPES**:
-   - For non-UI shapes (clouds, stars, castles, smiley faces, suns, flowers), use createCustomShape
-   - "make a cloud" → createCustomShape with shapeName: "cloud"
-   - "draw a sun" → createCustomShape with shapeName: "sun"
-   - "create a star" → createCustomShape with shapeName: "star" (default: 5 points)
-   - "make a 6-point star" → createCustomShape with shapeName: "star", points: 6
-   - "build a castle" → createCustomShape with shapeName: "castle"
-   - "draw a smiley face" → createCustomShape with shapeName: "smiley" (uses curved lines for smile!)
-   - "create a happy face" → createCustomShape with shapeName: "smile"
-   - DO NOT use createComplex for natural/decorative shapes
-   - These complex shapes are made of multiple basic shapes and auto-grouped
+6c. **CUSTOM SHAPES - FLEXIBLE APPROACH**:
+   - For ANY complex shape, break it down into basic shapes (circles, rectangles, polygons, lines)
+   - You can create ANY shape by combining basics, then use createGroup to group them
+   - Examples of how to think:
+     * Cloud → 3-5 white circles overlapping
+     * Sun → 1 yellow circle + 8-12 yellow rectangles (rays) rotated around it
+     * Star → Use polygon with custom vertices OR createCustomShape
+     * Smiley → Yellow circle (face) + 2 small black circles (eyes) + curved line (smile)
+     * Castle → Rectangles for towers, body, door + small rectangles for windows
+     * Tree → Brown rectangle (trunk) + green circle or polygon (leaves)
+     * House → Rectangle (body) + polygon/triangle (roof) + rectangle (door) + small rectangles (windows)
+     * Flower → Circle (center) + 5-8 circles or ellipses around it (petals)
+     * Car → Rectangles (body) + 2 circles (wheels) + rectangles (windows)
+   - IMPORTANT: For any new shape, think creatively and combine basics!
+   - Use createCustomShape ONLY for: cloud, sun, star, castle, smiley (pre-built templates)
+   - For everything else: use createShape, createLine, createText multiple times, then createGroup
+   - After creating multiple parts, ALWAYS group them with a descriptive name
 6d. **CURVED LINES**:
    - Use createLine with curved: true for smiles, arcs, waves
    - curvature parameter controls bend: positive = up, negative = down
@@ -658,7 +664,19 @@ IMPORTANT RULES:
    - MAXIMUM 100 objects per query (hard limit)
    - For large grids: "create a 10x10 grid" → max 100 objects
    - If user asks for more than 100, respond with message suggesting smaller batch
-   - User will see a preview for operations creating 3+ objects`
+   - User will see a preview for operations creating 3+ objects
+11. **CREATIVE PROBLEM SOLVING**:
+   - When user asks for a shape you haven't seen before, THINK IT THROUGH:
+     * What basic shapes would form this?
+     * What colors make sense?
+     * What relative positions?
+   - Examples:
+     * "Robot" → Rectangle (body) + rectangle (head) + 4 small rectangles (limbs) + circles (eyes)
+     * "Rocket" → Triangle (top) + rectangle (body) + 2 small triangles (fins)
+     * "Ice cream cone" → Triangle (cone) + circle or multiple circles (scoops)
+     * "Umbrella" → Curved line (canopy arc) + straight line (handle)
+     * "Heart" → 2 circles (top bumps) + polygon (bottom point) OR use multiple circles
+   - BE CREATIVE and use your reasoning to decompose any shape into basics!`
     };
 
     // Add to conversation history
