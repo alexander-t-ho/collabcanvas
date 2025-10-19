@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Ellipse, Circle, Group, Transformer } from 'react-konva';
+import { Ellipse, Group, Transformer } from 'react-konva';
 import { useCanvas } from '../../contexts/CanvasContext';
 import { CanvasObject } from '../../types';
 
@@ -12,82 +12,21 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
   const { updateObject, saveHistoryNow, selectObject } = useCanvas();
   const groupRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
-  const [isDraggingFocus, setIsDraggingFocus] = React.useState(false);
 
   // Attach transformer when selected
   useEffect(() => {
-    if (isSelected && transformerRef.current && groupRef.current && !isDraggingFocus) {
+    if (isSelected && transformerRef.current && groupRef.current) {
       transformerRef.current.nodes([groupRef.current]);
       transformerRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, isDraggingFocus]);
+  }, [isSelected]);
 
   const radiusX = object.radiusX || object.width / 2;
   const radiusY = object.radiusY || object.height / 2;
-  const focus1 = object.focus1 || { x: -radiusX * 0.5, y: 0 };
-  const focus2 = object.focus2 || { x: radiusX * 0.5, y: 0 };
 
   const handleClick = (e: any) => {
     e.cancelBubble = true;
     selectObject(object.id);
-  };
-
-  const handleFocusDragStart = (e: any) => {
-    e.cancelBubble = true;
-    setIsDraggingFocus(true);
-    
-    if (groupRef.current) {
-      groupRef.current.draggable(false);
-    }
-    
-    if (transformerRef.current) {
-      transformerRef.current.nodes([]);
-    }
-  };
-
-  const handleFocus1Drag = (e: any) => {
-    e.cancelBubble = true;
-    e.evt?.stopPropagation();
-    
-    const newX = e.target.x();
-    const newY = e.target.y();
-    
-    // Calculate new radii based on focus point distance
-    const distance = Math.sqrt(newX * newX + newY * newY);
-    
-    updateObject(object.id, {
-      focus1: { x: newX, y: newY },
-      radiusX: Math.max(Math.abs(newX), radiusX),
-      radiusY: Math.max(Math.abs(newY), radiusY),
-      width: Math.max(Math.abs(newX), radiusX) * 2,
-      height: Math.max(Math.abs(newY), radiusY) * 2
-    });
-  };
-
-  const handleFocus2Drag = (e: any) => {
-    e.cancelBubble = true;
-    e.evt?.stopPropagation();
-    
-    const newX = e.target.x();
-    const newY = e.target.y();
-    
-    updateObject(object.id, {
-      focus2: { x: newX, y: newY },
-      radiusX: Math.max(Math.abs(newX), radiusX),
-      radiusY: Math.max(Math.abs(newY), radiusY),
-      width: Math.max(Math.abs(newX), radiusX) * 2,
-      height: Math.max(Math.abs(newY), radiusY) * 2
-    });
-  };
-
-  const handleFocusDragEnd = () => {
-    setIsDraggingFocus(false);
-    
-    if (groupRef.current) {
-      groupRef.current.draggable(true);
-    }
-    
-    saveHistoryNow();
   };
 
   const handleTransform = (e: any) => {
@@ -150,58 +89,10 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
           shadowOpacity={object.shadow ? 0.5 : 0}
         />
 
-        {/* Focus points (when selected) */}
-        {isSelected && (
-          <>
-            {/* Focus point 1 */}
-            <Circle
-              x={focus1.x}
-              y={focus1.y}
-              radius={8}
-              fill="#8b5cf6"
-              stroke="#ffffff"
-              strokeWidth={2}
-              draggable
-              onDragStart={handleFocusDragStart}
-              onDragMove={handleFocus1Drag}
-              onDragEnd={handleFocusDragEnd}
-              onMouseEnter={(e) => {
-                e.target.setAttr('radius', 10);
-                e.target.getLayer()?.batchDraw();
-              }}
-              onMouseLeave={(e) => {
-                e.target.setAttr('radius', 8);
-                e.target.getLayer()?.batchDraw();
-              }}
-            />
-            
-            {/* Focus point 2 */}
-            <Circle
-              x={focus2.x}
-              y={focus2.y}
-              radius={8}
-              fill="#8b5cf6"
-              stroke="#ffffff"
-              strokeWidth={2}
-              draggable
-              onDragStart={handleFocusDragStart}
-              onDragMove={handleFocus2Drag}
-              onDragEnd={handleFocusDragEnd}
-              onMouseEnter={(e) => {
-                e.target.setAttr('radius', 10);
-                e.target.getLayer()?.batchDraw();
-              }}
-              onMouseLeave={(e) => {
-                e.target.setAttr('radius', 8);
-                e.target.getLayer()?.batchDraw();
-              }}
-            />
-          </>
-        )}
       </Group>
       
       {/* Transformer for rotation */}
-      {isSelected && !isDraggingFocus && (
+      {isSelected && (
         <Transformer
           ref={transformerRef}
           rotateEnabled={true}

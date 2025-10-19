@@ -165,7 +165,7 @@ const EllipseEditor: React.FC<Props> = ({ object }) => {
         color: '#9ca3af',
         fontStyle: 'italic'
       }}>
-        💡 Tip: Drag focus points on canvas to reshape ellipse
+        💡 Tip: Adjust horizontal and vertical radii to create different ellipse shapes
       </p>
     </BaseEditor>
   );
