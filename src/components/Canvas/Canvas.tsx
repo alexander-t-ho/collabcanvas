@@ -45,7 +45,8 @@ const Canvas: React.FC = () => {
     y: (window.innerHeight - 60) / 2 // Account for toolbar height
   });
   const [gridLines, setGridLines] = useState<React.ReactNode[]>([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 }); // Screen coordinates
+  const [canvasMousePosition, setCanvasMousePosition] = useState({ x: 0, y: 0 }); // Canvas coordinates
   const [alignmentGuides, setAlignmentGuides] = useState<React.ReactNode[]>([]);
   const [showImageImport, setShowImageImport] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -334,11 +335,14 @@ const Canvas: React.FC = () => {
     if (!stage) return;
 
     const pos = stage.getPointerPosition();
+    if (!pos) return;
+    
     const scale = stage.scaleX();
     const canvasX = (pos.x - stage.x()) / scale;
     const canvasY = (pos.y - stage.y()) / scale;
     
-    setMousePosition({ x: canvasX, y: canvasY });
+    setMousePosition({ x: canvasX, y: canvasY }); // Store canvas coordinates
+    setCanvasMousePosition({ x: canvasX, y: canvasY }); // Also store separately for clarity
 
     // Update selection rectangle if selecting
     if (isSelecting && selectionStart) {
@@ -571,16 +575,13 @@ const Canvas: React.FC = () => {
       }
 
       // Confirm line placement with Enter
-      if (e.key === 'Enter' && drawingMode === 'line' && tempLineStart && mousePosition) {
+      if (e.key === 'Enter' && drawingMode === 'line' && tempLineStart && canvasMousePosition) {
         e.preventDefault();
         if (!currentUser) return;
         
-        const stage = stageRef.current;
-        if (!stage) return;
-        
-        const scale = stage.scaleX();
-        const canvasX = (mousePosition.x - stage.x()) / scale;
-        const canvasY = (mousePosition.y - stage.y()) / scale;
+        // Use the stored canvas coordinates directly
+        const canvasX = canvasMousePosition.x;
+        const canvasY = canvasMousePosition.y;
         
         const lineLength = Math.sqrt(
           Math.pow(canvasX - tempLineStart.x, 2) + 
@@ -630,7 +631,7 @@ const Canvas: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('openImageImport', handleImageImportEvent);
     };
-  }, [selectedId, selectedIds, objects, drawingMode, setDrawingMode, setTempLineStart, tempLineStart, mousePosition, currentUser, addObject, deleteObject, clearSelection, undo, redo, canUndo, canRedo]);
+  }, [selectedId, selectedIds, objects, drawingMode, setDrawingMode, setTempLineStart, tempLineStart, canvasMousePosition, currentUser, addObject, deleteObject, clearSelection, undo, redo, canUndo, canRedo]);
 
   return (
     <div style={{ 

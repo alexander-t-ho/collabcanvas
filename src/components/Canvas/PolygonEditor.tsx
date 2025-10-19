@@ -8,7 +8,7 @@ interface Props {
 }
 
 const PolygonEditor: React.FC<Props> = ({ object }) => {
-  const { updateObject, objects } = useCanvas();
+  const { updateObject } = useCanvas();
   const [showSideEditor, setShowSideEditor] = useState(false);
 
   const sides = object.sides || 3;

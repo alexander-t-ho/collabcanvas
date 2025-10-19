@@ -8,6 +8,7 @@ import UserInfoDropdown from './UserInfoDropdown';
 import ExportCode from './ExportCode';
 import PolygonDialog from './PolygonDialog';
 import ShapeDropdown from './ShapeDropdown';
+import ExportDropdown from './ExportDropdown';
 import { PresenceData } from '../../types';
 
 interface ToolbarProps {
@@ -255,55 +256,10 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
           Import Image
         </button>
 
-        <button
-          onClick={() => exportCanvasAsPNG(stageRef.current)}
-          style={{
-            padding: '8px 16px',
-            background: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            transition: 'background 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#059669';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#10b981';
-          }}
-          title="Export canvas as PNG image"
-        >
-          📥 Export PNG
-        </button>
-
-        <button
-          onClick={() => setShowExportCode(true)}
-          style={{
-            padding: '8px 16px',
-            background: '#8b5cf6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            fontSize: '14px',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#7c3aed';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#8b5cf6';
-          }}
-          title="Export as React or CSS code"
-        >
-          {'</>'} Export Code
-        </button>
+        <ExportDropdown
+          onExportPNG={() => exportCanvasAsPNG(stageRef.current)}
+          onExportCode={() => setShowExportCode(true)}
+        />
 
         <button
           onClick={() => {
