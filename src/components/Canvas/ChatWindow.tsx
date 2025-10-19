@@ -513,7 +513,41 @@ const ChatWindow: React.FC = () => {
             
             console.log('Creating custom shape:', shapeName, 'at', shapeX, shapeY);
             
-            if (shapeName.includes('cloud')) {
+            if (shapeName.includes('star')) {
+              // Create a star using a polygon with custom vertices
+              const starPoints = action.data.points || 5; // Default 5-point star
+              const outerRadius = 80 * shapeScale;
+              const innerRadius = 35 * shapeScale;
+              const totalVertices = starPoints * 2; // Alternating outer and inner points
+              
+              // Calculate custom vertices for star shape
+              const starVertices: Array<{ x: number; y: number }> = [];
+              for (let i = 0; i < totalVertices; i++) {
+                const angle = (i * Math.PI) / starPoints - Math.PI / 2; // Start from top
+                const radius = i % 2 === 0 ? outerRadius : innerRadius; // Alternate between outer and inner
+                
+                starVertices.push({
+                  x: Math.cos(angle) * radius,
+                  y: Math.sin(angle) * radius
+                });
+              }
+              
+              await addObject({
+                type: 'polygon',
+                x: shapeX,
+                y: shapeY,
+                width: outerRadius * 2,
+                height: outerRadius * 2,
+                fill: shapeColor,
+                sides: totalVertices,
+                sideLength: 50,
+                customVertices: starVertices,
+                nickname: `${starPoints}-Point Star`,
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+            } else if (shapeName.includes('cloud')) {
               // Create a cloud using multiple circles
               const cloudNicknames: string[] = [];
               const baseSize = 60 * shapeScale;

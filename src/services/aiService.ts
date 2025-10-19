@@ -277,7 +277,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'createCustomShape',
-      description: 'Create custom complex shapes like clouds, stars, hearts, trees, houses, etc. using multiple circles and rectangles. Use this for non-UI shapes.',
+      description: 'Create custom complex shapes like clouds, stars, hearts, trees, houses, etc. Stars are created as polygons with custom vertices.',
       parameters: {
         type: 'object',
         properties: {
@@ -300,6 +300,10 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           color: {
             type: 'string',
             description: 'Primary color for the shape (hex code)'
+          },
+          points: {
+            type: 'number',
+            description: 'For stars: number of points (default: 5). Example: 5-point star, 6-point star, 8-point star'
           }
         },
         required: ['shapeName']
@@ -567,7 +571,9 @@ IMPORTANT RULES:
    - For non-UI shapes (clouds, stars, hearts, trees, houses, suns, flowers), use createCustomShape
    - "make a cloud" → createCustomShape with shapeName: "cloud"
    - "draw a sun" → createCustomShape with shapeName: "sun"
-   - "create a tree" → createCustomShape with shapeName: "tree"
+   - "create a star" → createCustomShape with shapeName: "star" (default: 5 points)
+   - "make a 6-point star" → createCustomShape with shapeName: "star", points: 6
+   - "draw an 8-pointed star" → createCustomShape with shapeName: "star", points: 8
    - DO NOT use createComplex for natural/decorative shapes
 6b. **MULTIPLE OBJECTS WITH SPACING**:
    - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
