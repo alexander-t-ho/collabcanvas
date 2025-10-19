@@ -4,12 +4,14 @@ import { useCanvas } from '../../contexts/CanvasContext';
 import { useAuth } from '../../contexts/AuthContext';
 import Toolbar from './Toolbar';
 import CanvasObject from './CanvasObject';
+import PolygonShape from './PolygonShape';
 import RectangleEditor from './RectangleEditor';
 import CircleEditor from './CircleEditor';
 import LineEditor from './LineEditor';
 import ImageEditor from './ImageEditor';
 import TextEditor from './TextEditor';
 import GroupEditor from './GroupEditor';
+import PolygonEditor from './PolygonEditor';
 import MultiSelectEditor from './MultiSelectEditor';
 import ImageImport from './ImageImport';
 import CursorOverlay from '../Collaboration/CursorOverlay';
@@ -693,7 +695,20 @@ const Canvas: React.FC = () => {
           <Layer>
             {objects
               .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)) // Sort by zIndex
-              .map(obj => (
+              .map(obj => {
+                // Render polygons with special component
+                if (obj.type === 'polygon') {
+                  return (
+                    <PolygonShape
+                      key={obj.id}
+                      object={obj}
+                      isSelected={selectedIds.includes(obj.id)}
+                    />
+                  );
+                }
+                
+                // Render other shapes with CanvasObject
+                return (
                 <CanvasObject 
                   key={obj.id} 
                   object={obj} 
@@ -704,7 +719,8 @@ const Canvas: React.FC = () => {
                   }}
                   onDragEnd={() => setAlignmentGuides([])}
                 />
-              ))}
+                );
+              })}
             
             
             {/* Preview line while drawing - follows cursor */}
@@ -868,6 +884,8 @@ const Canvas: React.FC = () => {
               return <TextEditor object={selectedObject} />;
             } else if (selectedObject.type === 'group') {
               return <GroupEditor object={selectedObject} />;
+            } else if (selectedObject.type === 'polygon') {
+              return <PolygonEditor object={selectedObject} />;
             }
           }
           return null;

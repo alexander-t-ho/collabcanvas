@@ -7,7 +7,7 @@ export interface AppUser {
 
 export interface CanvasObject {
   id: string;
-  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group' | 'text';
+  type: 'rectangle' | 'circle' | 'line' | 'image' | 'group' | 'text' | 'polygon';
   x: number;
   y: number;
   width: number;
@@ -44,6 +44,11 @@ export interface CanvasObject {
   fontFamily?: string;
   fontStyle?: string; // 'normal' | 'bold' | 'italic' | 'bold italic'
   textAlign?: string; // 'left' | 'center' | 'right'
+  // Polygon-specific properties
+  sides?: number; // Number of sides (3-64)
+  sideLength?: number; // Base side length (default for all sides)
+  customSideLengths?: number[]; // Custom length for each side (overrides sideLength)
+  selectedSide?: number; // Index of currently selected side for editing (0-based)
 }
 
 export interface CursorPosition {

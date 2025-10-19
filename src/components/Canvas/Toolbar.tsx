@@ -102,6 +102,25 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
     });
   };
 
+  const handleCreatePolygon = () => {
+    if (!currentUser) return;
+    
+    addObject({
+      type: 'polygon',
+      x: 0,
+      y: 0,
+      width: 100, // Used for bounding box
+      height: 100,
+      fill: '#' + Math.floor(Math.random()*16777215).toString(16),
+      sides: 6, // Default to hexagon
+      sideLength: 80,
+      nickname: '',
+      zIndex: 0,
+      shadow: false,
+      createdBy: currentUser.uid,
+    });
+  };
+
   const handleImport = () => {
     // This will be handled by the parent component
     const event = new CustomEvent('openImageImport');
@@ -294,6 +313,32 @@ const Toolbar: React.FC<ToolbarProps> = ({ stageRef }) => {
           }}
         >
           Add Text
+        </button>
+
+        <button
+          onClick={handleCreatePolygon}
+          style={{
+            padding: '8px 16px',
+            background: '#ec4899',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '14px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'background 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#db2777';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#ec4899';
+          }}
+          title="Add Polygon (customizable sides)"
+        >
+          ⬡ Polygon
         </button>
 
         <button
