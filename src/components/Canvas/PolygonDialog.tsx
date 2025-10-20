@@ -11,6 +11,81 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const { currentUser } = useAuth();
   const [sides, setSides] = useState<number | ''>(6);
 
+  const createStar = () => {
+    if (!currentUser) return;
+    
+    // Create 5-point star using polygon with custom vertices
+    const starPoints = 5;
+    const outerRadius = 80;
+    const innerRadius = 35;
+    const totalVertices = starPoints * 2;
+    
+    const starVertices: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < totalVertices; i++) {
+      const angle = (i * Math.PI) / starPoints - Math.PI / 2;
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      
+      starVertices.push({
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius
+      });
+    }
+    
+    addObject({
+      type: 'polygon',
+      x: 0,
+      y: 0,
+      width: outerRadius * 2,
+      height: outerRadius * 2,
+      fill: '#' + Math.floor(Math.random()*16777215).toString(16),
+      sides: totalVertices,
+      sideLength: 50,
+      customVertices: starVertices,
+      nickname: '5-Point Star',
+      zIndex: 0,
+      shadow: false,
+      createdBy: currentUser.uid,
+    });
+    
+    onClose();
+  };
+
+  const createHeart = () => {
+    if (!currentUser) return;
+    
+    // Create heart using polygon with custom vertices (approximated)
+    const heartVertices: Array<{ x: number; y: number }> = [
+      { x: 0, y: -60 },      // Top center dip
+      { x: -40, y: -80 },    // Left top curve
+      { x: -70, y: -50 },    // Left outer curve
+      { x: -70, y: -10 },    // Left side
+      { x: -50, y: 20 },     // Left bottom curve
+      { x: 0, y: 60 },       // Bottom point
+      { x: 50, y: 20 },      // Right bottom curve
+      { x: 70, y: -10 },     // Right side
+      { x: 70, y: -50 },     // Right outer curve
+      { x: 40, y: -80 }      // Right top curve
+    ];
+    
+    addObject({
+      type: 'polygon',
+      x: 0,
+      y: 0,
+      width: 140,
+      height: 140,
+      fill: '#FF1493',
+      sides: 10,
+      sideLength: 50,
+      customVertices: heartVertices,
+      nickname: 'Heart',
+      zIndex: 0,
+      shadow: true,
+      createdBy: currentUser.uid,
+    });
+    
+    onClose();
+  };
+
   const handleCreate = () => {
     if (!currentUser) return;
 
@@ -42,8 +117,8 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
     { name: 'Pentagon', sides: 5 },
     { name: 'Hexagon', sides: 6 },
     { name: 'Octagon', sides: 8 },
-    { name: 'Decagon', sides: 10 },
-    { name: 'Dodecagon', sides: 12 }
+    { name: 'Star', sides: 10, isSpecial: true },
+    { name: 'Heart', sides: 0, isSpecial: true }
   ];
 
   return (
@@ -151,14 +226,24 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
             gridTemplateColumns: 'repeat(4, 1fr)', 
             gap: '8px'
           }}>
-            {presets.map((preset) => (
+            {presets.map((preset, idx) => (
               <button
-                key={preset.sides}
-                onClick={() => setSides(preset.sides)}
+                key={idx}
+                onClick={() => {
+                  if (preset.isSpecial) {
+                    if (preset.name === 'Star') {
+                      createStar();
+                    } else if (preset.name === 'Heart') {
+                      createHeart();
+                    }
+                  } else {
+                    setSides(preset.sides);
+                  }
+                }}
                 style={{
                   padding: '8px',
-                  background: sides === preset.sides ? '#ec4899' : '#f3f4f6',
-                  color: sides === preset.sides ? 'white' : '#6b7280',
+                  background: !preset.isSpecial && sides === preset.sides ? '#ec4899' : preset.isSpecial ? '#f97316' : '#f3f4f6',
+                  color: (!preset.isSpecial && sides === preset.sides) || preset.isSpecial ? 'white' : '#6b7280',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '11px',
@@ -168,19 +253,33 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
                   textAlign: 'center'
                 }}
                 onMouseEnter={(e) => {
-                  if (sides !== preset.sides) {
+                  if (!preset.isSpecial && sides !== preset.sides) {
                     e.currentTarget.style.background = '#e5e7eb';
+                  } else if (preset.isSpecial) {
+                    e.currentTarget.style.background = '#ea580c';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (sides !== preset.sides) {
+                  if (!preset.isSpecial && sides !== preset.sides) {
                     e.currentTarget.style.background = '#f3f4f6';
+                  } else if (preset.isSpecial) {
+                    e.currentTarget.style.background = '#f97316';
                   }
                 }}
               >
                 {preset.name}
-                <br />
-                <span style={{ fontSize: '9px', opacity: 0.8 }}>({preset.sides})</span>
+                {!preset.isSpecial && (
+                  <>
+                    <br />
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>({preset.sides})</span>
+                  </>
+                )}
+                {preset.isSpecial && (
+                  <>
+                    <br />
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>⭐</span>
+                  </>
+                )}
               </button>
             ))}
           </div>
