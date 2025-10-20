@@ -105,7 +105,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     
     const doSave = async () => {
-      const currentIndex = historyIndexRef.current;
+    const currentIndex = historyIndexRef.current;
       
       console.log('💾 SAVE_HISTORY: Saving', newObjects.length, 'objects at index', currentIndex);
     
@@ -129,9 +129,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Remove any history after current index (for redo)
         const newHistory = currentHistory.slice(0, currentIndex + 1);
         // Add new state
-        newHistory.push(JSON.parse(JSON.stringify(newObjects)));
+      newHistory.push(JSON.parse(JSON.stringify(newObjects)));
         // Keep only last 50 states
-        const trimmedHistory = newHistory.slice(-50);
+      const trimmedHistory = newHistory.slice(-50);
         
         console.log('📝 SAVE_HISTORY: New history length:', trimmedHistory.length);
         
@@ -176,10 +176,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
     
-    // Save history BEFORE adding new object
-    console.log('➕ ADD_OBJECT: Saving history before adding...');
-    await saveHistoryNow();
-    
     const newObject: CanvasObject = {
       ...object,
       id: generateId(),
@@ -188,16 +184,28 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     
     try {
+      // Save current state to history BEFORE adding (synchronously)
+      console.log('➕ ADD_OBJECT: Saving current state to history');
+      setObjectsState(prev => {
+        // Save current state before modification
+        saveToHistory(prev, true);
+        return prev;
+      });
+      
+      // Small delay to ensure history save completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Now add to Firestore
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', newObject.id);
       await setDoc(objectRef, newObject);
       
-      console.log('✅ ADD_OBJECT: Object added');
+      console.log('✅ ADD_OBJECT: Object added, waiting for sync');
       
       // Let realtime sync update the local state
     } catch (error) {
       console.error('❌ ADD_OBJECT Error:', error);
     }
-  }, [currentUser, saveHistoryNow]);
+  }, [currentUser, saveToHistory]);
 
   const updateObject = useCallback(async (id: string, updates: Partial<CanvasObject>) => {
     if (!currentUser) return;
@@ -431,16 +439,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       
       const previousState = historyData[currentIndex - 1];
-      if (!previousState) {
+    if (!previousState) {
         console.error('❌ UNDO: Previous state is undefined at index', currentIndex - 1);
-        return;
-      }
+      return;
+    }
     
       console.log('✅ UNDO: Found previous state with', previousState.length, 'objects');
       console.log('📦 UNDO: Previous state:', previousState);
     
       // Set flag to prevent history saves during undo
-      setIsUndoRedo(true);
+    setIsUndoRedo(true);
     
       // Update index in Firebase
       const newIndex = currentIndex - 1;
