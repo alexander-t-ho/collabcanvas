@@ -53,39 +53,72 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const createHeart = () => {
     if (!currentUser) return;
     
-    // Smooth heart with 20 vertices
-    const heartVertices: Array<{ x: number; y: number }> = [
-      { x: 0, y: -50 },       // Top center dip
-      { x: -20, y: -65 },     // Left start curve
-      { x: -40, y: -75 },     // Left top curve
-      { x: -60, y: -70 },     // Left top outer
-      { x: -75, y: -50 },     // Left outer peak
-      { x: -75, y: -30 },     // Left side high
-      { x: -70, y: -10 },     // Left side mid
-      { x: -60, y: 5 },       // Left side low
-      { x: -45, y: 20 },      // Left bottom curve start
-      { x: -25, y: 35 },      // Left to point
-      { x: 0, y: 50 },        // Bottom point
-      { x: 25, y: 35 },       // Right from point
-      { x: 45, y: 20 },       // Right bottom curve start
-      { x: 60, y: 5 },        // Right side low
-      { x: 70, y: -10 },      // Right side mid
-      { x: 75, y: -30 },      // Right side high
-      { x: 75, y: -50 },      // Right outer peak
-      { x: 60, y: -70 },      // Right top outer
-      { x: 40, y: -75 },      // Right top curve
-      { x: 20, y: -65 }       // Right start curve
+    // Ultra-smooth heart with 30 vertices for beautiful curves
+    const heartVertices: Array<{ x: number; y: number }> = [];
+    
+    // Left lobe (top left rounded part) - 8 points
+    const leftLobePoints = [
+      { x: 0, y: -50 },
+      { x: -15, y: -62 },
+      { x: -30, y: -72 },
+      { x: -45, y: -78 },
+      { x: -60, y: -75 },
+      { x: -72, y: -65 },
+      { x: -78, y: -50 },
+      { x: -78, y: -35 }
     ];
+    
+    // Left side going down - 6 points
+    const leftSidePoints = [
+      { x: -75, y: -20 },
+      { x: -70, y: -5 },
+      { x: -65, y: 5 },
+      { x: -58, y: 15 },
+      { x: -50, y: 23 },
+      { x: -40, y: 30 }
+    ];
+    
+    // Left bottom to point - 6 points
+    const leftBottomPoints = [
+      { x: -28, y: 37 },
+      { x: -18, y: 42 },
+      { x: -10, y: 46 },
+      { x: -5, y: 48 },
+      { x: 0, y: 50 }
+    ];
+    
+    // Right side (mirror) - 15 points
+    const rightPoints = [
+      { x: 5, y: 48 },
+      { x: 10, y: 46 },
+      { x: 18, y: 42 },
+      { x: 28, y: 37 },
+      { x: 40, y: 30 },
+      { x: 50, y: 23 },
+      { x: 58, y: 15 },
+      { x: 65, y: 5 },
+      { x: 70, y: -5 },
+      { x: 75, y: -20 },
+      { x: 78, y: -35 },
+      { x: 78, y: -50 },
+      { x: 72, y: -65 },
+      { x: 60, y: -75 },
+      { x: 45, y: -78 },
+      { x: 30, y: -72 },
+      { x: 15, y: -62 }
+    ];
+    
+    heartVertices.push(...leftLobePoints, ...leftSidePoints, ...leftBottomPoints, ...rightPoints);
     
     addObject({
       type: 'polygon',
       x: 0,
       y: 0,
-      width: 150,
-      height: 120,
+      width: 156,
+      height: 128,
       fill: '#FF1493',
-      sides: 20,
-      sideLength: 20,
+      sides: heartVertices.length, // Should be ~35 vertices
+      sideLength: 15,
       customVertices: heartVertices,
       nickname: 'Heart',
       zIndex: 0,
