@@ -39,6 +39,24 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
       const snappedRotation = Math.round(rotation / 45) * 45;
       node.rotation(snappedRotation);
     }
+    
+    // Get scale
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    
+    // Update radii based on scale
+    if (scaleX !== 1 || scaleY !== 1) {
+      updateObject(object.id, {
+        radiusX: Math.round(radiusX * scaleX),
+        radiusY: Math.round(radiusY * scaleY),
+        width: radiusX * scaleX * 2,
+        height: radiusY * scaleY * 2
+      });
+      
+      // Reset scale to prevent compound scaling
+      node.scaleX(1);
+      node.scaleY(1);
+    }
   };
 
   const handleTransformEnd = (e: any) => {
@@ -46,15 +64,30 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
     if (!node) return;
 
     let rotation = node.rotation();
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
 
     if (e.evt?.shiftKey) {
       rotation = Math.round(rotation / 45) * 45;
     }
 
-    updateObject(object.id, {
+    const updates: any = {
       rotation: Math.round(rotation)
-    });
+    };
 
+    // Apply final scale if changed
+    if (scaleX !== 1 || scaleY !== 1) {
+      updates.radiusX = Math.round(radiusX * scaleX);
+      updates.radiusY = Math.round(radiusY * scaleY);
+      updates.width = Math.round(radiusX * scaleX * 2);
+      updates.height = Math.round(radiusY * scaleY * 2);
+      
+      // Reset scale
+      node.scaleX(1);
+      node.scaleY(1);
+    }
+
+    updateObject(object.id, updates);
     setTimeout(() => saveHistoryNow(), 300);
   };
 
@@ -91,15 +124,22 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
 
       </Group>
       
-      {/* Transformer for rotation */}
+      {/* Transformer for rotation and resize */}
       {isSelected && (
         <Transformer
           ref={transformerRef}
           rotateEnabled={true}
-          resizeEnabled={false}
-          borderEnabled={false}
+          resizeEnabled={true}
+          borderEnabled={true}
+          borderStroke="#3b82f6"
+          borderStrokeWidth={2}
           anchorSize={8}
+          anchorStroke="#3b82f6"
+          anchorFill="#ffffff"
+          anchorCornerRadius={2}
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          keepRatio={false}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'middle-right', 'bottom-center', 'middle-left']}
         />
       )}
     </>
