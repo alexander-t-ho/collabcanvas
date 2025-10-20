@@ -643,13 +643,16 @@ IMPORTANT RULES:
    - User says "move to 200, -200" (bottom right) → use x: 200, y: 200
    - User says "create at 0, 100" (above center) → use x: 0, y: -100
    - User says "create at 0, -100" (below center) → use x: 0, y: 100
-7b. **LAYERING EXAMPLES**:
-   - "create a square behind the circle" → createShape(square), then changeLayer(square, "back")
-   - "make a circle in front of the square" → createShape(circle), then changeLayer(circle, "front")
-   - "put the circle in front of the square" → changeLayer(circle, "front") if circle exists
-   - "move the square behind the circle" → changeLayer(square, "back") NOT moveShape
-   - "put the square on top" → changeLayer(square, "front")
-   - IMPORTANT: "make X in front/behind Y" = CREATE X, then LAYER it. Use TWO function calls.
+7b. **LAYERING EXAMPLES - CRITICAL**:
+   - "make a yellow circle in front of the square" → createShape(circle, yellow) + changeLayer(circle, "front") - TWO CALLS!
+   - "create a square behind the circle" → createShape(square) + changeLayer(square, "back") - TWO CALLS!
+   - "put the circle in front of the square" → changeLayer(circle, "front") if circle exists (ONE CALL)
+   - "move the square behind the circle" → changeLayer(square, "back") NOT moveShape (ONE CALL)
+   - CRITICAL: When user says "make/create X in front/behind Y":
+     * ALWAYS call createShape FIRST to create X
+     * THEN call changeLayer to position it
+     * This is TWO separate function calls in your response
+     * DO NOT skip either step!
 8. **RELATIVE SIZING**: 
    - "make X bigger by Y" → look at recent objects to find X's current size, add Y
    - "make X smaller by Y" → find at current size, subtract Y
