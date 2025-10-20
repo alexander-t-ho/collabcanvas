@@ -176,6 +176,10 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
     
+    // Save history BEFORE adding new object
+    console.log('➕ ADD_OBJECT: Saving history before adding...');
+    await saveHistoryNow();
+    
     const newObject: CanvasObject = {
       ...object,
       id: generateId(),
@@ -187,12 +191,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const objectRef = doc(db, 'canvases', CANVAS_ID, 'objects', newObject.id);
       await setDoc(objectRef, newObject);
       
+      console.log('✅ ADD_OBJECT: Object added');
+      
       // Let realtime sync update the local state
-      // History will be saved by the debounced function
     } catch (error) {
-      console.error('Error adding object:', error);
+      console.error('❌ ADD_OBJECT Error:', error);
     }
-  }, [currentUser]);
+  }, [currentUser, saveHistoryNow]);
 
   const updateObject = useCallback(async (id: string, updates: Partial<CanvasObject>) => {
     if (!currentUser) return;
