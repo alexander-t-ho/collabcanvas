@@ -94,7 +94,28 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
             min="3"
             max="64"
             value={sides}
-            onChange={(e) => setSides(Math.max(3, Math.min(64, parseInt(e.target.value) || 3)))}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || value === '0') {
+                setSides(3); // Default to 3 only if empty or 0
+              } else {
+                const num = parseInt(value);
+                if (!isNaN(num)) {
+                  setSides(num); // Allow any number, will clamp on create
+                }
+              }
+            }}
+            onBlur={(e) => {
+              // Clamp on blur and reset border color
+              const clamped = Math.max(3, Math.min(64, sides));
+              if (clamped !== sides) {
+                setSides(clamped);
+              }
+              e.currentTarget.style.borderColor = '#d1d5db';
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#ec4899';
+            }}
             autoFocus
             style={{
               width: '100%',
@@ -105,12 +126,6 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
               boxSizing: 'border-box',
               outline: 'none',
               transition: 'border-color 0.2s'
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#ec4899';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = '#d1d5db';
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

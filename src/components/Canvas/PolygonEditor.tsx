@@ -106,7 +106,19 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
             min="3"
             max="64"
             value={sides}
-            onChange={(e) => handleSidesChange(parseInt(e.target.value) || 3)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '') return; // Allow empty for editing
+              const num = parseInt(value);
+              if (!isNaN(num)) {
+                handleSidesChange(num);
+              }
+            }}
+            onBlur={() => {
+              // Clamp on blur if out of range
+              if (sides < 3) handleSidesChange(3);
+              if (sides > 64) handleSidesChange(64);
+            }}
             style={{
               width: '100%',
               padding: '8px',
@@ -140,7 +152,18 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
             type="number"
             min="10"
             value={Math.round(baseSideLength)}
-            onChange={(e) => handleBaseSideLengthChange(parseInt(e.target.value) || 100)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '') return; // Allow empty for editing
+              const num = parseInt(value);
+              if (!isNaN(num)) {
+                handleBaseSideLengthChange(num);
+              }
+            }}
+            onBlur={() => {
+              // Ensure minimum on blur
+              if (baseSideLength < 10) handleBaseSideLengthChange(10);
+            }}
             style={{
               width: '100%',
               padding: '8px',
