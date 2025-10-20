@@ -377,7 +377,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     // Also skip if undo/redo happened recently
     const timeSinceLastUndoRedo = Date.now() - lastUndoRedoTime.current;
-    if (timeSinceLastUndoRedo < 2000) {
+    if (timeSinceLastUndoRedo < 3000) {
       console.log('⏸️ REALTIME SYNC: Skipping update (recent undo/redo -', timeSinceLastUndoRedo, 'ms ago)');
       return;
     }
@@ -390,15 +390,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       console.log('🔄 REALTIME SYNC: Updating objects from Firestore');
       
-      // Save to history after objects update from realtime sync
-      // This captures changes from other users
-      if (!isUndoRedo) {
-        saveToHistory(newObjects);
-      }
+      // DON'T save to history from realtime sync - only save from user actions
+      // This prevents the undo-redo loop
       
       return newObjects;
     });
-  }, [isUndoRedo, saveToHistory]);
+  }, [isUndoRedo]);
 
   // Undo function - collaborative version
   const undo = useCallback(async () => {

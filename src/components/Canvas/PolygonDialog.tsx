@@ -53,62 +53,27 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const createHeart = () => {
     if (!currentUser) return;
     
-    // Create heart using polygon with many vertices for ultra-smooth curves
-    const heartVertices: Array<{ x: number; y: number }> = [];
-    
-    // Generate smooth heart curve using parametric equations
-    // Left lobe (top left curve)
-    for (let i = 0; i <= 10; i++) {
-      const t = i / 10;
-      const angle = Math.PI * (1 - t * 0.5); // From PI to PI/2
-      const radius = 40;
-      const offsetX = -35;
-      heartVertices.push({
-        x: offsetX + Math.cos(angle) * radius,
-        y: -50 + Math.sin(angle) * radius
-      });
-    }
-    
-    // Left bottom curve to point
-    for (let i = 1; i <= 12; i++) {
-      const t = i / 12;
-      const x = -35 + t * 35; // -35 to 0
-      const y = -10 + t * 75; // -10 to 65
-      heartVertices.push({ x, y });
-    }
-    
-    // Right bottom curve from point
-    for (let i = 1; i <= 12; i++) {
-      const t = i / 12;
-      const x = t * 35; // 0 to 35
-      const y = 65 - t * 75; // 65 to -10
-      heartVertices.push({ x, y });
-    }
-    
-    // Right lobe (top right curve)
-    for (let i = 0; i <= 10; i++) {
-      const t = i / 10;
-      const angle = Math.PI / 2 + t * Math.PI * 0.5; // From PI/2 to PI
-      const radius = 40;
-      const offsetX = 35;
-      heartVertices.push({
-        x: offsetX + Math.cos(angle) * radius,
-        y: -50 + Math.sin(angle) * radius
-      });
-    }
-    
-    // Top dip (connect right to left)
-    heartVertices.push({ x: 0, y: -60 });
+    // Simple heart with just 10 vertices - clean and recognizable
+    const heartVertices: Array<{ x: number; y: number }> = [
+      { x: 0, y: -50 },      // Top center
+      { x: -50, y: -70 },    // Left top bulge
+      { x: -70, y: -30 },    // Left side
+      { x: -50, y: 10 },     // Left bottom
+      { x: 0, y: 50 },       // Bottom point
+      { x: 50, y: 10 },      // Right bottom
+      { x: 70, y: -30 },     // Right side  
+      { x: 50, y: -70 }      // Right top bulge
+    ];
     
     addObject({
       type: 'polygon',
       x: 0,
       y: 0,
-      width: 150,
-      height: 130,
+      width: 140,
+      height: 120,
       fill: '#FF1493',
-      sides: heartVertices.length,
-      sideLength: 10,
+      sides: 8,
+      sideLength: 50,
       customVertices: heartVertices,
       nickname: 'Heart',
       zIndex: 0,
