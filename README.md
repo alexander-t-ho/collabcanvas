@@ -1,161 +1,193 @@
-# CollabCanvas
+# CollabCanvas 🎨
 
-A real-time collaborative canvas application built with React, TypeScript, and Firebase.
+A real-time collaborative canvas application with AI-powered design assistance. Built with React, TypeScript, Firebase, and OpenAI GPT-4.
 
-🚀 **Live Demo**: [https://collabcanvas-five.vercel.app](https://collabcanvas-five.vercel.app)
+🚀 **Live Demo**: [https://collabcanvas-6y555l93x-alexander-hos-projects.vercel.app](https://collabcanvas-6y555l93x-alexander-hos-projects.vercel.app)
 
-## 🎯 Features
+---
 
-### Core Functionality
-- **Real-time Collaboration**: See other users' cursors and edits in real-time
-- **Online Status**: View who's currently online with Google Docs-style presence indicators
-- **User Authentication**: Secure email/password authentication with Firebase Auth
-- **User Profiles**: Customizable display names, profile photos, and password management
+## ✨ Features
 
-### Canvas Tools
-- **Infinite Canvas**: Pan and zoom with dynamic grid pattern
-- **Shape Creation**:
-  - Rectangles with customizable corner radius
-  - Circles with adjustable radius
-  - Lines with curved/straight options
-  - Image imports with drag-and-drop support
+### 🤖 AI Agent (NEW!)
+- **Natural Language Canvas Manipulation**: Create and edit shapes using conversational commands
+- **10+ Command Types**: Create, move, resize, rotate, layer, arrange, group, delete
+- **Smart Shapes**: AI can create clouds, stars, suns, castles, smiley faces, fish, and more
+- **Image Analysis**: Upload designs and AI recreates them on canvas
+- **Contextual Suggestions**: AI suggests next steps after each action
+- **Preview System**: Review complex operations before execution (3+ objects)
+- **Progress Tracking**: Real-time progress bar for large operations
 
-### Shape Editing
-- **Transform Controls**: Resize, rotate, and position shapes
-- **Property Editors**: Dedicated panels for each shape type
-  - Color picker with hex code input
-  - Rotation controls (degrees)
-  - Corner radius sliders (rectangles and images)
-  - Line thickness controls
-  - Size adjustments (width, height, radius, length)
-- **Visual Effects**:
-  - Drop shadows with prominence controls
-  - Z-index layering (move forward/backward)
-  - Custom nicknames for all shapes
-- **Alignment Guides**: Visual cues when aligning objects (within 100px)
+### 🎨 Shape Tools
+- **Basic Shapes**: Rectangles, circles, ellipses
+- **Advanced Shapes**: 
+  - **Polygons** (3-64 sides) with customizable vertices
+  - **Stars** (preset 5-point with custom vertices)
+  - **Hearts** (35-vertex smooth curves)
+- **Lines**: Straight or curved with draggable control points
+- **Text**: Fully customizable with font controls
+- **Images**: Upload and display with compression
 
-### Advanced Line Features
-- **Interactive Drawing**: Click-to-draw with real-time preview
-- **Curved Lines**: Drag control point to create arcs
-- **Endpoint Control**: Individual endpoint manipulation
-- **Line Body Dragging**: Click line body to move entire line
+### 🔧 Editing Capabilities
+- **Transform Tools**: Resize, rotate, move all shapes
+- **Visual Bounding Boxes**: 8-handle resize controls
+- **Rotation with Shift-Snap**: Hold shift for 45° increments
+- **Custom Vertices**: Drag polygon points to create custom shapes
+- **Circle ↔ Ellipse**: Convert between circles and ellipses
+- **Alignment Guides**: Snap to other objects and X/Y axes
+- **Z-Index Layering**: Bring to front, send to back
+- **Grouping**: Combine multiple objects into groups
 
-### Image Features
-- **Instant Upload**: Fast image loading with compression
-- **Permanent Storage**: Images persist across sessions
-- **Corner Radius**: Round image corners like rectangles
-- **Cross-User Visibility**: All users see uploaded images in real-time
+### 🎨 Advanced Features
+- **Shape Dropdown**: Organized menu for all shape types
+- **Export Dropdown**: PNG images or React/CSS code
+- **Undo/Redo**: Comprehensive history system (infinite undo)
+- **Grid System**: Origin-centered coordinate system (press R to reset)
+- **Real-time Chat**: Team messaging with AI mode toggle
+- **Multi-Select**: Shift+drag to select multiple objects
+- **Duplicate**: Clone any object
+
+### 👥 Collaboration
+- **Real-time Cursors**: See collaborators' mouse positions
+- **Online Presence**: Google Docs-style user indicators
+- **Shared AI**: All users see AI-generated content instantly
+- **Collaborative Undo/Redo**: Synced history across users
+
+---
+
+## 🤖 AI Commands
+
+### Creation
+```
+"Make a red circle"
+"Create a blue rectangle"
+"Draw a 5-point star"
+"Make a smiley face"
+```
+
+### Manipulation
+```
+"Move the square to 200, 200"
+"Resize the circle to 150, 150"
+"Rotate the star 45 degrees"
+"Make it twice as big"
+```
+
+### Layering
+```
+"Put the circle in front of the square"
+"Send the rectangle to the back"
+"Bring the star forward"
+```
+
+### Layout
+```
+"Arrange these shapes horizontally"
+"Create a 3x3 grid of circles"
+"Space them evenly"
+```
+
+### Complex Shapes
+```
+"Draw a sun"
+"Make a castle"
+"Create a smiley face"
+"Build a fish"
+"Draw a cloud"
+```
+
+### Advanced
+```
+"Create a login form"
+"Build a navigation bar with 4 items"
+"Make a card layout"
+"Group all the shapes together"
+```
+
+---
 
 ## 🏗️ Architecture
 
-### Frontend
+### Frontend Stack
+- **React 18** with TypeScript
+- **Konva.js** for canvas rendering
+- **React-Konva** for React integration
+- **OpenAI GPT-4** for AI agent
+- **Inline CSS** with modern design system
+
+### Backend (Firebase)
+- **Authentication**: Email/password with user management
+- **Firestore**: Canvas objects with real-time sync
+- **Realtime Database**: Undo/redo history and user presence
+- **Storage**: Image file storage
+- **Security Rules**: Scoped permissions for all collections
+
+### Project Structure
 ```
 src/
 ├── components/
 │   ├── Auth/
-│   │   └── Login.tsx              # Authentication UI
+│   │   └── Login.tsx
 │   ├── Canvas/
-│   │   ├── Canvas.tsx              # Main canvas with Konva
-│   │   ├── CanvasObject.tsx        # Renders individual objects
-│   │   ├── Toolbar.tsx             # Top toolbar with tools and status
-│   │   ├── InteractiveLine.tsx     # Line component with control points
-│   │   ├── BaseEditor.tsx          # Shared editor controls
-│   │   ├── RectangleEditor.tsx     # Rectangle-specific controls
-│   │   ├── CircleEditor.tsx        # Circle-specific controls
-│   │   ├── LineEditor.tsx          # Line-specific controls
-│   │   ├── ImageEditor.tsx         # Image-specific controls
-│   │   ├── ImageImport.tsx         # Image upload modal
-│   │   └── UserProfileDropdown.tsx # User profile management
+│   │   ├── Canvas.tsx              # Main canvas
+│   │   ├── CanvasObject.tsx        # Standard shapes
+│   │   ├── PolygonShape.tsx        # Polygon rendering
+│   │   ├── EllipseShape.tsx        # Ellipse rendering
+│   │   ├── InteractiveLine.tsx     # Line with control points
+│   │   ├── Toolbar.tsx             # Main toolbar
+│   │   ├── ShapeDropdown.tsx       # Shape creation menu
+│   │   ├── ExportDropdown.tsx      # Export options
+│   │   ├── ChatWindow.tsx          # AI chat interface
+│   │   ├── BaseEditor.tsx          # Common editing controls
+│   │   ├── PolygonEditor.tsx       # Polygon properties
+│   │   ├── EllipseEditor.tsx       # Ellipse properties
+│   │   ├── PolygonDialog.tsx       # Polygon creation dialog
+│   │   ├── ExportCode.tsx          # Code export modal
+│   │   └── ...other editors
 │   └── Collaboration/
-│       ├── CursorOverlay.tsx       # Other users' cursors
-│       └── RemoteCursor.tsx        # Individual cursor component
+│       ├── CursorOverlay.tsx
+│       └── RemoteCursor.tsx
 ├── contexts/
-│   ├── AuthContext.tsx             # Authentication state
-│   ├── CanvasContext.tsx           # Canvas objects and operations
-│   └── UserProfileContext.tsx      # User profile management
+│   ├── AuthContext.tsx
+│   ├── CanvasContext.tsx
+│   └── UserProfileContext.tsx
 ├── hooks/
-│   ├── usePresence.ts              # Online user tracking
-│   ├── useCursorSync.ts            # Cursor position sync
-│   └── useRealtimeSync.ts          # Firestore object sync
+│   ├── usePresence.ts
+│   ├── useCursorSync.ts
+│   ├── useRealtimeSync.ts
+│   └── useMessageSync.ts
+├── services/
+│   └── aiService.ts                # OpenAI integration
 ├── types/
-│   └── index.ts                    # TypeScript interfaces
+│   └── index.ts
 └── utils/
-    ├── colors.ts                   # Color generation utilities
-    └── helpers.ts                  # Helper functions
+    ├── colors.ts
+    ├── helpers.ts
+    └── exportCode.ts
 ```
 
-### Backend (Firebase)
-- **Firebase Authentication**: Email/password auth with user management
-- **Firestore Database**: Canvas objects storage with real-time sync
-- **Realtime Database**: User presence and cursor positions
-- **Firebase Storage**: Image file storage (optional for large images)
-
-### Data Models
-
-#### CanvasObject
-```typescript
-{
-  id: string;
-  type: 'rectangle' | 'circle' | 'line' | 'image';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  fill: string;
-  rotation?: number;
-  nickname?: string;
-  zIndex?: number;
-  shadow?: boolean;
-  cornerRadius?: number;        // For rectangles and images
-  x2?: number;                  // Line endpoint
-  y2?: number;                  // Line endpoint
-  strokeWidth?: number;         // Line thickness
-  controlX?: number;            // Curve control point
-  controlY?: number;            // Curve control point
-  curved?: boolean;             // Line curvature flag
-  src?: string;                 // Image data URL
-}
-```
-
-#### PresenceData
-```typescript
-{
-  userId: string;
-  name: string;
-  color: string;
-  online: boolean;
-  lastSeen: number;
-}
-```
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
-- Firebase project with:
-  - Authentication enabled (Email/Password)
-  - Firestore Database
-  - Realtime Database
-  - Storage (optional)
+- Node.js (v14+)
+- Firebase project with Auth, Firestore, Realtime DB
+- OpenAI API key (for AI features)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and install**
 ```bash
 git clone https://github.com/alexander-t-ho/collabcanvas.git
 cd collabcanvas
-```
-
-2. **Install dependencies**
-```bash
 npm install
 ```
 
-3. **Configure Firebase**
+2. **Configure environment variables**
 
-Create a `.env.local` file in the root directory:
+Create `.env.local`:
 ```env
+# Firebase
 REACT_APP_FIREBASE_API_KEY=your_api_key
 REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
@@ -163,80 +195,178 @@ REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 REACT_APP_FIREBASE_APP_ID=your_app_id
 REACT_APP_FIREBASE_DATABASE_URL=https://your_project.firebaseio.com
+
+# OpenAI (for AI features)
+REACT_APP_OPENAI_API_KEY=your_openai_key
 ```
 
-4. **Deploy Firebase Rules**
-
-Deploy Firestore rules:
+3. **Deploy Firebase rules**
 ```bash
-firebase deploy --only firestore
-```
-
-Deploy Realtime Database rules:
-```bash
+firebase deploy --only firestore:rules
 firebase deploy --only database
 ```
 
-5. **Run the development server**
+4. **Run development server**
 ```bash
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
 ### Production Deployment
 
-Deploy to Vercel:
 ```bash
+npm run build
 vercel --prod
 ```
 
-Ensure all Firebase environment variables are configured in Vercel:
-- Go to your Vercel project settings
-- Add all `REACT_APP_FIREBASE_*` variables
-- Redeploy
+---
 
-## 🎨 Usage
+## 🎯 Key Features Explained
 
-### Creating Shapes
-1. Click toolbar buttons to add rectangles, circles, or images
-2. Click "Draw Line" and click twice on canvas to create a line
-3. Click "Import Image" to upload images (drag-and-drop or file browser)
+### Polygon Tool
+- Create any polygon from 3 to 64 sides
+- Preset templates: Triangle, Square, Pentagon, Hexagon, Octagon, Star ⭐, Heart ❤️
+- Drag vertices to create custom shapes
+- Edit individual side lengths
+- Full transform controls (rotate, resize, layer)
 
-### Editing Shapes
-1. Click any shape to select it
-2. Edit panel appears on the left with controls:
-   - Nickname, color, rotation, shadow
-   - Shape-specific properties (corner radius, thickness, etc.)
-   - Duplicate and delete buttons
-   - Z-index controls (move forward/backward)
+### Ellipse Tool
+- Convert any circle to ellipse
+- Independent horizontal/vertical radius control
+- Convert back to circle
+- Same editing capabilities as all shapes
 
-### Line Editing
-- **Drag blue endpoints**: Move line endpoints independently
-- **Drag green/red control point**: Create curved lines (arcs)
-- **Click line body**: Move entire line
+### AI Agent
+- **GPT-4 Powered**: Natural language understanding
+- **Function Calling**: Precise canvas manipulation
+- **100 Object Limit**: Can create up to 100 objects per command
+- **Conversation Memory**: Remembers context for follow-up commands
+- **Smart Positioning**: Understands "next to", "behind", "in front of"
+- **Auto-Grouping**: Complex shapes automatically grouped
 
-### Collaboration
-- See other users' cursors in real-time
-- Online status shows active collaborators with colored circles
-- All edits sync instantly across all users
+### Undo/Redo System
+- Infinite undo (no limit)
+- Tracks every action individually
+- Works across all object types
+- Collaborative (synced across users)
+- Debug logging for transparency
 
-## 🔧 Technical Stack
+---
 
-- **Frontend**: React 18, TypeScript
-- **Canvas Rendering**: Konva.js, React-Konva
-- **Backend**: Firebase (Auth, Firestore, Realtime Database, Storage)
-- **Deployment**: Vercel
-- **Styling**: Inline CSS with modern design system
+## 📚 Documentation
 
-## 📝 License
+- **AI Agent Guide**: See `AI_AGENT_IMPLEMENTATION.md`
+- **Testing Guide**: See `AI_TESTING_GUIDE.md`
+- **Firebase Rules**: See `FIREBASE_RULES.md`
 
-This project was created as part of a Gauntlet AI project.
+---
 
-## 🤝 Contributing
+## 🎨 Custom Shapes Available
 
-This is a private project for demonstration purposes.
+**AI can create these instantly**:
+- ☁️ Cloud
+- ☀️ Sun
+- ⭐ Star (3-64 points)
+- 🏰 Castle
+- 😊 Smiley Face
+- 🐟 Fish
+- ❤️ Heart
 
-## 📞 Support
+**AI can decompose and create any shape using basic components**:
+- Trees, houses, cars, robots, rockets, flowers, etc.
 
-For issues or questions, please open an issue on GitHub.
+---
+
+## 🔑 Keyboard Shortcuts
+
+- **Ctrl/Cmd + Z**: Undo
+- **Ctrl/Cmd + Y**: Redo
+- **Delete/Backspace**: Delete selected object(s)
+- **Enter**: Confirm line placement (when drawing)
+- **Escape**: Cancel line drawing
+- **R**: Reset view to origin
+- **Shift + Rotate**: Snap to 45° angles
+
+---
+
+## 🌟 Recent Updates
+
+### Latest Release
+- ✅ Polygon tool with customizable vertices
+- ✅ Ellipse shapes with conversion from circles
+- ✅ Star and Heart presets
+- ✅ Fish template
+- ✅ Improved undo system (infinite undo)
+- ✅ AI understanding of layering and positioning
+- ✅ Shape and Export dropdowns (cleaner UI)
+- ✅ Comprehensive debug logging
+- ✅ Fixed Firestore permission errors
+
+---
+
+## 🐛 Known Issues
+
+- Angle editing for polygons: Work in progress (see `angle-feature` branch)
+- Undo may require 2-3 second wait between rapid clicks
+
+---
+
+## 🛠️ Development
+
+### Branches
+- `main`: Production-ready code
+- `test`: Active development and testing
+- `features`: Experimental polygon features
+- `angle-feature`: Polygon angle editing (WIP)
+- `undo`: Undo system debugging
+
+### Running Tests
+```bash
+npm test
+```
+
+### Building for Production
+```bash
+npm run build
+```
+
+---
+
+## 📊 Project Stats
+
+- **Lines of Code**: 10,000+
+- **Components**: 30+
+- **AI Functions**: 12
+- **Custom Shapes**: 6+ templates
+- **Supported Polygon Sides**: 3-64
+- **Max Objects per AI Command**: 100
+
+---
+
+## 🙏 Credits
+
+Built by Alexander Ho for the Gauntlet AI project.
+
+**Technologies**:
+- React & TypeScript
+- Firebase Suite
+- OpenAI GPT-4
+- Konva.js
+- Vercel
+
+---
+
+## 📄 License
+
+This project is for educational and demonstration purposes.
+
+---
+
+## 🔗 Links
+
+- **Live App**: https://collabcanvas-6y555l93x-alexander-hos-projects.vercel.app
+- **GitHub**: https://github.com/alexander-t-ho/collabcanvas
+- **Documentation**: See `/docs` folder
+
+---
+
+**Made with ❤️ and powered by AI** 🤖✨
