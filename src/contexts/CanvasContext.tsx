@@ -53,7 +53,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isUndoRedo, setIsUndoRedo] = useState(false);
   const historyIndexRef = useRef(0);
   const saveHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const undoLockRef = useRef(false); // Prevent rapid undo/redo clicks
   const lastUndoRedoTime = useRef(0); // Track when last undo/redo happened
   const { currentUser } = useAuth();
 
@@ -129,17 +128,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Remove any history after current index (for redo)
         const newHistory = currentHistory.slice(0, currentIndex + 1);
         // Add new state
-      newHistory.push(JSON.parse(JSON.stringify(newObjects)));
-        // Keep only last 50 states
-      const trimmedHistory = newHistory.slice(-50);
+        newHistory.push(JSON.parse(JSON.stringify(newObjects)));
         
-        console.log('📝 SAVE_HISTORY: New history length:', trimmedHistory.length);
+        // Don't trim - keep all history for better undo
+        console.log('📝 SAVE_HISTORY: New history length:', newHistory.length);
         
         // Save to Firebase
-        await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/history`), trimmedHistory);
+        await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/history`), newHistory);
         
         // Update index
-        const newIndex = trimmedHistory.length - 1;
+        const newIndex = newHistory.length - 1;
         await dbSet(dbRef(rtdb, `canvases/${CANVAS_ID}/historyIndex`), newIndex);
         
         console.log('✅ SAVE_HISTORY: Saved successfully. New index:', newIndex);
@@ -406,12 +404,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const undo = useCallback(async () => {
     console.log('🔄 UNDO CALLED');
     
-    // Check if already processing an undo/redo
-    if (undoLockRef.current) {
-      console.log('🔒 UNDO: Blocked (operation in progress)');
-      return;
-    }
-    
     const currentIndex = historyIndexRef.current;
     
     console.log('📊 UNDO: Current Index:', currentIndex);
@@ -421,8 +413,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
-    // Lock to prevent rapid clicks and record timestamp
-    undoLockRef.current = true;
+    // Record timestamp to block saves
     lastUndoRedoTime.current = Date.now();
     
     try {
@@ -481,22 +472,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
       
-      // Wait for sync to complete, then unlock after a brief delay
+      // Wait for sync to complete
       await syncToFirestore();
       
-      // Brief delay to ensure Firestore changes propagate
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Now unlock and clear flag
+      // Clear flag
       setIsUndoRedo(false);
-      undoLockRef.current = false;
-      console.log('🔓 UNDO: Unlocked (sync complete)');
-      
       console.log('✅ UNDO: Complete');
     } catch (error) {
       console.error('❌ UNDO: Error:', error);
       setIsUndoRedo(false);
-      undoLockRef.current = false; // Unlock on error
     }
   }, [objects, clearSelection]);
 
@@ -504,18 +488,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const redo = useCallback(async () => {
     console.log('🔄 REDO CALLED');
     
-    // Check if already processing an undo/redo
-    if (undoLockRef.current) {
-      console.log('🔒 REDO: Blocked (operation in progress)');
-      return;
-    }
-    
     const currentIndex = historyIndexRef.current;
     
     console.log('📊 REDO: Current Index:', currentIndex);
     
-    // Lock to prevent rapid clicks and record timestamp
-    undoLockRef.current = true;
+    // Record timestamp to block saves
     lastUndoRedoTime.current = Date.now();
     
     try {
@@ -569,22 +546,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
       
-      // Wait for sync to complete, then unlock after a brief delay
+      // Wait for sync to complete
       await syncToFirestore();
       
-      // Brief delay to ensure Firestore changes propagate
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Now unlock and clear flag
+      // Clear flag
       setIsUndoRedo(false);
-      undoLockRef.current = false;
-      console.log('🔓 REDO: Unlocked (sync complete)');
-      
       console.log('✅ REDO: Complete');
     } catch (error) {
       console.error('❌ REDO: Error:', error);
       setIsUndoRedo(false);
-      undoLockRef.current = false; // Unlock on error
     }
   }, [objects, clearSelection]);
 
