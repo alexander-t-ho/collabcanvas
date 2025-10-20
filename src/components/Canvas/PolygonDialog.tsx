@@ -53,27 +53,39 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const createHeart = () => {
     if (!currentUser) return;
     
-    // Simple heart with just 10 vertices - clean and recognizable
+    // Smooth heart with 20 vertices
     const heartVertices: Array<{ x: number; y: number }> = [
-      { x: 0, y: -50 },      // Top center
-      { x: -50, y: -70 },    // Left top bulge
-      { x: -70, y: -30 },    // Left side
-      { x: -50, y: 10 },     // Left bottom
-      { x: 0, y: 50 },       // Bottom point
-      { x: 50, y: 10 },      // Right bottom
-      { x: 70, y: -30 },     // Right side  
-      { x: 50, y: -70 }      // Right top bulge
+      { x: 0, y: -50 },       // Top center dip
+      { x: -20, y: -65 },     // Left start curve
+      { x: -40, y: -75 },     // Left top curve
+      { x: -60, y: -70 },     // Left top outer
+      { x: -75, y: -50 },     // Left outer peak
+      { x: -75, y: -30 },     // Left side high
+      { x: -70, y: -10 },     // Left side mid
+      { x: -60, y: 5 },       // Left side low
+      { x: -45, y: 20 },      // Left bottom curve start
+      { x: -25, y: 35 },      // Left to point
+      { x: 0, y: 50 },        // Bottom point
+      { x: 25, y: 35 },       // Right from point
+      { x: 45, y: 20 },       // Right bottom curve start
+      { x: 60, y: 5 },        // Right side low
+      { x: 70, y: -10 },      // Right side mid
+      { x: 75, y: -30 },      // Right side high
+      { x: 75, y: -50 },      // Right outer peak
+      { x: 60, y: -70 },      // Right top outer
+      { x: 40, y: -75 },      // Right top curve
+      { x: 20, y: -65 }       // Right start curve
     ];
     
     addObject({
       type: 'polygon',
       x: 0,
       y: 0,
-      width: 140,
+      width: 150,
       height: 120,
       fill: '#FF1493',
-      sides: 8,
-      sideLength: 50,
+      sides: 20,
+      sideLength: 20,
       customVertices: heartVertices,
       nickname: 'Heart',
       zIndex: 0,
