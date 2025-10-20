@@ -48,6 +48,7 @@ export interface CanvasObject {
   sides?: number; // Number of sides (3-64)
   sideLength?: number; // Base side length (default for all sides)
   customSideLengths?: number[]; // Custom length for each side (overrides sideLength)
+  customAngles?: number[]; // Custom interior angles for each vertex (in degrees)
   selectedSide?: number; // Index of currently selected side for editing (0-based)
   customVertices?: Array<{ x: number; y: number }>; // Custom vertex positions for free-form shapes
   // Ellipse-specific properties

@@ -25,6 +25,7 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
   const sides = object.sides || 3;
   const baseSideLength = object.sideLength || 100;
   const customLengths = object.customSideLengths || [];
+  const customAngles = object.customAngles || [];
   const customVertices = object.customVertices || [];
   const selectedSide = object.selectedSide;
 
@@ -67,6 +68,43 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
     // If custom vertices exist, use them
     if (customVertices.length === sides) {
       return customVertices.map((v, i) => ({ ...v, index: i }));
+    }
+    
+    // If custom angles exist, calculate vertices from angles and side lengths
+    if (customAngles.length === sides) {
+      const vertices: Array<{ x: number; y: number; index: number }> = [];
+      let currentX = 0;
+      let currentY = 0;
+      let currentAngle = 0; // Start pointing right
+      
+      // Start from first vertex
+      vertices.push({ x: 0, y: 0, index: 0 });
+      
+      for (let i = 0; i < sides; i++) {
+        const sideLen = customLengths[i] || baseSideLength;
+        const interiorAngle = customAngles[i] * (Math.PI / 180);
+        
+        // Move along current direction by side length
+        currentX += Math.cos(currentAngle) * sideLen;
+        currentY += Math.sin(currentAngle) * sideLen;
+        
+        if (i < sides - 1) {
+          vertices.push({ x: currentX, y: currentY, index: i + 1 });
+        }
+        
+        // Turn by exterior angle (180° - interior angle)
+        currentAngle += Math.PI - interiorAngle;
+      }
+      
+      // Center the polygon
+      const centerX = vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length;
+      const centerY = vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length;
+      
+      return vertices.map(v => ({
+        x: v.x - centerX,
+        y: v.y - centerY,
+        index: v.index
+      }));
     }
     
     // Otherwise use regular polygon calculation

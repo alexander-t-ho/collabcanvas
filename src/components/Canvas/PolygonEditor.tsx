@@ -10,11 +10,16 @@ interface Props {
 const PolygonEditor: React.FC<Props> = ({ object }) => {
   const { updateObject } = useCanvas();
   const [showSideEditor, setShowSideEditor] = useState(false);
+  const [showAngleEditor, setShowAngleEditor] = useState(false);
 
   const sides = object.sides || 3;
   const baseSideLength = object.sideLength || 100;
   const customLengths = object.customSideLengths || [];
+  const customAngles = object.customAngles || [];
   const selectedSide = object.selectedSide;
+  
+  // Calculate default angle for regular polygon
+  const defaultAngle = ((sides - 2) * 180) / sides;
 
   const handleSidesChange = (newSides: number) => {
     // Clamp between 3 and 64
@@ -55,6 +60,32 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
     
     updateObject(object.id, {
       customSideLengths: allDefault ? [] : newCustomLengths
+    });
+  };
+
+  const handleAngleChange = (angleIndex: number, angle: number) => {
+    const newCustomAngles = customAngles.length > 0 
+      ? [...customAngles]
+      : Array(sides).fill(defaultAngle);
+    
+    newCustomAngles[angleIndex] = Math.max(1, Math.min(179, angle));
+    
+    updateObject(object.id, {
+      customAngles: newCustomAngles
+    });
+  };
+
+  const handleResetAngle = (angleIndex: number) => {
+    if (customAngles.length === 0) return;
+    
+    const newCustomAngles = [...customAngles];
+    newCustomAngles[angleIndex] = defaultAngle;
+    
+    // Check if all are back to default
+    const allDefault = newCustomAngles.every(a => Math.abs(a - defaultAngle) < 0.1);
+    
+    updateObject(object.id, {
+      customAngles: allDefault ? [] : newCustomAngles
     });
   };
 
@@ -305,6 +336,134 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
           </button>
         )}
 
+        {/* Angle Editor */}
+        <button
+          onClick={() => setShowAngleEditor(!showAngleEditor)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: showAngleEditor ? '#3b82f6' : '#f3f4f6',
+            color: showAngleEditor ? 'white' : '#6b7280',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            marginTop: '12px',
+            marginBottom: showAngleEditor ? '12px' : '0',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {showAngleEditor ? '▼' : '▶'} Edit Interior Angles
+        </button>
+
+        {showAngleEditor && (
+          <div style={{
+            maxHeight: '200px',
+            overflowY: 'auto',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            padding: '8px'
+          }}>
+            <p style={{ 
+              margin: '0 0 8px 0', 
+              fontSize: '10px', 
+              color: '#9ca3af'
+            }}>
+              Interior angles at each vertex (sum must equal {(sides - 2) * 180}°):
+            </p>
+            
+            {Array.from({ length: sides }).map((_, idx) => {
+              const currentAngle = customAngles[idx] || defaultAngle;
+              
+              return (
+                <div 
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '6px',
+                    padding: '6px',
+                    background: 'transparent',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <span style={{ 
+                    fontSize: '11px', 
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    minWidth: '60px'
+                  }}>
+                    Angle {idx + 1}:
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="179"
+                    value={Math.round(currentAngle)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') return;
+                      const num = parseInt(value);
+                      if (!isNaN(num)) {
+                        handleAngleChange(idx, num);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '4px 6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>°</span>
+                  {customAngles[idx] && Math.abs(customAngles[idx] - defaultAngle) > 0.1 && (
+                    <button
+                      onClick={() => handleResetAngle(idx)}
+                      style={{
+                        padding: '4px 8px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        cursor: 'pointer'
+                      }}
+                      title="Reset to default"
+                    >
+                      ↻
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {customAngles.length > 0 && (
+          <button
+            onClick={() => updateObject(object.id, { customAngles: [] })}
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              marginTop: '8px'
+            }}
+          >
+            Reset All Angles to Default
+          </button>
+        )}
+
         {object.customVertices && object.customVertices.length > 0 && (
           <button
             onClick={() => updateObject(object.id, { customVertices: [] })}
@@ -331,7 +490,7 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
           color: '#9ca3af',
           fontStyle: 'italic'
         }}>
-          💡 Tip: Drag vertices on the canvas to create custom shapes
+          💡 Tip: Angles determine vertex positions. Right triangle: 90°, 45°, 45°
         </p>
       </div>
     </BaseEditor>
