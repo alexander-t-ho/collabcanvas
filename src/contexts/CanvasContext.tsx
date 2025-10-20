@@ -53,6 +53,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isUndoRedo, setIsUndoRedo] = useState(false);
   const historyIndexRef = useRef(0);
   const saveHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const undoLockRef = useRef(false); // Prevent rapid undo/redo clicks
   const { currentUser } = useAuth();
 
   // Listen to history index changes from Firebase
@@ -375,6 +376,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const undo = useCallback(async () => {
     console.log('🔄 UNDO CALLED');
     
+    // Check if already processing an undo/redo
+    if (undoLockRef.current) {
+      console.log('🔒 UNDO: Blocked (operation in progress)');
+      return;
+    }
+    
     const currentIndex = historyIndexRef.current;
     
     console.log('📊 UNDO: Current Index:', currentIndex);
@@ -383,6 +390,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('⚠️ UNDO: No history available (at index 0)');
       return;
     }
+    
+    // Lock to prevent rapid clicks
+    undoLockRef.current = true;
     
     try {
       // Get history from Firebase
@@ -442,23 +452,39 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       syncToFirestore().then(() => {
         // Clear flag after all syncing completes
-        setTimeout(() => setIsUndoRedo(false), 1000);
+        setTimeout(() => {
+          setIsUndoRedo(false);
+          undoLockRef.current = false; // Unlock after completion
+          console.log('🔓 UNDO: Unlocked');
+        }, 1000);
       });
       
-      // console.log('UNDO: Complete');
+      console.log('✅ UNDO: Complete');
     } catch (error) {
-      // console.error('UNDO: Error:', error);
+      console.error('❌ UNDO: Error:', error);
       setIsUndoRedo(false);
+      undoLockRef.current = false; // Unlock on error
     }
   }, [objects, clearSelection]);
 
   // Redo function - collaborative version
   const redo = useCallback(async () => {
-    // console.log('REDO CALLED');
+    console.log('🔄 REDO CALLED');
+    
+    // Check if already processing an undo/redo
+    if (undoLockRef.current) {
+      console.log('🔒 REDO: Blocked (operation in progress)');
+      return;
+    }
     
     const currentIndex = historyIndexRef.current;
     
-    try {
+    console.log('📊 REDO: Current Index:', currentIndex);
+    
+    // Lock to prevent rapid clicks
+    undoLockRef.current = true;
+    
+    try{
       // Get history from Firebase
       const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
       const snapshot = await get(fbHistoryRef);
@@ -511,13 +537,18 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       syncToFirestore().then(() => {
         // Clear flag after all syncing completes
-        setTimeout(() => setIsUndoRedo(false), 1000);
+        setTimeout(() => {
+          setIsUndoRedo(false);
+          undoLockRef.current = false; // Unlock after completion
+          console.log('🔓 REDO: Unlocked');
+        }, 1000);
       });
       
-      // console.log('REDO: Complete');
+      console.log('✅ REDO: Complete');
     } catch (error) {
-      // console.error('REDO: Error:', error);
+      console.error('❌ REDO: Error:', error);
       setIsUndoRedo(false);
+      undoLockRef.current = false; // Unlock on error
     }
   }, [objects, clearSelection]);
 

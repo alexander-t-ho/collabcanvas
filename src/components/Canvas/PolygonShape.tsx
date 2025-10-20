@@ -175,6 +175,26 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
       const snappedRotation = Math.round(rotation / 45) * 45;
       node.rotation(snappedRotation);
     }
+    
+    // Get scale
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    
+    // Update sideLength based on scale
+    if (scaleX !== 1 || scaleY !== 1) {
+      const avgScale = (scaleX + scaleY) / 2;
+      const newSideLength = baseSideLength * avgScale;
+      
+      updateObject(object.id, {
+        sideLength: Math.round(newSideLength),
+        width: object.width * scaleX,
+        height: object.height * scaleY
+      });
+      
+      // Reset scale to 1 to prevent compound scaling
+      node.scaleX(1);
+      node.scaleY(1);
+    }
   };
 
   const handleTransformEnd = (e: any) => {
@@ -182,16 +202,39 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
     if (!node) return;
 
     let rotation = node.rotation();
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
 
     // Apply shift-snap for final rotation
     if (e.evt?.shiftKey) {
       rotation = Math.round(rotation / 45) * 45;
     }
 
-    updateObject(object.id, {
+    const updates: any = {
       rotation: Math.round(rotation)
-    });
+    };
 
+    // Apply final scale if changed
+    if (scaleX !== 1 || scaleY !== 1) {
+      const avgScale = (scaleX + scaleY) / 2;
+      updates.sideLength = Math.round(baseSideLength * avgScale);
+      updates.width = Math.round(object.width * scaleX);
+      updates.height = Math.round(object.height * scaleY);
+      
+      // If custom vertices exist, scale them too
+      if (customVertices.length === sides) {
+        updates.customVertices = customVertices.map(v => ({
+          x: v.x * avgScale,
+          y: v.y * avgScale
+        }));
+      }
+      
+      // Reset scale
+      node.scaleX(1);
+      node.scaleY(1);
+    }
+
+    updateObject(object.id, updates);
     setTimeout(() => saveHistoryNow(), 300);
   };
 
@@ -270,15 +313,22 @@ const PolygonShape: React.FC<PolygonShapeProps> = ({ object, isSelected }) => {
       ))}
       </Group>
       
-      {/* Transformer for rotation handles */}
+      {/* Transformer for rotation and resize handles */}
       {isSelected && !isDraggingVertex && (
         <Transformer
           ref={transformerRef}
           rotateEnabled={true}
-          resizeEnabled={false}
-          borderEnabled={false}
+          resizeEnabled={true}
+          borderEnabled={true}
+          borderStroke="#3b82f6"
+          borderStrokeWidth={2}
           anchorSize={8}
+          anchorStroke="#3b82f6"
+          anchorFill="#ffffff"
+          anchorCornerRadius={2}
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          keepRatio={false}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'middle-right', 'bottom-center', 'middle-left']}
         />
       )}
     </>
