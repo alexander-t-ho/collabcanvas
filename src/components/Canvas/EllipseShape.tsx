@@ -6,9 +6,11 @@ import { CanvasObject } from '../../types';
 interface EllipseShapeProps {
   object: CanvasObject;
   isSelected: boolean;
+  onDrag?: (position: { x: number; y: number }) => void;
+  onDragEnd?: () => void;
 }
 
-const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
+const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected, onDrag, onDragEnd }) => {
   const { updateObject, saveHistoryNow, selectObject } = useCanvas();
   const groupRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
@@ -100,11 +102,21 @@ const EllipseShape: React.FC<EllipseShapeProps> = ({ object, isSelected }) => {
         rotation={object.rotation || 0}
         draggable
         onClick={handleClick}
+        onDragMove={(e) => {
+          if (onDrag) {
+            onDrag({ x: e.target.x(), y: e.target.y() });
+          }
+        }}
         onDragEnd={(e) => {
           updateObject(object.id, {
             x: Math.round(e.target.x()),
             y: Math.round(e.target.y())
           });
+          
+          if (onDragEnd) {
+            onDragEnd();
+          }
+          
           setTimeout(() => saveHistoryNow(), 300);
         }}
         onTransform={handleTransform}

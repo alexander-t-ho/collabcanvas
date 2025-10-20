@@ -706,6 +706,11 @@ const Canvas: React.FC = () => {
                       key={obj.id}
                       object={obj}
                       isSelected={selectedIds.includes(obj.id)}
+                      onDrag={(position) => {
+                        const guides = generateAlignmentGuides(obj, position);
+                        setAlignmentGuides(guides);
+                      }}
+                      onDragEnd={() => setAlignmentGuides([])}
                     />
                   );
                 }
@@ -717,6 +722,11 @@ const Canvas: React.FC = () => {
                       key={obj.id}
                       object={obj}
                       isSelected={selectedIds.includes(obj.id)}
+                      onDrag={(position) => {
+                        const guides = generateAlignmentGuides(obj, position);
+                        setAlignmentGuides(guides);
+                      }}
+                      onDragEnd={() => setAlignmentGuides([])}
                     />
                   );
                 }
