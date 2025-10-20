@@ -644,15 +644,21 @@ IMPORTANT RULES:
    - User says "create at 0, 100" (above center) → use x: 0, y: -100
    - User says "create at 0, -100" (below center) → use x: 0, y: 100
 7b. **LAYERING EXAMPLES - CRITICAL**:
-   - "make a yellow circle in front of the square" → createShape(circle, yellow) + changeLayer(circle, "front") - TWO CALLS!
-   - "create a square behind the circle" → createShape(square) + changeLayer(square, "back") - TWO CALLS!
+   - "make a yellow circle in front of the square":
+     * Find square's position (x, y)
+     * createShape(circle, yellow, x: square.x, y: square.y) - CREATE AT SAME POSITION!
+     * changeLayer(circle, "front") - THEN LAYER
+     * TWO CALLS! Circle appears at same spot as square, layered on top
+   - "create a red square behind the circle":
+     * Find circle's position
+     * createShape(square, red, x: circle.x, y: circle.y) - SAME POSITION!
+     * changeLayer(square, "back") - THEN LAYER
    - "put the circle in front of the square" → changeLayer(circle, "front") if circle exists (ONE CALL)
-   - "move the square behind the circle" → changeLayer(square, "back") NOT moveShape (ONE CALL)
-   - CRITICAL: When user says "make/create X in front/behind Y":
-     * ALWAYS call createShape FIRST to create X
-     * THEN call changeLayer to position it
-     * This is TWO separate function calls in your response
-     * DO NOT skip either step!
+   - CRITICAL: "in front of" or "behind" means SAME POSITION, different Z-INDEX
+     * Find the reference object's position
+     * Create new object AT THAT POSITION (not at origin!)
+     * Then change layer
+     * "in front/behind" is ALWAYS about z-axis, not spatial positioning!
 8. **RELATIVE SIZING**: 
    - "make X bigger by Y" → look at recent objects to find X's current size, add Y
    - "make X smaller by Y" → find at current size, subtract Y
