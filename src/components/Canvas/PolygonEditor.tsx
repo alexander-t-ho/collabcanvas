@@ -26,7 +26,9 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
     const clampedSides = Math.max(3, Math.min(64, newSides));
     updateObject(object.id, {
       sides: clampedSides,
-      customSideLengths: [] // Reset custom lengths when changing sides
+      customSideLengths: [], // Reset custom lengths when changing sides
+      customAngles: [], // Reset custom angles
+      customVertices: [] // Reset custom vertices (this will destroy star/heart!)
     });
   };
 
@@ -131,6 +133,11 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
             fontWeight: '500'
           }}>
             Number of Sides (3-64)
+            {object.customVertices && object.customVertices.length > 0 && (
+              <span style={{ color: '#f59e0b', fontSize: '10px', marginLeft: '8px' }}>
+                ⚠️ Custom Shape
+              </span>
+            )}
           </label>
           <input
             type="number"
@@ -142,7 +149,14 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
               if (value === '') return; // Allow empty for editing
               const num = parseInt(value);
               if (!isNaN(num)) {
-                handleSidesChange(num);
+                // Warn if changing sides on custom shape
+                if (object.customVertices && object.customVertices.length > 0) {
+                  if (window.confirm('Changing sides will reset your custom shape (star/heart). Continue?')) {
+                    handleSidesChange(num);
+                  }
+                } else {
+                  handleSidesChange(num);
+                }
               }
             }}
             onBlur={() => {
@@ -150,21 +164,27 @@ const PolygonEditor: React.FC<Props> = ({ object }) => {
               if (sides < 3) handleSidesChange(3);
               if (sides > 64) handleSidesChange(64);
             }}
+            disabled={object.customVertices && object.customVertices.length > 0}
             style={{
               width: '100%',
               padding: '8px',
               border: '1px solid #d1d5db',
               borderRadius: '4px',
               fontSize: '13px',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              opacity: object.customVertices && object.customVertices.length > 0 ? 0.5 : 1,
+              cursor: object.customVertices && object.customVertices.length > 0 ? 'not-allowed' : 'text'
             }}
           />
           <p style={{ 
             margin: '4px 0 0 0', 
             fontSize: '10px', 
-            color: '#9ca3af'
+            color: object.customVertices && object.customVertices.length > 0 ? '#f59e0b' : '#9ca3af'
           }}>
-            Triangle (3), Square (4), Pentagon (5), Hexagon (6), etc.
+            {object.customVertices && object.customVertices.length > 0 
+              ? '⚠️ Custom shapes have fixed vertices. Use "Reset to Regular Polygon" first.'
+              : 'Triangle (3), Square (4), Pentagon (5), Hexagon (6), etc.'
+            }
           </p>
         </div>
 

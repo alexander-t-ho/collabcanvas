@@ -53,43 +53,52 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const createHeart = () => {
     if (!currentUser) return;
     
-    // Create heart using polygon with many vertices for smooth curves
+    // Create heart using polygon with many vertices for ultra-smooth curves
     const heartVertices: Array<{ x: number; y: number }> = [];
-    const scale = 1;
     
-    // Left half of heart (from top center, going left and down)
-    const leftPoints = [
-      { x: 0, y: -60 * scale },       // Top center dip
-      { x: -15, y: -75 * scale },     // Left top curve start
-      { x: -35, y: -85 * scale },     // Left top curve
-      { x: -55, y: -80 * scale },     // Left top outer
-      { x: -70, y: -65 * scale },     // Left outer curve
-      { x: -75, y: -45 * scale },     // Left side top
-      { x: -75, y: -25 * scale },     // Left side mid
-      { x: -70, y: -5 * scale },      // Left side bottom start
-      { x: -60, y: 10 * scale },      // Left bottom curve
-      { x: -45, y: 25 * scale },      // Left bottom mid
-      { x: -30, y: 38 * scale },      // Approaching bottom point
-      { x: -15, y: 50 * scale },      // Near bottom point
-      { x: 0, y: 65 * scale }         // Bottom point
-    ];
+    // Generate smooth heart curve using parametric equations
+    // Left lobe (top left curve)
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      const angle = Math.PI * (1 - t * 0.5); // From PI to PI/2
+      const radius = 40;
+      const offsetX = -35;
+      heartVertices.push({
+        x: offsetX + Math.cos(angle) * radius,
+        y: -50 + Math.sin(angle) * radius
+      });
+    }
     
-    // Right half of heart (mirror of left, going right and up)
-    const rightPoints = [
-      { x: 15, y: 50 * scale },       // Near bottom point
-      { x: 30, y: 38 * scale },       // Approaching bottom point
-      { x: 45, y: 25 * scale },       // Right bottom mid
-      { x: 60, y: 10 * scale },       // Right bottom curve
-      { x: 70, y: -5 * scale },       // Right side bottom start
-      { x: 75, y: -25 * scale },      // Right side mid
-      { x: 75, y: -45 * scale },      // Right side top
-      { x: 70, y: -65 * scale },      // Right outer curve
-      { x: 55, y: -80 * scale },      // Right top outer
-      { x: 35, y: -85 * scale },      // Right top curve
-      { x: 15, y: -75 * scale }       // Right top curve start
-    ];
+    // Left bottom curve to point
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
+      const x = -35 + t * 35; // -35 to 0
+      const y = -10 + t * 75; // -10 to 65
+      heartVertices.push({ x, y });
+    }
     
-    heartVertices.push(...leftPoints, ...rightPoints);
+    // Right bottom curve from point
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
+      const x = t * 35; // 0 to 35
+      const y = 65 - t * 75; // 65 to -10
+      heartVertices.push({ x, y });
+    }
+    
+    // Right lobe (top right curve)
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      const angle = Math.PI / 2 + t * Math.PI * 0.5; // From PI/2 to PI
+      const radius = 40;
+      const offsetX = 35;
+      heartVertices.push({
+        x: offsetX + Math.cos(angle) * radius,
+        y: -50 + Math.sin(angle) * radius
+      });
+    }
+    
+    // Top dip (connect right to left)
+    heartVertices.push({ x: 0, y: -60 });
     
     addObject({
       type: 'polygon',
@@ -298,10 +307,16 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
                     <span style={{ fontSize: '9px', opacity: 0.8 }}>({preset.sides})</span>
                   </>
                 )}
-                {preset.isSpecial && (
+                {preset.isSpecial && preset.name === 'Star' && (
                   <>
                     <br />
-                    <span style={{ fontSize: '9px', opacity: 0.8 }}>⭐</span>
+                    <span style={{ fontSize: '14px' }}>⭐</span>
+                  </>
+                )}
+                {preset.isSpecial && preset.name === 'Heart' && (
+                  <>
+                    <br />
+                    <span style={{ fontSize: '14px' }}>❤️</span>
                   </>
                 )}
               </button>
