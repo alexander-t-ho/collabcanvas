@@ -365,7 +365,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setObjects = useCallback((newObjects: CanvasObject[]) => {
     // Skip updates during undo/redo to prevent bouncing
     if (isUndoRedo) {
-      // console.log('REALTIME SYNC: Skipping update during undo/redo');
+      console.log('⏸️ REALTIME SYNC: Skipping update during undo/redo');
+      return;
+    }
+    
+    // Also skip if undo/redo happened recently
+    const timeSinceLastUndoRedo = Date.now() - lastUndoRedoTime.current;
+    if (timeSinceLastUndoRedo < 2000) {
+      console.log('⏸️ REALTIME SYNC: Skipping update (recent undo/redo -', timeSinceLastUndoRedo, 'ms ago)');
       return;
     }
     
@@ -374,6 +381,8 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newJson = JSON.stringify(newObjects);
       
       if (prevJson === newJson) return prev;
+      
+      console.log('🔄 REALTIME SYNC: Updating objects from Firestore');
       
       // Save to history after objects update from realtime sync
       // This captures changes from other users
