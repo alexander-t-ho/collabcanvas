@@ -9,13 +9,14 @@ interface PolygonDialogProps {
 const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
   const { addObject } = useCanvas();
   const { currentUser } = useAuth();
-  const [sides, setSides] = useState(6);
+  const [sides, setSides] = useState<number | ''>(6);
 
   const handleCreate = () => {
     if (!currentUser) return;
 
     // Clamp sides between 3 and 64
-    const clampedSides = Math.max(3, Math.min(64, sides));
+    const currentValue = sides === '' ? 3 : sides;
+    const clampedSides = Math.max(3, Math.min(64, currentValue as number));
 
     addObject({
       type: 'polygon',
@@ -96,21 +97,20 @@ const PolygonDialog: React.FC<PolygonDialogProps> = ({ onClose }) => {
             value={sides}
             onChange={(e) => {
               const value = e.target.value;
-              if (value === '' || value === '0') {
-                setSides(3); // Default to 3 only if empty or 0
+              if (value === '') {
+                setSides('' as any); // Allow empty string for easier editing
               } else {
                 const num = parseInt(value);
                 if (!isNaN(num)) {
-                  setSides(num); // Allow any number, will clamp on create
+                  setSides(num);
                 }
               }
             }}
             onBlur={(e) => {
               // Clamp on blur and reset border color
-              const clamped = Math.max(3, Math.min(64, sides));
-              if (clamped !== sides) {
-                setSides(clamped);
-              }
+              const currentValue = sides === '' ? 3 : sides;
+              const clamped = Math.max(3, Math.min(64, currentValue as number));
+              setSides(clamped);
               e.currentTarget.style.borderColor = '#d1d5db';
             }}
             onFocus={(e) => {
