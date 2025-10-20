@@ -29,15 +29,22 @@ const EllipseEditor: React.FC<Props> = ({ object }) => {
 
   const handleConvertToCircle = () => {
     const avgRadius = (radiusX + radiusY) / 2;
-    updateObject(object.id, {
+    const diameter = avgRadius * 2;
+    
+    // Create a proper circle object by removing ellipse-specific properties
+    const updates: any = {
       type: 'circle',
-      width: avgRadius * 2,
-      height: avgRadius * 2,
-      radiusX: undefined,
-      radiusY: undefined,
-      focus1: undefined,
-      focus2: undefined
-    });
+      width: diameter,
+      height: diameter
+    };
+    
+    // Remove ellipse properties
+    delete updates.radiusX;
+    delete updates.radiusY;
+    delete updates.focus1;
+    delete updates.focus2;
+    
+    updateObject(object.id, updates);
   };
 
   const handleMoveUp = () => {
