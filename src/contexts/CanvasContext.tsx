@@ -459,17 +459,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
       
-      syncToFirestore().then(() => {
-        // Clear flag and unlock immediately after Firestore sync completes
-        // This allows rapid undo clicks while still preventing history saves during sync
-        setIsUndoRedo(false);
-        undoLockRef.current = false; // Unlock after sync completes
-        console.log('🔓 UNDO: Unlocked (sync complete)');
-      }).catch((error) => {
-        console.error('❌ UNDO: Sync error:', error);
-        setIsUndoRedo(false);
-        undoLockRef.current = false;
-      });
+      // Wait for sync to complete, then unlock after a brief delay
+      await syncToFirestore();
+      
+      // Brief delay to ensure Firestore changes propagate
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Now unlock and clear flag
+      setIsUndoRedo(false);
+      undoLockRef.current = false;
+      console.log('🔓 UNDO: Unlocked (sync complete)');
       
       console.log('✅ UNDO: Complete');
     } catch (error) {
@@ -548,16 +547,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
       
-      syncToFirestore().then(() => {
-        // Clear flag and unlock after sync completes
-        setIsUndoRedo(false);
-        undoLockRef.current = false;
-        console.log('🔓 REDO: Unlocked (sync complete)');
-      }).catch((error) => {
-        console.error('❌ REDO: Sync error:', error);
-        setIsUndoRedo(false);
-        undoLockRef.current = false;
-      });
+      // Wait for sync to complete, then unlock after a brief delay
+      await syncToFirestore();
+      
+      // Brief delay to ensure Firestore changes propagate
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Now unlock and clear flag
+      setIsUndoRedo(false);
+      undoLockRef.current = false;
+      console.log('🔓 REDO: Unlocked (sync complete)');
       
       console.log('✅ REDO: Complete');
     } catch (error) {
