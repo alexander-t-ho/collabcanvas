@@ -163,7 +163,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Debounce: only save after 500ms of no changes
       saveHistoryTimeoutRef.current = setTimeout(doSave, 500);
     }
-  }, [isUndoRedo]);
+  }, [isUndoRedo, lastUndoRedoTime]);
   
   // Force save history immediately
   const saveHistoryNow = useCallback(() => {
