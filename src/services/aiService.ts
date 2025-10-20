@@ -613,12 +613,13 @@ IMPORTANT RULES:
 5. When creating multiple objects in one command, space them 150-200 pixels apart
 6. For UI elements (login forms, nav bars, cards), use createComplex
 6c. **CUSTOM SHAPES - USE TEMPLATES FIRST**:
-   - For these shapes, use createCustomShape: cloud, sun, star, castle, smiley
+   - For these shapes, use createCustomShape: cloud, sun, star, castle, smiley, fish
    - "draw a sun" → createCustomShape with shapeName: "sun"
    - "make a cloud" → createCustomShape with shapeName: "cloud"
    - "create a star" → createCustomShape with shapeName: "star"
    - "build a castle" → createCustomShape with shapeName: "castle"
    - "draw a smiley face" → createCustomShape with shapeName: "smiley"
+   - "make a fish" → createCustomShape with shapeName: "fish"
 6c2. **CUSTOM SHAPES - FLEXIBLE APPROACH**:
    - For ANY other complex shape, break it down into basic shapes (circles, rectangles, polygons, lines)
    - You can create ANY shape by combining basics, then use createGroup to group them

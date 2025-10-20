@@ -881,6 +881,160 @@ const ChatWindow: React.FC = () => {
                   createdBy: currentUser.uid
                 });
               }
+            } else if (shapeName.includes('fish')) {
+              // Create a simple fish like the example image
+              const fishColor = action.data.color || '#000000';
+              const fishNicknames: string[] = [];
+              
+              // Body (ellipse or circle)
+              await addObject({
+                type: 'ellipse',
+                x: shapeX,
+                y: shapeY,
+                width: 100 * shapeScale,
+                height: 70 * shapeScale,
+                radiusX: 50 * shapeScale,
+                radiusY: 35 * shapeScale,
+                fill: fishColor,
+                nickname: 'Fish Body',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              fishNicknames.push('Fish Body');
+              
+              // Tail (triangle using polygon)
+              const tailVertices = [
+                { x: -60 * shapeScale, y: -30 * shapeScale },
+                { x: -90 * shapeScale, y: 0 },
+                { x: -60 * shapeScale, y: 30 * shapeScale }
+              ];
+              
+              await addObject({
+                type: 'polygon',
+                x: shapeX,
+                y: shapeY,
+                width: 30 * shapeScale,
+                height: 60 * shapeScale,
+                fill: fishColor,
+                sides: 3,
+                sideLength: 40,
+                customVertices: tailVertices,
+                nickname: 'Fish Tail',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              fishNicknames.push('Fish Tail');
+              
+              // Top fin (triangle)
+              const topFinVertices = [
+                { x: -10 * shapeScale, y: -35 * shapeScale },
+                { x: 10 * shapeScale, y: -35 * shapeScale },
+                { x: 0, y: -60 * shapeScale }
+              ];
+              
+              await addObject({
+                type: 'polygon',
+                x: shapeX,
+                y: shapeY,
+                width: 20 * shapeScale,
+                height: 25 * shapeScale,
+                fill: fishColor,
+                sides: 3,
+                sideLength: 20,
+                customVertices: topFinVertices,
+                nickname: 'Fish Top Fin',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              fishNicknames.push('Fish Top Fin');
+              
+              // Bottom fin (triangle)
+              const bottomFinVertices = [
+                { x: -10 * shapeScale, y: 35 * shapeScale },
+                { x: 10 * shapeScale, y: 35 * shapeScale },
+                { x: 0, y: 60 * shapeScale }
+              ];
+              
+              await addObject({
+                type: 'polygon',
+                x: shapeX,
+                y: shapeY,
+                width: 20 * shapeScale,
+                height: 25 * shapeScale,
+                fill: fishColor,
+                sides: 3,
+                sideLength: 20,
+                customVertices: bottomFinVertices,
+                nickname: 'Fish Bottom Fin',
+                zIndex: objects.length,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              fishNicknames.push('Fish Bottom Fin');
+              
+              // Eye (small circle)
+              await addObject({
+                type: 'circle',
+                x: shapeX + 25 * shapeScale,
+                y: shapeY - 10 * shapeScale,
+                width: 10 * shapeScale,
+                height: 10 * shapeScale,
+                fill: '#000000',
+                nickname: 'Fish Eye',
+                zIndex: objects.length + 1,
+                shadow: false,
+                createdBy: currentUser.uid
+              });
+              fishNicknames.push('Fish Eye');
+              
+              // Auto-group the fish
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              try {
+                const objectsRef = collection(db, 'canvases', CANVAS_ID, 'objects');
+                const snapshot = await getDocs(objectsRef);
+                const allObjects: CanvasObject[] = [];
+                
+                snapshot.forEach((doc) => {
+                  const data = doc.data();
+                  allObjects.push({ id: doc.id, ...data } as CanvasObject);
+                });
+                
+                const foundObjects = allObjects.filter(obj => fishNicknames.includes(obj.nickname || ''));
+                
+                if (foundObjects.length >= 2) {
+                  const objectIds = foundObjects.map(o => o.id);
+                  const minX = Math.min(...foundObjects.map(obj => obj.x - (obj.width || 0) / 2));
+                  const maxX = Math.max(...foundObjects.map(obj => obj.x + (obj.width || 0) / 2));
+                  const minY = Math.min(...foundObjects.map(obj => obj.y - (obj.height || 0) / 2));
+                  const maxY = Math.max(...foundObjects.map(obj => obj.y + (obj.height || 0) / 2));
+                  
+                  const padding = 10;
+                  const groupWidth = (maxX - minX) + padding * 2;
+                  const groupHeight = (maxY - minY) + padding * 2;
+                  const groupCenterX = (minX + maxX) / 2;
+                  const groupCenterY = (minY + maxY) / 2;
+                  
+                  await addObject({
+                    type: 'group',
+                    x: groupCenterX,
+                    y: groupCenterY,
+                    width: groupWidth,
+                    height: groupHeight,
+                    fill: 'transparent',
+                    groupedObjects: objectIds,
+                    nickname: 'Fish',
+                    zIndex: Math.max(...foundObjects.map(obj => obj.zIndex || 0)) + 1,
+                    shadow: false,
+                    createdBy: currentUser.uid
+                  });
+                }
+              } catch (error) {
+                console.error('Error grouping fish:', error);
+              }
             } else if (shapeName.includes('smiley') || shapeName.includes('smile') || shapeName.includes('happy face')) {
               // Create a smiley face using circle and curved lines
               const faceColor = action.data.color || '#FFD700';
