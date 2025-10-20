@@ -174,11 +174,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addObject = useCallback(async (object: Omit<CanvasObject, 'id' | 'createdAt' | 'lastModified'>) => {
     if (!currentUser) return;
     
+    // Ensure required fields are present
     const newObject: CanvasObject = {
       ...object,
       id: generateId(),
       createdAt: Date.now(),
-      lastModified: Date.now()
+      lastModified: Date.now(),
+      width: object.width || 100,
+      height: object.height || 100
     };
     
     try {
