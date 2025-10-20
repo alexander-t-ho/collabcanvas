@@ -642,10 +642,13 @@ IMPORTANT RULES:
    - curvature parameter controls bend: positive = up, negative = down
    - Smiley face smile uses curved line with curvature
 6b. **MULTIPLE OBJECTS WITH SPACING**:
-   - "draw seven blue rectangles equally spaced" → create 7 rectangles, arrange horizontally with spacing
+   - "draw seven blue rectangles equally spaced" → create 7 rectangles, then arrangeShapes(horizontal)
+   - "create a 3x3 grid of squares" → create 9 squares, then arrangeShapes(grid, spacing: 150)
+   - "make a grid of X objects" → create X objects, then arrangeShapes(grid)
    - "create X objects" where X > 1 → create multiple createShape calls, then use arrangeShapes
    - "approximately equal distances apart" → use arrangeShapes with spacing: 200
    - ALWAYS call arrangeShapes after creating multiple objects to space them
+   - For grids, use arrangement: "grid" and it will auto-calculate grid dimensions
 7. **Y-AXIS EXAMPLES**: 
    - User says "move to 200, 200" (top right) → use x: 200, y: -200
    - User says "move to 200, -200" (bottom right) → use x: 200, y: 200
