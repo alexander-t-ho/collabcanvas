@@ -54,6 +54,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const historyIndexRef = useRef(0);
   const saveHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const undoLockRef = useRef(false); // Prevent rapid undo/redo clicks
+  const lastUndoRedoTime = useRef(0); // Track when last undo/redo happened
   const { currentUser } = useAuth();
 
   // Listen to history index changes from Firebase
@@ -93,6 +94,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const saveToHistory = useCallback((newObjects: CanvasObject[], immediate = false) => {
     if (isUndoRedo) {
       console.log('⏸️ SAVE_HISTORY: Skipped (undo/redo in progress)');
+      return;
+    }
+    
+    // Also skip if undo/redo happened within last 2 seconds
+    const timeSinceLastUndoRedo = Date.now() - lastUndoRedoTime.current;
+    if (timeSinceLastUndoRedo < 2000) {
+      console.log('⏸️ SAVE_HISTORY: Skipped (recent undo/redo -', timeSinceLastUndoRedo, 'ms ago)');
       return;
     }
     
@@ -391,8 +399,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
-    // Lock to prevent rapid clicks
+    // Lock to prevent rapid clicks and record timestamp
     undoLockRef.current = true;
+    lastUndoRedoTime.current = Date.now();
     
     try {
       // Get history from Firebase
@@ -451,12 +460,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       syncToFirestore().then(() => {
-        // Clear flag after all syncing completes - increased to 2000ms
-        setTimeout(() => {
-          setIsUndoRedo(false);
-          undoLockRef.current = false; // Unlock after completion
-          console.log('🔓 UNDO: Unlocked');
-        }, 2000); // Increased from 1000ms to give Firestore sync more time
+        // Clear flag and unlock immediately after Firestore sync completes
+        // This allows rapid undo clicks while still preventing history saves during sync
+        setIsUndoRedo(false);
+        undoLockRef.current = false; // Unlock after sync completes
+        console.log('🔓 UNDO: Unlocked (sync complete)');
+      }).catch((error) => {
+        console.error('❌ UNDO: Sync error:', error);
+        setIsUndoRedo(false);
+        undoLockRef.current = false;
       });
       
       console.log('✅ UNDO: Complete');
@@ -481,10 +493,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     console.log('📊 REDO: Current Index:', currentIndex);
     
-    // Lock to prevent rapid clicks
+    // Lock to prevent rapid clicks and record timestamp
     undoLockRef.current = true;
+    lastUndoRedoTime.current = Date.now();
     
-    try{
+    try {
       // Get history from Firebase
       const fbHistoryRef = dbRef(rtdb, `canvases/${CANVAS_ID}/history`);
       const snapshot = await get(fbHistoryRef);
@@ -536,12 +549,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       syncToFirestore().then(() => {
-        // Clear flag after all syncing completes - increased to 2000ms
-        setTimeout(() => {
-          setIsUndoRedo(false);
-          undoLockRef.current = false; // Unlock after completion
-          console.log('🔓 REDO: Unlocked');
-        }, 2000); // Increased from 1000ms to give Firestore sync more time
+        // Clear flag and unlock after sync completes
+        setIsUndoRedo(false);
+        undoLockRef.current = false;
+        console.log('🔓 REDO: Unlocked (sync complete)');
+      }).catch((error) => {
+        console.error('❌ REDO: Sync error:', error);
+        setIsUndoRedo(false);
+        undoLockRef.current = false;
       });
       
       console.log('✅ REDO: Complete');
