@@ -451,12 +451,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       syncToFirestore().then(() => {
-        // Clear flag after all syncing completes
+        // Clear flag after all syncing completes - increased to 2000ms
         setTimeout(() => {
           setIsUndoRedo(false);
           undoLockRef.current = false; // Unlock after completion
           console.log('🔓 UNDO: Unlocked');
-        }, 1000);
+        }, 2000); // Increased from 1000ms to give Firestore sync more time
       });
       
       console.log('✅ UNDO: Complete');
@@ -536,12 +536,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       syncToFirestore().then(() => {
-        // Clear flag after all syncing completes
+        // Clear flag after all syncing completes - increased to 2000ms
         setTimeout(() => {
           setIsUndoRedo(false);
           undoLockRef.current = false; // Unlock after completion
           console.log('🔓 REDO: Unlocked');
-        }, 1000);
+        }, 2000); // Increased from 1000ms to give Firestore sync more time
       });
       
       console.log('✅ REDO: Complete');
